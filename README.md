@@ -1,0 +1,123 @@
+# 포둥 · Podung
+
+임신부터 육아까지 가족이 함께 관리하는 한국어·영어 웹 앱입니다. 현재 구현 범위는 개발 로드맵의 **A → B1 → B2 → B3 및 B4 운영 기반, D의 수면·기저귀·성장·예방접종 기록**입니다. 외부 검증까지 마친 공개 서비스는 아닙니다.
+
+## 기술 스택과 구조
+
+Next.js 16 App Router, React 19, TypeScript, next-intl, Zod, Supabase PostgreSQL/Auth/Storage/Cron를 사용합니다. 공통 UI는 CSS 토큰과 Lucide 아이콘으로 구성합니다. Node.js 22와 npm, `package-lock.json`을 기준으로 설치합니다.
+
+- `src/app/`: 언어별 페이지, OAuth callback.
+- `src/features/`: 인증·가족·돌봄 기능과 Server Actions.
+- `src/lib/`: 날짜 규칙, Supabase 접근, 생성된 DB 타입.
+- `messages/`: 한국어·영어 메시지.
+- `supabase/migrations/`, `supabase/tests/`: 스키마·RPC·RLS와 pgTAP.
+- `tests/unit/`, `tests/e2e/`: Vitest와 Playwright.
+- [로드맵](docs/plans/podung-roadmap.md), [A·B1·B2 구현 현황](docs/implementation/stages-a-b1-b2.md), [B3·B4 구현 및 검증](docs/implementation/stages-b3-b4.md).
+
+## 로컬 실행
+
+Docker를 실행한 뒤 아래 명령을 순서대로 실행합니다.
+
+```sh
+npm ci
+npm run db:start
+npm run env:local
+npm run dev
+```
+
+앱은 `http://127.0.0.1:3187`, Supabase Studio는 `http://127.0.0.1:55323`입니다. 다른 로컬 프로젝트와 충돌하지 않도록 별도 포트를 사용합니다. `env:local`은 로컬 Supabase 키를 출력하지 않고 `.env.local`에 저장합니다. 기존 파일은 덮어쓰지 않습니다. 환경을 바꿀 때는 `.env.example`을 참고하십시오.
+
+UI는 소셜 로그인만 제공합니다. 테스트가 만드는 임시 비밀번호 계정은 로컬 E2E 전용이며 로그인 우회 기능은 없습니다. 실제 화면을 이용하려면 아래 OAuth 설정이 필요합니다.
+
+### 같은 공유기의 다른 기기에서 접속
+
+`127.0.0.1`은 각 기기 자신이므로 다른 기기에서는 앱을 실행하는 컴퓨터의 내부 IP를 사용합니다. `npm run dev`는 이 컴퓨터에서만 접속하는 기본 실행입니다. 내부 IP는 macOS에서 `ipconfig getifaddr en0`으로 확인합니다.
+
+기존 서버를 중지한 뒤 아래처럼 공유기용 실행을 시작합니다. 예시 IP는 2026-10-14 확인한 주소이며 네트워크가 바뀌면 다시 확인합니다.
+
+```sh
+NEXT_PUBLIC_SITE_URL=http://192.168.45.96:3187 npm run dev:lan
+```
+
+다른 기기의 브라우저에서도 `http://192.168.45.96:3187`로 접속합니다. Supabase의 Authentication → URL Configuration → Redirect URLs에 `http://192.168.45.96:3187/auth/callback**`를 추가해야 소셜 로그인 후 해당 기기로 돌아옵니다. Supabase 제공자 콜백 URL은 기존 것을 사용합니다. 기기마다 별도로 로그인하며 같은 계정 또는 가족 접근 권한을 사용하면 같은 DB 자료를 볼 수 있습니다. 위 실행은 `.env.local`을 변경하지 않고 실행 프로세스의 앱 주소만 바꿉니다. 개발 요청 허용 호스트도 해당 주소로 제한합니다.
+
+공식 안내: [Next.js 실행 호스트](https://nextjs.org/docs/app/api-reference/cli/next), [Supabase 로그인 복귀 주소](https://supabase.com/docs/guides/auth/redirect-urls).
+
+## 소셜 로그인 설정
+
+1. 개발·시험·운영 Supabase 프로젝트와 제공자 앱을 분리합니다. 운영 사이트 URL과 `/auth/callback`을 Supabase redirect 허용 목록에 등록합니다.
+2. Google과 Kakao는 Supabase Auth의 기본 제공자를 설정합니다. 제공자 앱의 callback은 **Supabase가 표시하는 Auth callback URL**이며, 앱의 `/auth/callback`과 구분합니다. Kakao는 닉네임(`profile_nickname`)만 요청합니다. 카카오 Developers에서 카카오 로그인을 ON으로 설정하고 닉네임 동의항목을 활성화하며, Supabase Kakao 설정의 **Allow users without an email**을 켭니다. 이메일·프로필 사진은 요청하지 않습니다. Supabase 기본 권한에 추가되는 `scopes` 대신 `queryParams.scope`로 요청 권한을 지정하며, Supabase 업데이트 후 실제 인증 URL의 `scope`를 다시 확인합니다.
+3. Naver는 식별자 `custom:naver`의 Custom OAuth2 제공자를 등록합니다. 인증 `https://nid.naver.com/oauth2.0/authorize`, 토큰 `https://nid.naver.com/oauth2.0/token`, 사용자 정보 URL은 배포된 포둥의 `https://<앱 도메인>/api/auth/naver/userinfo`로 설정합니다. 이 서버 어댑터가 네이버 `https://openapi.naver.com/v1/nid/me`에 토큰을 검증하고 중첩 `response.id`를 최상위 `sub`로 변환합니다. `email_optional=true`로 설정하며 이메일이나 생년월일은 수집하지 않습니다. Supabase 서버가 접근할 수 있는 HTTPS 시험 도메인이 필요합니다. 실제 프로젝트에서 매핑·토큰 교환이 동작하는지 확인하기 전에는 활성화하지 않습니다.
+4. 수동 identity linking을 활성화합니다. 연결·해제는 5분 이내의 현재 세션 JWT의 검증된 `amr` 로그인 시각과 사용자 확인을 요구하며, 마지막 로그인 수단은 해제할 수 없습니다. Supabase의 이메일 자동 연결 정책도 시험 환경에서 확인합니다.
+5. 설정과 실제 계정 검증이 끝난 제공자만 `NEXT_PUBLIC_AUTH_PROVIDERS=google,kakao,naver`에 추가합니다. 빈 값은 버튼을 비활성화합니다. client secret은 Supabase에 저장하며 저장소나 브라우저 환경 변수에 넣지 않습니다.
+
+참조: [Supabase Custom OAuth](https://supabase.com/docs/guides/auth/custom-oauth-providers), [Identity Linking](https://supabase.com/docs/guides/auth/auth-identity-linking), [네이버 API](https://developers.naver.com/docs/login/api/api.md). 네이버 호환성·실제 세 제공자 로그인은 아직 검증되지 않았습니다.
+
+## 검증과 DB 관리
+
+```sh
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run db:test
+npx playwright install chromium
+npm run test:local
+npm run backup:verify
+```
+
+`db:test`와 E2E는 실행 중인 로컬 Supabase가 필요합니다. E2E는 URL이 `127.0.0.1:55321`인 경우에만 실행되며 생성한 임시 가족·계정을 정리합니다. `npm run db:reset`은 **포둥 로컬 데이터 전체를 삭제**하고 마이그레이션과 초안을 다시 적용하므로 필요한 데이터는 먼저 백업하십시오. 스키마 변경 후 `npm run db:types`로 타입을 갱신합니다.
+
+운영 DB 적용은 별도 프로젝트 연결·검토 후 수행합니다. 일반 DB 요청은 RLS를 적용하는 사용자 키로 실행합니다. 비공개 커뮤니티 사진과 계정 삭제에는 동일 프로젝트의 서버 전용 `SUPABASE_SECRET_KEY`(또는 기존 `SUPABASE_SERVICE_ROLE_KEY`)가 추가로 필요합니다. Supabase 프로젝트 설정의 서버 키를 서버 환경에만 등록하고, 공개 환경 변수에는 넣지 않습니다. 콘텐츠는 출처·검토자·검토일이 확인되어야 게시할 수 있습니다.
+
+## B3·B4 실행 및 운영
+
+메뉴의 커뮤니티·오늘의 질문·알림·데이터 관리에서 새 기능을 이용합니다. 알림 설정을 처음 저장하면 앱 알림함과 분 단위 예약 작업을 사용합니다. 웹 푸시·문자 알림은 제공하지 않습니다. 운영자는 `/ko/operations`, `/ko/moderation`, `/ko/data`에서 질문·신고·작업 실패·이용 집계를 관리합니다. 운영자 지정은 신뢰할 수 있는 DB 관리자만 `community_moderators`에 대상 사용자의 UUID를 등록하여 수행합니다.
+
+기존 Supabase 프로젝트에는 마이그레이션 `004`–`018`를 적용해야 합니다. `009`는 아이별 먹이기 시간 설정, `011`은 폐기한 먹이기 종류 정리, `012`는 수면·기저귀·성장 기록과 비공개 사진, `013`은 예방접종 기록, `014`는 가족 거주지역, `015`는 한국 법정동 드롭다운과 지역 코드, `016`은 해외 확장을 위한 국가·지역 계층, `017`은 거주지역 기반 지역·동네·국가별 주제 게시판, `018`은 작성 중 주소 변경 시 게시 범위 확인을 추가합니다. CLI 로그인을 마치고 올바른 프로젝트를 연결한 뒤 적용합니다.
+
+```sh
+npx supabase login
+npx supabase link --project-ref <프로젝트-ID>
+npx supabase db push
+```
+
+프로젝트 ID는 Supabase URL의 첫 부분입니다. 실행 전 연결 대상과 대기 중인 마이그레이션 목록을 확인합니다. 로컬에는 `npx supabase db push --local`을 사용합니다. 2026-10-14 연결된 `mkybqrhjrpouxmxizmpt` 프로젝트는 `014`까지 적용했습니다. 테스트 자료는 로컬 DB에만 생성합니다.
+
+`npm run test:local`은 실행 중인 로컬 Supabase의 키를 테스트 프로세스에만 주입합니다. 기존 `.env.local`의 원격 프로젝트 설정을 보존합니다. `npm run operations:local`은 포둥 로컬 사진 정리·계정 삭제 작업을 실행하며, `npm run backup:verify`는 격리 임시 DB로 복원하여 원본과 비교합니다. 운영 삭제 작업자는 [운영 절차](docs/operations/data-and-backup.md)에 따라 예약 실행해야 합니다. DB 백업과 Storage 파일 백업은 별도로 관리합니다.
+
+B4의 30–50가족 4주 파일럿, 세 소셜 제공자의 실제 계정 시험, 전문가 콘텐츠 검수, 운영 프로젝트 백업 복원은 실제 운영에서 확인할 남은 항목입니다.
+
+### 다음 수유·이유식 시간
+
+돌봄 기록 화면의 **다음 먹이기 시간 설정**에서 먹이기 종류(수유·이유식)를 선택한 뒤 수유 간격(분), 이유식 하루 최대 3개 시각과 시간대를 저장합니다. 오늘 화면 상단의 독립 카드에 **다음 먹이기** 시간을 표시합니다. 표시 여부 체크박스 없이 간격을 저장하면 적용되며, 사용하지 않을 때는 간격을 비워 저장합니다. 설정은 `child_meal_plans`에 아이별로 저장되어 기기 간 유지되며, 해당 아이를 함께 돌보는 가족에게 공유됩니다. 조회 전용 보호자는 읽기만 가능합니다. 수유는 마지막 종료 시각에 설정한 간격을 더하고, 이유식은 다음 도래할 일일 시각을 표시합니다. 이 설정은 오늘 화면 안내용이며 기존 알림함의 전달 설정과 별개입니다.
+
+2026-10-13에 연결된 `mkybqrhjrpouxmxizmpt` 프로젝트에 `009`를 적용했습니다. 사용자 데이터는 수정하거나 테스트용 기록을 생성하지 않았습니다.
+
+### 먹이기 기록과 저장 단위
+
+오늘의 빠른 기록과 새 먹이기 기록은 모유 수유·분유·이유식 세 가지입니다. 시작 시각을 지정하고 먹인 시간(분)을 버튼으로 선택하면 종료 시각은 자동 계산해 저장합니다. 직접 모유 수유는 시간, 분유는 ml, 이유식은 g를 선택해 기록합니다. 자주 쓰는 값과 다른 값을 선택할 수 있으며 양을 모르면 ‘양 모름’을 선택해 NULL로 저장합니다. 음식 이름 입력은 제거했습니다. 기존 기록의 시간·양이 선택 목록 밖에 있어도 현재 값으로 유지하며, 이전 음식 이름 자료는 보존합니다. 오늘의 마지막 먹이기는 세 종류 중 가장 최근 기록입니다. 마이그레이션 011로 기존 유축·유축 모유·식사 기록과 연결된 알림을 삭제하고 식사 시간 설정 컬럼도 제거했습니다. 폐기한 종류의 새 저장은 DB에서 차단합니다.
+
+`010`은 기존 기록을 보존하면서 `amount_g`, `food_name`, `record_timezone`과 확장 저장 RPC를 추가합니다. 시간은 UTC로 저장하고 새 기록에 입력 시간대를 함께 남깁니다. 기존 기록의 미확인 시간대는 추정하지 않습니다. 2026-10-14 연결된 프로젝트에 적용했으며 통계 화면은 추가하지 않았습니다.
+
+### 수면·기저귀·성장 기록
+
+전체 서비스에서 세 서비스의 기록 목록을 열고 **기록하기**로 별도 작성 화면에 진입합니다. 수면은 낮잠·밤잠·타이머, 기저귀는 교체 종류·대변 관찰, 성장은 신체 측정·발달 일기·비공개 사진을 제공합니다. 마이그레이션 `012`가 필요하며 새 기록은 아이별 내보내기·삭제에 포함됩니다. 통계 그래프는 추가하지 않았습니다. [D 단계 구현 및 권한·운영 안내](docs/implementation/stage-d-child-care.md)를 참고하십시오.
+
+### 예방접종·독감
+
+전체 서비스에서 접종 예정·완료 기록과 공식 안내를 이용합니다. 백신·차수·접종일·병원·메모를 기록하며 독감은 절기별로 관리합니다. 예정 접종은 오늘과 일정 화면에도 표시됩니다. 마이그레이션 `013`이 필요합니다. [구현·공식 출처·권한 안내](docs/implementation/stage-d-vaccination.md)를 참고하십시오.
+
+### 일정·할 일 목록과 빠른 돌봄 기록
+
+일정과 할 일은 목록으로 관리하며 페이지를 넘겨 지난 기록과 날짜 없는 할 일도 확인합니다. 달력뷰는 사용자 요청으로 제거했습니다. 오늘 화면의 다가오는 일정과 접종 예정에는 사용자 시간대 기준으로 ‘오늘·내일·N일 후’를 표시합니다.
+
+오늘의 빠른 돌봄 기록은 모유·분유·이유식·수면·기저귀·배변·성장·발달의 6개 카드입니다. 권한이 있는 보호자는 작성 화면으로, 조회 전용 보호자는 해당 기록 목록으로 이동합니다. 별도의 ‘최근 돌봄’ 영역은 제거했습니다.
+
+### 가족 거주지역
+
+**우리 가족 → 가족이 사는 곳**에서 한국의 시·도 → 시·군·구 → 읍·면·동을 드롭다운으로 선택합니다. 동네별 커뮤니티 구성을 위해 국가 코드와 공식 법정동 코드를 함께 저장합니다. 같은 가족의 아이들이 공통으로 사용하며 소유자가 수정하고 가족 구성원이 조회합니다. 거주지역 삭제 후 저장하면 삭제됩니다. 마이그레이션 `014`–`016`이 필요합니다. 국가별 코드와 서로 다른 행정구역 단계 수를 지원하는 DB 구조를 준비했으며, 현재 화면과 활성 국가는 한국만 제공합니다. [저장 구조·권한·후속 서비스 연결 안내](docs/implementation/family-residence.md)를 참고하십시오.
+
+### 부모 커뮤니티 게시판
+
+가족 거주지역을 기준으로 같은 시·군·구의 지역 게시판과 같은 읍·면·동의 동네 게시판에 연결합니다. 주제별 게시판은 같은 국가에서 함께 이용합니다. 제목은 `강남구 게시판`·`역삼동 게시판`·`임신 게시판`처럼 짧게 표시합니다. 거주지역 미등록 시 우리 가족에서 먼저 등록합니다. 마이그레이션 `017`·`018`이 필요합니다. [게시판 구성·공유 범위](docs/implementation/community-home-boards.md)를 참고하십시오.

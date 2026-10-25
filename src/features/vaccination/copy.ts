@@ -1,0 +1,160 @@
+import type { Locale } from '@/lib/domain';
+export const vaccines = [
+  'bcg',
+  'hepb',
+  'dtap',
+  'polio',
+  'hib',
+  'pcv',
+  'rotavirus',
+  'mmr',
+  'varicella',
+  'hepa',
+  'je',
+  'hpv',
+  'influenza',
+  'other',
+] as const;
+export const names = {
+  ko: [
+    '결핵(BCG)',
+    'B형간염',
+    'DTaP / Tdap',
+    '폴리오(IPV)',
+    'Hib',
+    '폐렴구균',
+    '로타바이러스',
+    '홍역·유행성이하선염·풍진(MMR)',
+    '수두',
+    'A형간염',
+    '일본뇌염',
+    '사람유두종바이러스(HPV)',
+    '독감(인플루엔자)',
+    '기타·혼합백신',
+  ],
+  en: [
+    'Tuberculosis (BCG)',
+    'Hepatitis B',
+    'DTaP / Tdap',
+    'Polio (IPV)',
+    'Hib',
+    'Pneumococcal',
+    'Rotavirus',
+    'Measles, mumps & rubella (MMR)',
+    'Varicella',
+    'Hepatitis A',
+    'Japanese encephalitis',
+    'HPV',
+    'Influenza (flu)',
+    'Other / combination',
+  ],
+};
+const ko = {
+  title: '예방접종·독감',
+  planned: '접종 예정',
+  completed: '접종 완료',
+  guide: '공식 안내',
+  add: '접종 기록하기',
+  empty: '등록된 접종 기록이 없어요',
+  vaccine: '백신 종류',
+  custom: '백신 이름',
+  dose: '차수',
+  unknown: '미입력',
+  season: '독감 절기',
+  seasonHint: '예: 2026-2027. 확인한 절기를 입력하세요.',
+  status: '상태',
+  scheduled: '예정일',
+  done: '실제 접종일',
+  clinic: '병원·접종 기관',
+  note: '메모',
+  save: '저장하기',
+  cancel: '취소',
+  edit: '수정',
+  remove: '삭제',
+  confirm: '이 접종 기록을 삭제할까요?',
+  back: '기록 목록',
+  new: '접종 기록 작성',
+  editing: '접종 기록 수정',
+  readonly: '조회 전용 보호자는 기록을 볼 수만 있어요.',
+  history:
+    '가족이 직접 입력한 기록입니다. 공식 접종 이력은 예방접종도우미에서 확인하세요.',
+  next: '예정된 예방접종',
+  all: '전체 기록',
+  overdue: '예정일 지남',
+  nextPage: '다음',
+  previous: '이전',
+  guideTitle: '한국 예방접종 공식 안내',
+  guideBody:
+    '접종 종류와 일정은 질병관리청 표준 일정표에서 확인하세요. 백신 제품·이전 접종 이력에 따라 일정이 달라질 수 있으므로 의료기관에서 확인한 날짜를 기록하세요.',
+  fluTitle: '독감은 절기별로 확인해요',
+  fluBody:
+    '어린이 독감 접종은 생후 6개월부터 안내됩니다. 처음 접종하거나 이전 접종력이 불확실한 어린이는 2회 접종이 필요할 수 있어요. 올해 지원 대상·기간·접종 횟수는 공식 안내와 의료기관에서 확인하세요.',
+  scheduleLink: '표준 예방접종 일정표',
+  fluLink: '독감 예방접종 안내',
+  clinicLink: '독감 위탁의료기관 찾기',
+  verified: '출처: 질병관리청 예방접종도우미 · 확인일 2026-10-14',
+  region:
+    '한국 기준 안내입니다. 해외 접종 일정은 해당 국가 의료기관에서 확인하세요.',
+};
+const en: typeof ko = {
+  title: 'Vaccinations & flu',
+  planned: 'Planned',
+  completed: 'Completed',
+  guide: 'Official guidance',
+  add: 'Add vaccination',
+  empty: 'No vaccination records yet',
+  vaccine: 'Vaccine',
+  custom: 'Vaccine name',
+  dose: 'Dose number',
+  unknown: 'Not entered',
+  season: 'Flu season',
+  seasonHint: 'Example: 2026-2027. Enter the confirmed season.',
+  status: 'Status',
+  scheduled: 'Planned date',
+  done: 'Actual vaccination date',
+  clinic: 'Clinic / provider',
+  note: 'Note',
+  save: 'Save',
+  cancel: 'Cancel',
+  edit: 'Edit',
+  remove: 'Delete',
+  confirm: 'Delete this vaccination record?',
+  back: 'Records',
+  new: 'Add vaccination',
+  editing: 'Edit vaccination',
+  readonly: 'Read-only caregivers can view records only.',
+  history:
+    'These records are entered by your family. Check official records on the KDCA portal.',
+  next: 'Planned vaccinations',
+  all: 'All records',
+  overdue: 'Planned date passed',
+  nextPage: 'Next',
+  previous: 'Previous',
+  guideTitle: 'Official guidance for South Korea',
+  guideBody:
+    'Check the KDCA standard schedule for vaccine types and timing. Products and previous doses can affect the schedule. Record dates confirmed with your healthcare provider.',
+  fluTitle: 'Check flu guidance each season',
+  fluBody:
+    'Childhood flu vaccination guidance starts at six months of age. Children receiving their first flu vaccination or with an uncertain history may need two doses. Confirm this season’s eligibility, dates and doses with official guidance and your provider.',
+  scheduleLink: 'Standard vaccination schedule',
+  fluLink: 'Influenza vaccination guidance',
+  clinicLink: 'Find flu vaccination providers',
+  verified: 'Source: KDCA Immunization Helper · Checked 2026-10-14',
+  region:
+    'This guidance is for South Korea. For other countries, consult your local healthcare provider.',
+};
+export function vaccinationCopy(locale: Locale) {
+  return locale === 'ko' ? ko : en;
+}
+export function vaccineName(vaccine: string, custom: string, locale: Locale) {
+  return vaccine === 'other'
+    ? custom
+    : (names[locale][vaccines.indexOf(vaccine as (typeof vaccines)[number])] ??
+        vaccine);
+}
+export const sources = {
+  schedule:
+    'https://nip.kdca.go.kr/irhp/infm/goVcntInfo.do?menuCd=115&menuLv=1',
+  flu: 'https://nip.kdca.go.kr/irhp/infm/goVcntInfo.do?menuCd=1112&menuLv=1',
+  clinic: 'https://nip.kdca.go.kr/irhp/mngm/goVcntMngm.do?menuCd=333',
+};

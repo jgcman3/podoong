@@ -1,0 +1,8 @@
+{
+  "source": "https://www.code.go.kr/stdcode/regCodeL.do",
+  "download": "POST https://www.code.go.kr/etc/codeFullDown.do; codeseId=법정동코드",
+  "retrieved": "2026-10-15",
+  "utf8Sha256": "0bad68f9ba2c1cf2f23d82ddbe27abfa30b99ff54c4e26cbec36a6329fdd3e4a",
+  "localities": 5067,
+  "selection": "존재, 10-digit code ends in 00 but not 00000; 읍·면·동, excluding 리"
+}
