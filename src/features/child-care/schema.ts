@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export const childServices = ['sleep', 'diaper', 'growth'] as const;
+export const childServices = ['sleep', 'diaper', 'growth', 'activity'] as const;
 export type ChildService = (typeof childServices)[number];
 export function isChildService(value: string): value is ChildService {
   return childServices.includes(value as ChildService);
@@ -9,6 +9,15 @@ const amount = (max: number) =>
     .union([z.literal(''), z.coerce.number().positive().max(max)])
     .default('')
     .transform((value) => (value === '' ? null : value));
+export const activityKinds = [
+  'bath',
+  'hospital',
+  'temperature',
+  'medication',
+  'snack',
+  'play',
+  'tummy',
+] as const;
 const base = z.object({
   id: z.uuid(),
   childId: z.uuid(),
@@ -32,6 +41,16 @@ const base = z.object({
     }),
   note: z.string().max(2000).default(''),
   title: z.string().trim().max(200).default(''),
+  temperature: amount(45),
+  medicine: z.string().trim().max(200).default(''),
+  dose: amount(10000),
+  doseUnit: z
+    .enum(['', 'ml', 'mg', 'g', 'tablet', 'drop', 'packet'])
+    .default(''),
+  activityDuration: z
+    .union([z.literal(''), z.coerce.number().int().min(1).max(1440)])
+    .default('')
+    .transform((v) => (v === '' ? null : v)),
   height: amount(250),
   weight: amount(200),
   head: amount(100),
@@ -58,7 +77,23 @@ export const childRecordSchema = z
       service: z.literal('growth'),
       kind: z.enum(['measurement', 'observation']),
     }),
+    base.extend({
+      service: z.literal('activity'),
+      kind: z.enum(activityKinds),
+    }),
   ])
+  .refine(
+    (v) =>
+      v.service !== 'activity' ||
+      v.kind !== 'temperature' ||
+      (v.temperature !== null && v.temperature >= 30),
+  )
+  .refine(
+    (v) =>
+      v.service !== 'activity' ||
+      v.kind !== 'medication' ||
+      (v.medicine.length > 0 && v.dose !== null && v.doseUnit !== ''),
+  )
   .refine(
     (value) =>
       value.service !== 'sleep' ||
@@ -70,7 +105,7 @@ export const childRecordSchema = z
       value.service !== 'growth' ||
       (value.kind === 'measurement'
         ? value.height !== null || value.weight !== null || value.head !== null
-        : value.title.length > 0),
+        : true),
   );
 export function imageType(
   bytes: Uint8Array,

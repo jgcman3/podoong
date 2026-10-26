@@ -2,9 +2,11 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requireUser } from '@/lib/data';
+import { calendarReturn } from '@/features/care/calendar-return';
 import { vaccinationSchema } from './schema';
 export async function saveVaccination(form: FormData) {
   const locale = form.get('locale') === 'en' ? 'en' : 'ko';
+  const calendar = form.get('returnTo') === 'calendar';
   const parsed = vaccinationSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) {
     const child = z.uuid().safeParse(form.get('childId'));
@@ -36,6 +38,10 @@ export async function saveVaccination(form: FormData) {
     redirect(
       `/${locale}/vaccination/${v.version ? `${v.id}/edit` : 'new'}?child=${v.childId}&error=${result.error.message.includes('conflict') ? 'conflict' : result.error.code === '22023' ? 'invalid' : 'generic'}`,
     );
+  if (calendar)
+    redirect(
+      `${calendarReturn(locale, v.childId, v.status === 'completed' ? v.completed : v.scheduled)}&notice=saved`,
+    );
   redirect(`/${locale}/vaccination/${v.id}?child=${v.childId}&notice=saved`);
 }
 export async function deleteVaccination(form: FormData) {
@@ -46,6 +52,10 @@ export async function deleteVaccination(form: FormData) {
     redirect(`/${locale}/services/vaccination?error=invalid`);
   const { db } = await requireUser(locale);
   const r = await db.rpc('delete_vaccination_record', { p_id: id.data });
+  if (form.get('returnTo') === 'calendar')
+    redirect(
+      `${calendarReturn(locale, child.data, form.get('calendarDay'))}&${r.error ? 'error=generic' : 'notice=saved'}`,
+    );
   redirect(
     `/${locale}/services/vaccination?child=${child.data}&${r.error ? 'error=generic' : 'notice=saved'}`,
   );

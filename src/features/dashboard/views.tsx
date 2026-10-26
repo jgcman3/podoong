@@ -1,3 +1,6 @@
+import { loadDayAgenda } from '@/features/care/day-agenda-data';
+import { TaskCheckbox } from '@/features/care/task-checkbox';
+import { CalendarWorkspace } from '@/features/care/calendar-workspace';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import {
@@ -9,7 +12,6 @@ import {
   Clock,
   ArrowUpRight,
   CalendarDays,
-  Check,
   Plus,
   Sparkles,
   Heart,
@@ -18,28 +20,25 @@ import {
   Users,
   Grid2X2,
   ChevronRight,
+  Bell,
+  Database,
 } from 'lucide-react';
 import { Nest } from '@/components/nest';
 import { ConfirmButton } from '@/components/confirm-button';
 import type { CareContext } from '@/lib/data';
 import { services, preparationTitle, type Locale } from '@/lib/domain';
 import { RecordForm, Timer } from '@/features/care/record-form';
+import { QuickCare } from '@/features/care/quick-care';
+import { loadQuickTimeline } from '@/features/care/quick-data';
 import { ResidenceForm } from '@/features/family/residence-form';
-import { relativeDay } from '@/features/care/calendar-model';
-import { NextMeals } from '@/features/care/next-meals';
+import { calendarTitle, calendarKind } from '@/features/care/calendar-entry';
+import { LastCare } from '@/features/care/last-care';
 import { MealPlanEditor } from '@/features/care/meal-plan-editor';
 import { ChildRecordList } from '@/features/child-care/views';
-import {
-  VaccinationList,
-  UpcomingVaccinations,
-} from '@/features/vaccination/views';
+import { VaccinationList } from '@/features/vaccination/views';
 import { isChildService } from '@/features/child-care/schema';
-import {
-  quickFeedingKinds,
-  isFood,
-  isFeedingKind,
-} from '@/features/care/feeding-record';
-import { saveTask, addTemplates, deleteRecord } from '@/features/care/actions';
+import { isFood, isFeedingKind } from '@/features/care/feeding-record';
+import { addTemplates, deleteRecord } from '@/features/care/actions';
 import {
   TaskForm,
   EventForm,
@@ -79,11 +78,17 @@ export function formatTime(iso: string, locale: Locale, timezone: string) {
     timeZone: timezone,
   }).format(new Date(iso));
 }
-function PageHeading({ title, subtitle }: { title: string; subtitle: string }) {
+function PageHeading({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
   return (
     <div className="page-heading">
       <h1>{title}</h1>
-      <p>{subtitle}</p>
+      {subtitle && <p>{subtitle}</p>}
     </div>
   );
 }
@@ -148,38 +153,42 @@ export async function TaskList({
           className={`task-row ${task.status === 'done' ? 'completed' : ''}`}
           key={task.id}
         >
-          <div
-            className={`task-check ${task.status === 'done' ? 'checked' : ''}`}
-          >
-            {task.status === 'done' ? <Check size={15} /> : <span />}
-          </div>
+          <TaskCheckbox
+            task={task}
+            locale={locale}
+            childId={context.child.id}
+            writable={context.writable}
+            returnTo={compact ? 'today' : 'calendar'}
+          />
           <div className="task-main">
             <strong>{preparationTitle(task, locale)}</strong>
-            <div className="task-meta">
-              <span>{t(`serviceNames.${task.service}`)}</span>
-              <span
-                className={
-                  task.due_date &&
-                  task.due_date < context.today &&
-                  task.status === 'todo'
-                    ? 'overdue'
-                    : ''
-                }
-              >
-                {task.due_date ?? '—'}
-              </span>
-              <span>{t(task.source)}</span>
-              {task.assignee_id && (
-                <span>
-                  {t('assignee')}:{' '}
-                  {task.assignee_id === context.user.id
-                    ? t('me')
-                    : (context.caregivers.find(
-                        (m) => m.user_id === task.assignee_id,
-                      )?.display_name ?? t('formerMember'))}
+            {!compact && (
+              <div className="task-meta">
+                <span>{t(`serviceNames.${task.service}`)}</span>
+                <span
+                  className={
+                    task.due_date &&
+                    task.due_date < context.today &&
+                    task.status === 'todo'
+                      ? 'overdue'
+                      : ''
+                  }
+                >
+                  {task.due_date ?? '—'}
                 </span>
-              )}
-            </div>
+                <span>{t(task.source)}</span>
+                {task.assignee_id && (
+                  <span>
+                    {t('assignee')}:{' '}
+                    {task.assignee_id === context.user.id
+                      ? t('me')
+                      : (context.caregivers.find(
+                          (m) => m.user_id === task.assignee_id,
+                        )?.display_name ?? t('formerMember'))}
+                  </span>
+                )}
+              </div>
+            )}
             {!compact && context.writable && (
               <details className="edit-details">
                 <summary>{t('edit')}</summary>
@@ -193,33 +202,6 @@ export async function TaskList({
               </details>
             )}
           </div>
-          <span className={`badge ${task.status}`}>{t(task.status)}</span>
-          {context.writable && (
-            <form action={saveTask}>
-              <Hidden locale={locale} childId={context.child.id} id={task.id} />
-              <input type="hidden" name="title" value={task.title} />
-              <input type="hidden" name="service" value={task.service} />
-              <input type="hidden" name="date" value={task.due_date ?? ''} />
-              <input
-                type="hidden"
-                name="assignee"
-                value={task.assignee_id ?? ''}
-              />
-              <input
-                type="hidden"
-                name="status"
-                value={task.status === 'done' ? 'todo' : 'done'}
-              />
-              <button
-                className="round-button"
-                aria-label={
-                  task.status === 'done' ? t('reopen') : t('complete')
-                }
-              >
-                <Check size={17} />
-              </button>
-            </form>
-          )}
         </article>
       ))}
     </div>
@@ -227,215 +209,81 @@ export async function TaskList({
 }
 export async function Today({ context, locale }: Props) {
   const t = await getTranslations();
-  const { child, tasks, events, timezone, today } = context;
-  const [latestResult, milkResult, mealResult] = await Promise.all([
-    context.db
-      .from('care_records')
-      .select('*')
-      .eq('child_id', child.id)
-      .in('kind', quickFeedingKinds)
-      .order('started_at', { ascending: false })
-      .order('id', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    context.db
-      .from('care_records')
-      .select('*')
-      .eq('child_id', child.id)
-      .in('kind', ['breast', 'formula'])
-      .order('started_at', { ascending: false })
-      .order('id', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    context.db
-      .from('child_meal_plans')
-      .select('*')
-      .eq('child_id', child.id)
-      .maybeSingle(),
-  ]);
-  if (latestResult.error || milkResult.error)
-    throw new Error('Latest feeding unavailable');
-  const latest = latestResult.data;
-  if (mealResult.error && mealResult.error.code !== 'PGRST205')
-    throw new Error('Meal plan unavailable');
-  const mealPlan = mealResult.data
+  const { child, timezone, today } = context;
+  const now = new Date().toISOString();
+  const [feedingResult, diaperResult, sleepResult, quickEntries, agenda] =
+    await Promise.all([
+      context.db
+        .from('care_records')
+        .select('id,kind,started_at,ended_at,amount_ml,amount_g')
+        .eq('child_id', child.id)
+        .in('kind', ['breast', 'formula', 'solids'])
+        .lte('started_at', now)
+        .order('started_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      context.db
+        .from('child_records')
+        .select('id,kind,occurred_at,ended_at')
+        .eq('child_id', child.id)
+        .eq('service', 'diaper')
+        .lte('occurred_at', now)
+        .order('occurred_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      context.db
+        .from('child_records')
+        .select('id,kind,occurred_at,ended_at')
+        .eq('child_id', child.id)
+        .eq('service', 'sleep')
+        .lte('occurred_at', now)
+        .order('occurred_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      loadQuickTimeline(context),
+      loadDayAgenda(context),
+    ]);
+  if (feedingResult.error || diaperResult.error || sleepResult.error)
+    throw new Error('Latest care unavailable');
+  const activeSleep = quickEntries.find(
+    (entry) =>
+      entry.service === 'sleep' && entry.running && entry.startedAt <= now,
+  );
+  const latestSleep = activeSleep
     ? {
-        feedingMinutes: mealResult.data.feeding_minutes,
-        solids: mealResult.data.solids_times,
+        id: activeSleep.id,
+        kind: activeSleep.kind,
+        occurred_at: activeSleep.startedAt,
+        ended_at: null,
       }
-    : null;
-  const upcoming = events.filter((e) => e.date >= today).slice(0, 4);
-  const priority = tasks.filter((v) => v.status === 'todo').slice(0, 3);
+    : sleepResult.data;
   return (
     <>
-      <section className="today-hero">
-        <div>
-          <span className="eyebrow">YOUR FAMILY, YOUR PACE</span>
-          <h1>{t('hello')}</h1>
-          <p>{t('helloSub')}</p>
-          <Link
-            href={`/${locale}/family?child=${child.id}`}
-            className="hero-link"
-          >
-            <Users size={16} />
-            {t('invite')}
-            <ArrowUpRight size={16} />
-          </Link>
-        </div>
-        <Nest large />
-      </section>
-      <NextMeals
-        key={`${context.user.id}:${child.id}:${JSON.stringify(mealPlan)}`}
+      <h1 className="visually-hidden">{t('today')}</h1>
+      <LastCare
+        locale={locale}
+        timezone={timezone}
+        feeding={feedingResult.data}
+        diaper={diaperResult.data}
+        sleep={latestSleep}
+        now={now}
+      />
+      <QuickCare
+        key={child.id}
         locale={locale}
         childId={child.id}
-        plan={mealPlan}
-        available={!mealResult.error}
-        timezone={mealResult.data?.timezone ?? timezone}
-        latest={milkResult.data}
-        now={new Date().toISOString()}
+        entries={quickEntries}
+        writable={context.writable}
+        timezone={timezone}
+        today={today}
+        agenda={agenda}
       />
-      <div className="section-heading">
-        <h2>{t('quickRecord')}</h2>
-        <span>{t('quickRecordSub')}</span>
-      </div>
-      <div className="quick-grid">
-        {quickFeedingKinds.map((kind, index) => (
-          <Link
-            className={`quick-card quick-${index}`}
-            href={`/${locale}/records?child=${child.id}&kind=${kind}`}
-            key={kind}
-          >
-            <span className="quick-icon">
-              {isFood(kind) ? <Utensils size={23} /> : <Milk size={23} />}
-            </span>
-            <strong>{t(kind)}</strong>
-            <span className="quick-add">
-              <Plus size={18} />
-            </span>
-          </Link>
-        ))}
-        {(
-          [
-            ['sleep', Moon],
-            ['diaper', Baby],
-            ['growth', Ruler],
-          ] as const
-        ).map(([service, Icon], index) => (
-          <Link
-            className={`quick-card quick-${index}`}
-            key={service}
-            href={
-              context.writable
-                ? `/${locale}/care/${service}/new?child=${child.id}`
-                : `/${locale}/services/${service}?child=${child.id}`
-            }
-          >
-            <span className="quick-icon">
-              <Icon size={23} />
-            </span>
-            <strong>{t(`serviceNames.${service}`)}</strong>
-            <span className="quick-add">
-              <Plus size={18} />
-            </span>
-          </Link>
-        ))}
-      </div>
-      <div className="dashboard-grid">
-        <section className="panel task-panel">
-          <div className="panel-heading">
-            <h2>
-              <Check size={19} />
-              {t('topTasks')}
-            </h2>
-            <Link href={`/${locale}/calendar?child=${child.id}`}>
-              {t('allTasks')}
-              <ChevronRight size={15} />
-            </Link>
-          </div>
-          {priority.length ? (
-            <TaskList
-              context={context}
-              locale={locale}
-              tasks={priority}
-              compact
-            />
-          ) : (
-            <Empty title={t('noTasks')} subtitle={t('noTasksSub')} />
-          )}
-        </section>
-        <section className="panel last-panel">
-          <div className="panel-heading">
-            <h2>
-              <Clock size={19} />
-              {t('lastFeeding')}
-            </h2>
-          </div>
-          {latest ? (
-            <>
-              <div className="last-kind">{t(latest.kind)}</div>
-              <div className="last-time">
-                {formatTime(latest.started_at, locale, timezone)}
-              </div>
-              <div className="last-detail">
-                {(isFood(latest.kind) ? latest.amount_g : latest.amount_ml) !==
-                null
-                  ? `${isFood(latest.kind) ? latest.amount_g : latest.amount_ml} ${isFood(latest.kind) ? 'g' : 'ml'}`
-                  : latest.ended_at
-                    ? `${Math.round((Date.parse(latest.ended_at) - Date.parse(latest.started_at)) / 60000)} min`
-                    : t('running')}
-              </div>
-              <span className="small muted">
-                {t('author')}:{' '}
-                {latest.created_by === context.user.id
-                  ? context.profile.display_name
-                  : (context.caregivers.find(
-                      (m) => m.user_id === latest.created_by,
-                    )?.display_name ?? t('formerMember'))}
-              </span>
-            </>
-          ) : (
-            <Empty title={t('notYet')} />
-          )}
-        </section>
-      </div>
-      <section className="panel events-panel">
-        <div className="panel-heading">
-          <h2>
-            <CalendarDays size={19} />
-            {t('weekEvents')}
-          </h2>
-          <Link href={`/${locale}/calendar?child=${child.id}`}>
-            {t('allEvents')}
-            <ChevronRight size={15} />
-          </Link>
-        </div>
-        {upcoming.length ? (
-          <div className="event-grid">
-            {upcoming.map((e) => (
-              <article className="event-tile" key={e.id}>
-                <div className="event-date">
-                  <span>{e.date.slice(5, 7)}</span>
-                  <strong>{e.date.slice(8)}</strong>
-                </div>
-                <div>
-                  <strong>{e.title}</strong>
-                  <span className="event-countdown">
-                    {relativeDay(e.date, today, locale)}
-                  </span>
-                  <p>{e.note || t('manual')}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <Empty title={t('noEvents')} subtitle={t('noEventsSub')} />
-        )}
-      </section>
-      <UpcomingVaccinations context={context} locale={locale} />
       <div className="gentle-banner">
         <Heart size={23} />
         <div>
-          <strong>{t('helpTitle')}</strong>
           <p>{t('helpBody')}</p>
         </div>
       </div>
@@ -526,12 +374,10 @@ export async function Records({
                     </span>
                     {r.ended_at ? (
                       <span className="record-amount">
-                        {isFood(r.kind)
-                          ? r.amount_g != null
+                        {r.amount_ml !== null
+                          ? `${r.amount_ml} ml · `
+                          : r.amount_g !== null
                             ? `${r.amount_g} g · `
-                            : ''
-                          : r.amount_ml !== null
-                            ? `${r.amount_ml} ml · `
                             : ''}
                         {Math.round(
                           (Date.parse(r.ended_at) - Date.parse(r.started_at)) /
@@ -590,11 +436,30 @@ export async function Calendar({
   context,
   locale,
   service,
+  create,
+  edit,
+  month,
+  day,
 }: {
   context: CareContext;
   locale: Locale;
   service?: string;
+  create?: string;
+  edit?: string;
+  month?: string;
+  day?: string;
 }) {
+  if (!service)
+    return (
+      <CalendarWorkspace
+        context={context}
+        locale={locale}
+        create={create}
+        edit={edit}
+        month={month}
+        day={day}
+      />
+    );
   const t = await getTranslations();
   const tasks = service
     ? context.tasks.filter((v) => v.service === service)
@@ -602,16 +467,16 @@ export async function Calendar({
   return (
     <>
       <PageHeading
-        title={service ? t(`serviceNames.${service}`) : t('calendar')}
+        title={t(`serviceNames.${service}`)}
         subtitle={t('prepSub')}
       />
       {!context.writable && <div className="flash">{t('readonly')}</div>}
       <div className="two-column">
         <section className="panel">
           <div className="panel-heading">
-            <h2>{t('topTasks')}</h2>
+            <h2>{t('requiredTasks')}</h2>
           </div>
-          {context.writable && (
+          {context.writable && service && (
             <details className="add-details">
               <summary>
                 <Plus size={17} />
@@ -639,7 +504,7 @@ export async function Calendar({
           <div className="panel-heading">
             <h2>{t('weekEvents')}</h2>
           </div>
-          {context.writable && (
+          {context.writable && service && (
             <details className="add-details">
               <summary>
                 <Plus size={17} />
@@ -650,11 +515,33 @@ export async function Calendar({
           )}
           {context.events.length ? (
             context.events.map((e) => (
-              <article className="calendar-event" key={e.id}>
-                <strong>{e.title}</strong>
-                <span className="badge">{e.date}</span>
-                <p>{e.note}</p>
-                {context.writable && (
+              <article
+                className={`calendar-event calendar-kind-${e.event_kind}`}
+                key={`${e.source}:${e.id}`}
+              >
+                <strong>
+                  {e.source === 'vaccination' ? (
+                    <Link
+                      href={`/${locale}/vaccination/${e.id}?child=${context.child.id}`}
+                    >
+                      {calendarTitle(e, locale)}
+                    </Link>
+                  ) : (
+                    calendarTitle(e, locale)
+                  )}
+                </strong>
+                <span className="badge">
+                  {e.date}
+                  {e.event_time ? ` · ${e.event_time.slice(0, 5)}` : ''}
+                </span>
+                <span className="badge">
+                  {calendarKind(e.event_kind, locale)}
+                  {e.status === 'completed'
+                    ? ` · ${locale === 'ko' ? '완료' : 'Done'}`
+                    : ''}
+                </span>
+                <p>{[e.clinic, e.note].filter(Boolean).join(' · ')}</p>
+                {context.writable && e.source === 'event' && (
                   <details className="edit-details">
                     <summary>{t('edit')}</summary>
                     <EventForm context={context} locale={locale} event={e} />
@@ -678,7 +565,6 @@ export async function Calendar({
         locale={locale}
         path={service ? `services/${service}` : 'calendar'}
       />
-      {!service && <UpcomingVaccinations context={context} locale={locale} />}
     </>
   );
 }
@@ -688,29 +574,61 @@ export async function Services({ context, locale }: Props) {
     <>
       <PageHeading title={t('services')} subtitle={t('servicesSub')} />
       <div className="services-grid">
-        {services.map(([key, , status]) => {
-          const Icon = glyphs[key] ?? Grid2X2;
-          return (
-            <Link
-              className={`service-card ${status === 'planned' ? 'planned-card' : ''}`}
-              href={
-                key === 'community' || key === 'polls'
-                  ? `/${locale}/${key}`
-                  : `/${locale}/services/${key}?child=${context.child.id}`
-              }
-              key={key}
-            >
-              <span className="service-icon">
-                <Icon size={24} />
-              </span>
-              {status === 'planned' && (
-                <span className="badge planned">{t('planned')}</span>
-              )}
-              <h2>{t(`serviceNames.${key}`)}</h2>
-              <ChevronRight size={17} />
-            </Link>
-          );
-        })}
+        {services
+          .filter(
+            ([key]) =>
+              ![
+                'feeding',
+                'sleep',
+                'diaper',
+                'growth',
+                'health',
+                'vaccination',
+              ].includes(key),
+          )
+          .map(([key, , status]) => {
+            const Icon = glyphs[key] ?? Grid2X2;
+            return (
+              <Link
+                className={`service-card ${status === 'planned' ? 'planned-card' : ''}`}
+                href={
+                  key === 'community'
+                    ? `/${locale}/community?family=${context.family.id}`
+                    : key === 'polls'
+                      ? `/${locale}/polls`
+                      : `/${locale}/services/${key}?child=${context.child.id}`
+                }
+                key={key}
+              >
+                <span className="service-icon">
+                  <Icon size={24} />
+                </span>
+                {status === 'planned' && (
+                  <span className="badge planned">{t('planned')}</span>
+                )}
+                <h2>
+                  {key === 'community' || key === 'polls'
+                    ? t(key)
+                    : t(`serviceNames.${key}`)}
+                </h2>
+                <ChevronRight size={17} />
+              </Link>
+            );
+          })}
+        {(
+          [
+            ['notifications', Bell],
+            ['data', Database],
+          ] as const
+        ).map(([key, Icon]) => (
+          <Link key={key} className="service-card" href={`/${locale}/${key}`}>
+            <span className="service-icon">
+              <Icon size={24} />
+            </span>
+            <h2>{t(key)}</h2>
+            <ChevronRight size={17} />
+          </Link>
+        ))}
       </div>
     </>
   );
@@ -730,7 +648,7 @@ export async function ServiceDetail({
 }) {
   const t = await getTranslations();
   const item = services.find((v) => v[0] === service);
-  if (!item) return null;
+  if (!item && !isChildService(service)) return null;
   if (service === 'vaccination')
     return (
       <VaccinationList
@@ -751,7 +669,7 @@ export async function ServiceDetail({
     );
   if (service === 'feeding')
     return <Records context={context} locale={locale} />;
-  if (item[2] === 'planned')
+  if (item?.[2] === 'planned')
     return (
       <>
         <PageHeading
@@ -1023,11 +941,6 @@ export async function Settings({ context, locale }: Props) {
   return (
     <>
       <PageHeading title={t('settings')} subtitle={t('tagline')} />
-      <p>
-        <Link className="button secondary" href={`/${locale}/data`}>
-          {t('data')}
-        </Link>
-      </p>
       <section className="panel settings-panel">
         <h2>{t('identities')}</h2>
         {context.user.identities?.map((identity) => (

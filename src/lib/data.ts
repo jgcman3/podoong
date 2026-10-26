@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { calendarEntry } from '@/features/care/calendar-model';
 import { redirect } from 'next/navigation';
 import { createClient, configured } from './supabase/server';
 import { dateInTimeZone, hasRecentAuthentication, type Locale } from './domain';
@@ -112,15 +113,19 @@ export async function loadCare(
     .order('due_date', { nullsFirst: false })
     .order('id');
   let eventQuery = db
-    .from('events')
+    .from('calendar_entries')
     .select('*')
     .eq('child_id', child.id)
     .order('date')
+    .order('event_time', { nullsFirst: false })
+    .order('source')
     .order('id');
   if (options.service) taskQuery = taskQuery.eq('service', options.service);
   if (options.todayOnly) {
-    taskQuery = taskQuery.eq('status', 'todo');
-    eventQuery = eventQuery.gte('date', context.today);
+    taskQuery = taskQuery
+      .eq('due_date', context.today)
+      .neq('status', 'snoozed');
+    eventQuery = eventQuery.eq('date', context.today).eq('status', 'planned');
   }
   const [records, active, tasks, events] = await Promise.all([
     datasets.includes('records')
@@ -144,7 +149,7 @@ export async function loadCare(
       : Promise.resolve({ data: [] as Row<'tasks'>[], error: null }),
     datasets.includes('events')
       ? eventQuery.range(start, start + 100)
-      : Promise.resolve({ data: [] as Row<'events'>[], error: null }),
+      : Promise.resolve({ data: [] as never[], error: null }),
   ]);
   if ([records, active, tasks, events].some((r) => r.error))
     throw new Error('Care data unavailable');
@@ -159,7 +164,7 @@ export async function loadCare(
     ...context,
     records: recordRows,
     tasks: (tasks.data ?? []).slice(0, 100),
-    events: (events.data ?? []).slice(0, 100),
+    events: (events.data ?? []).slice(0, 100).map(calendarEntry),
     page,
     hasMore: [records, tasks, events].some((r) => (r.data?.length ?? 0) > 100),
   };

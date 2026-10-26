@@ -169,14 +169,14 @@ isOneToOne: false
                   ]
                 },"child_records": {
                   Row: {
-                    "child_id": string,"created_at": string,"created_by": string | null,"ended_at": string | null,"head_cm": number | null,"height_cm": number | null,"id": string,"kind": string,"note": string,"occurred_at": string,"record_timezone": string,"service": string,"stool_color": string | null,"stool_texture": string | null,"title": string,"updated_at": string,"updated_by": string | null,"version": number,"weight_kg": number | null
+                    "child_id": string,"created_at": string,"created_by": string | null,"dose_amount": number | null,"dose_unit": string | null,"duration_minutes": number | null,"ended_at": string | null,"head_cm": number | null,"height_cm": number | null,"id": string,"kind": string,"medicine_name": string,"note": string,"occurred_at": string,"record_timezone": string,"service": string,"stool_color": string | null,"stool_texture": string | null,"temperature_c": number | null,"title": string,"updated_at": string,"updated_by": string | null,"version": number,"weight_kg": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "child_id": string,"created_at"?: string,"created_by"?: string | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id": string,"kind": string,"note"?: string,"occurred_at": string,"record_timezone": string,"service": string,"stool_color"?: string | null,"stool_texture"?: string | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
+                    "child_id": string,"created_at"?: string,"created_by"?: string | null,"dose_amount"?: number | null,"dose_unit"?: string | null,"duration_minutes"?: number | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id": string,"kind": string,"medicine_name"?: string,"note"?: string,"occurred_at": string,"record_timezone": string,"service": string,"stool_color"?: string | null,"stool_texture"?: string | null,"temperature_c"?: number | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
                   }
                   Update: {
-                    "child_id"?: string,"created_at"?: string,"created_by"?: string | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id"?: string,"kind"?: string,"note"?: string,"occurred_at"?: string,"record_timezone"?: string,"service"?: string,"stool_color"?: string | null,"stool_texture"?: string | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
+                    "child_id"?: string,"created_at"?: string,"created_by"?: string | null,"dose_amount"?: number | null,"dose_unit"?: string | null,"duration_minutes"?: number | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id"?: string,"kind"?: string,"medicine_name"?: string,"note"?: string,"occurred_at"?: string,"record_timezone"?: string,"service"?: string,"stool_color"?: string | null,"stool_texture"?: string | null,"temperature_c"?: number | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
                   }
                   Relationships: [
                     {
@@ -201,14 +201,14 @@ isOneToOne: false
                   ]
                 },"children": {
                   Row: {
-                    "birth_date": string | null,"created_at": string,"due_date": string | null,"family_id": string,"id": string,"name": string
+                    "birth_date": string | null,"created_at": string,"due_date": string | null,"family_id": string,"id": string,"name": string,"sex": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "birth_date"?: string | null,"created_at"?: string,"due_date"?: string | null,"family_id": string,"id"?: string,"name": string
+                    "birth_date"?: string | null,"created_at"?: string,"due_date"?: string | null,"family_id": string,"id"?: string,"name": string,"sex"?: string | null
                   }
                   Update: {
-                    "birth_date"?: string | null,"created_at"?: string,"due_date"?: string | null,"family_id"?: string,"id"?: string,"name"?: string
+                    "birth_date"?: string | null,"created_at"?: string,"due_date"?: string | null,"family_id"?: string,"id"?: string,"name"?: string,"sex"?: string | null
                   }
                   Relationships: [
                     {
@@ -437,14 +437,14 @@ isOneToOne: false
                   ]
                 },"community_reports": {
                   Row: {
-                    "comment_id": string | null,"created_at": string,"id": string,"post_id": string | null,"reason": string,"reporter_id": string,"status": string
+                    "comment_id": string | null,"created_at": string,"diary_nickname": string | null,"diary_note": string | null,"diary_record_id": string | null,"id": string,"post_id": string | null,"reason": string,"reporter_id": string,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "comment_id"?: string | null,"created_at"?: string,"id"?: string,"post_id"?: string | null,"reason": string,"reporter_id": string,"status"?: string
+                    "comment_id"?: string | null,"created_at"?: string,"diary_nickname"?: string | null,"diary_note"?: string | null,"diary_record_id"?: string | null,"id"?: string,"post_id"?: string | null,"reason": string,"reporter_id": string,"status"?: string
                   }
                   Update: {
-                    "comment_id"?: string | null,"created_at"?: string,"id"?: string,"post_id"?: string | null,"reason"?: string,"reporter_id"?: string,"status"?: string
+                    "comment_id"?: string | null,"created_at"?: string,"diary_nickname"?: string | null,"diary_note"?: string | null,"diary_record_id"?: string | null,"id"?: string,"post_id"?: string | null,"reason"?: string,"reporter_id"?: string,"status"?: string
                   }
                   Relationships: [
                     {
@@ -452,6 +452,12 @@ isOneToOne: false
       columns: ["comment_id"]
 isOneToOne: false
       referencedRelation: "community_comments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "community_reports_diary_record_id_fkey"
+      columns: ["diary_record_id"]
+isOneToOne: false
+      referencedRelation: "child_records"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "community_reports_post_id_fkey"
@@ -611,14 +617,14 @@ isOneToOne: false
                   ]
                 },"events": {
                   Row: {
-                    "child_id": string,"created_by": string | null,"date": string,"id": string,"note": string,"title": string,"updated_at": string
+                    "child_id": string,"created_by": string | null,"date": string,"event_kind": string,"event_time": string | null,"id": string,"note": string,"record_timezone": string | null,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "child_id": string,"created_by"?: string | null,"date": string,"id"?: string,"note"?: string,"title": string,"updated_at"?: string
+                    "child_id": string,"created_by"?: string | null,"date": string,"event_kind"?: string,"event_time"?: string | null,"id"?: string,"note"?: string,"record_timezone"?: string | null,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "child_id"?: string,"created_by"?: string | null,"date"?: string,"id"?: string,"note"?: string,"title"?: string,"updated_at"?: string
+                    "child_id"?: string,"created_by"?: string | null,"date"?: string,"event_kind"?: string,"event_time"?: string | null,"id"?: string,"note"?: string,"record_timezone"?: string | null,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -678,6 +684,32 @@ isOneToOne: false
       columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"growth_diary_shares": {
+                  Row: {
+                    "everyone": boolean,"hidden": boolean,"published_by": string,"record_id": string,"same_birth_date": boolean,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "everyone"?: boolean,"hidden"?: boolean,"published_by": string,"record_id": string,"same_birth_date"?: boolean,"updated_at"?: string
+                  }
+                  Update: {
+                    "everyone"?: boolean,"hidden"?: boolean,"published_by"?: string,"record_id"?: string,"same_birth_date"?: boolean,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "growth_diary_shares_published_by_fkey"
+      columns: ["published_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "growth_diary_shares_record_id_fkey"
+      columns: ["record_id"]
+isOneToOne: true
+      referencedRelation: "child_records"
       referencedColumns: ["id"]
     }
                   ]
@@ -946,7 +978,15 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "calendar_entries": {
+                  Row: {
+                    "child_id": string | null,"clinic": string | null,"custom_name": string | null,"date": string | null,"event_kind": string | null,"event_time": string | null,"id": string | null,"note": string | null,"record_timezone": string | null,"source": string | null,"status": string | null,"title": string | null,"vaccine": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+
+                  ]
+                }
           }
           Functions: {
             "accept_invitation":
@@ -1056,6 +1096,30 @@ isOneToOne: false
 "finish_data_operation":
 { Args: { "p_job": string,"p_lease": string,"p_success": boolean }; Returns: undefined
                            },
+"growth_diary_cohort_visible":
+{ Args: { "p_child": string,"p_record": string }; Returns: boolean
+                           },
+"growth_diary_feed":
+{ Args: { "p_age"?: number,"p_child": string,"p_page"?: number,"p_scope": string }; Returns: {
+              "age_days": number,"head_cm": number,"height_cm": number,"id": string,"nickname": string,"note": string,"photo_ids": (string)[],"sex": string,"weight_kg": number
+            }[]
+                           },
+"growth_diary_history":
+{ Args: { "p_child": string,"p_page"?: number,"p_record": string }; Returns: {
+              "age_days": number,"head_cm": number,"height_cm": number,"id": string,"weight_kg": number
+            }[]
+                           },
+"growth_diary_photo":
+{ Args: { "p_id": string }; Returns: {
+              "content_type": string,"path": string
+            }[]
+                           },
+"growth_diary_photo_allowed":
+{ Args: { "p_record": string }; Returns: boolean
+                           },
+"growth_diary_photo_by_path":
+{ Args: { "p_path": string }; Returns: boolean
+                           },
 "hide_daily_poll":
 { Args: { "p_hidden": boolean,"p_id": string,"p_reason": string }; Returns: undefined
                            },
@@ -1072,6 +1136,9 @@ isOneToOne: false
 { Args: { "p_child_id": string }; Returns: {
               "display_name": string,"role": string,"user_id": string
             }[]
+                           },
+"moderate_growth_diary":
+{ Args: { "p_hidden": boolean,"p_reason": string,"p_record": string }; Returns: undefined
                            },
 "notification_child_access":
 { Args: { "p_child": string,"p_user": string }; Returns: boolean
@@ -1111,6 +1178,9 @@ isOneToOne: false
 "remove_child_record_photo":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"report_growth_diary":
+{ Args: { "p_child": string,"p_reason": string,"p_record": string }; Returns: undefined
+                           },
 "request_account_deletion":
 { Args: { "p_confirmation": string,"p_permit": string }; Returns: string
                            },
@@ -1131,6 +1201,9 @@ isOneToOne: false
                            },
 "run_notification_jobs":
 { Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"save_calendar_event":
+{ Args: { "p_child_id": string,"p_date": string,"p_event_kind"?: string,"p_event_time"?: string,"p_event_timezone"?: string,"p_id": string,"p_note": string,"p_title": string }; Returns: string
                            },
 "save_care_record":
 { Args: { "p_amount_ml": number,"p_child_id": string,"p_ended_at": string,"p_id": string,"p_kind": string,"p_note": string,"p_started_at": string,"p_version"?: number }; Returns: string
@@ -1158,6 +1231,9 @@ isOneToOne: false
                            },
 "save_vaccination_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_version"?: number }; Returns: string
+                           },
+"share_growth_diary":
+{ Args: { "p_everyone": boolean,"p_record": string,"p_same_birth_date": boolean,"p_sex": string }; Returns: undefined
                            },
 "sync_notifications":
 { Args: Record<PropertyKey, never>; Returns: undefined

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { moderateGrowthDiary } from '@/features/growth-community/card-actions';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/data';
 import { isLocale } from '@/lib/domain';
@@ -56,29 +57,64 @@ export default async function Moderation({
       {reports.data?.slice(0, 30).map((r) => (
         <article className="panel" key={r.id}>
           <p>
-            {r.reason} · <code>{r.post_id ?? r.comment_id}</code>
+            {r.reason} ·{' '}
+            <code>{r.post_id ?? r.comment_id ?? r.diary_record_id}</code>
           </p>
           {r.post_id && (
             <Link href={`/${locale}/community/${r.post_id}`}>
               {t.titleLabel}
             </Link>
           )}
-          <Action
-            locale={locale}
-            moderation
-            action="hide"
-            id={(r.post_id ?? r.comment_id)!}
-            label={t.hide}
-            fields={{ kind: r.comment_id ? 'comment' : 'post' }}
-          />
-          <Action
-            locale={locale}
-            moderation
-            action="unhide"
-            id={(r.post_id ?? r.comment_id)!}
-            label={t.unhide}
-            fields={{ kind: r.comment_id ? 'comment' : 'post' }}
-          />
+          {r.diary_record_id ? (
+            <>
+              <h3>
+                {locale === 'ko' ? '성장일기 신고' : 'Growth diary report'} ·{' '}
+                {r.diary_nickname}
+              </h3>
+              <p className="record-note">{r.diary_note}</p>
+              {[true, false].map((hidden) => (
+                <form
+                  key={String(hidden)}
+                  action={moderateGrowthDiary}
+                  className="form-stack"
+                >
+                  <input type="hidden" name="locale" value={locale} />
+                  <input
+                    type="hidden"
+                    name="record"
+                    value={r.diary_record_id!}
+                  />
+                  <input type="hidden" name="hidden" value={String(hidden)} />
+                  <label>
+                    {t.reason}
+                    <input name="reason" required maxLength={500} />
+                  </label>
+                  <button className="button secondary">
+                    {hidden ? t.hide : t.unhide}
+                  </button>
+                </form>
+              ))}
+            </>
+          ) : (
+            <>
+              <Action
+                locale={locale}
+                moderation
+                action="hide"
+                id={(r.post_id ?? r.comment_id)!}
+                label={t.hide}
+                fields={{ kind: r.comment_id ? 'comment' : 'post' }}
+              />
+              <Action
+                locale={locale}
+                moderation
+                action="unhide"
+                id={(r.post_id ?? r.comment_id)!}
+                label={t.unhide}
+                fields={{ kind: r.comment_id ? 'comment' : 'post' }}
+              />
+            </>
+          )}
           <Action
             locale={locale}
             moderation

@@ -33,6 +33,27 @@ export async function saveChildRecord(form: FormData) {
     p_version: value.version,
     p_data: {
       kind: value.kind,
+      temperature_c:
+        value.service === 'activity' && value.kind === 'temperature'
+          ? value.temperature
+          : null,
+      medicine_name:
+        value.service === 'activity' && value.kind === 'medication'
+          ? value.medicine
+          : '',
+      dose_amount:
+        value.service === 'activity' && value.kind === 'medication'
+          ? value.dose
+          : null,
+      dose_unit:
+        value.service === 'activity' && value.kind === 'medication'
+          ? value.doseUnit
+          : null,
+      duration_minutes:
+        value.service === 'activity' &&
+        ['bath', 'play', 'tummy'].includes(value.kind)
+          ? value.activityDuration
+          : null,
       occurred_at: value.occurredAt,
       ended_at: value.service === 'sleep' ? value.endedAt : null,
       height_cm: measured ? value.height : null,
@@ -41,7 +62,7 @@ export async function saveChildRecord(form: FormData) {
       stool_color: stool ? value.color || null : null,
       stool_texture: stool ? value.texture || null : null,
       title:
-        value.service === 'growth' && value.kind === 'observation'
+        value.service === 'activity' && value.kind === 'hospital'
           ? value.title
           : '',
       note: value.note,

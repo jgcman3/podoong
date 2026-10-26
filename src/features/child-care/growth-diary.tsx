@@ -18,7 +18,7 @@ export function GrowthDiaryEntry({
   dateLabel: string;
 }) {
   const t = childCopy(locale);
-  const title = record.title || kindLabel(record.kind, locale);
+  const title = kindLabel(record.kind, locale);
   const first = photos[0];
   const measures = [
     [t.height, record.height_cm],
@@ -40,7 +40,6 @@ export function GrowthDiaryEntry({
           <time className="growth-diary-date" dateTime={record.occurred_at}>
             {dateLabel}
           </time>
-          <h2>{title}</h2>
           {measures.some(([, value]) => value !== null) && (
             <dl className="growth-diary-measures">
               {measures
@@ -65,7 +64,7 @@ export function GrowthDiaryEntry({
               <>
                 <Image
                   src={`/api/care/photos/${first}`}
-                  alt={record.title || t.photo}
+                  alt={t.photo}
                   width={360}
                   height={360}
                   unoptimized

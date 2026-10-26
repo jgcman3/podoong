@@ -1,3 +1,4 @@
+import { Insights } from '@/features/insights/view';
 import { notFound } from 'next/navigation';
 import { loadCare } from '@/lib/data';
 import { Shell } from '@/components/shell';
@@ -23,6 +24,12 @@ export default async function AppPage({
     edit?: string;
     kind?: string;
     page?: string;
+    create?: string;
+    month?: string;
+    day?: string;
+    week?: string;
+    interval?: string;
+    pattern?: string;
   }>;
 }) {
   const { locale, section } = await params;
@@ -32,6 +39,7 @@ export default async function AppPage({
       'today',
       'records',
       'calendar',
+      'insights',
       'family',
       'services',
       'settings',
@@ -42,14 +50,14 @@ export default async function AppPage({
     locale,
     q.child,
     section === 'today'
-      ? ['records', 'tasks', 'events']
+      ? ['records']
       : section === 'records'
         ? ['records']
-        : section === 'calendar'
-          ? ['tasks', 'events']
-          : [],
+        : [],
     { page: q.page, todayOnly: section === 'today' },
   );
+  if (section === 'insights' && q.child && context.child.id !== q.child)
+    notFound();
   const props = { context, locale };
   let view;
   switch (section) {
@@ -60,7 +68,27 @@ export default async function AppPage({
       view = <Records {...props} edit={q.edit} kind={q.kind} />;
       break;
     case 'calendar':
-      view = <Calendar {...props} />;
+      view = (
+        <Calendar
+          {...props}
+          create={q.create}
+          edit={q.edit}
+          month={q.month}
+          day={q.day}
+        />
+      );
+      break;
+    case 'insights':
+      view = (
+        <Insights
+          {...props}
+          kind={q.kind}
+          week={q.week}
+          interval={q.interval}
+          pattern={q.pattern}
+          day={q.day}
+        />
+      );
       break;
     case 'family':
       view = <Family {...props} />;
@@ -76,7 +104,21 @@ export default async function AppPage({
       {...props}
       section={section}
       routeQuery={
-        section === 'calendar' && q.page ? { page: q.page } : undefined
+        section === 'calendar'
+          ? {
+              ...(q.page ? { page: q.page } : {}),
+              ...(q.month ? { month: q.month } : {}),
+              ...(q.day ? { day: q.day } : {}),
+            }
+          : section === 'insights'
+            ? {
+                ...(q.kind !== undefined ? { kind: q.kind } : {}),
+                ...(q.week ? { week: q.week } : {}),
+                ...(q.interval ? { interval: q.interval } : {}),
+                ...(q.pattern ? { pattern: q.pattern } : {}),
+                ...(q.day ? { day: q.day } : {}),
+              }
+            : undefined
       }
     >
       <Flash error={q.error} notice={q.notice} />

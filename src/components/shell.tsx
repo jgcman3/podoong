@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import {
   Home,
+  BookOpen,
   Milk,
   CalendarDays,
+  ChartNoAxesColumn,
   Grid2X2,
   Users,
   Settings,
@@ -11,12 +13,15 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { Nest } from './nest';
+import { TopbarChildPicker } from './topbar-child-picker';
 import { ageInDays, pregnancyWeek, type Locale } from '@/lib/domain';
 import type { CareContext } from '@/lib/data';
 const navigation = [
   ['today', Home],
   ['records', Milk],
   ['calendar', CalendarDays],
+  ['insights', ChartNoAxesColumn],
+  ['community', BookOpen],
   ['family', Users],
   ['services', Grid2X2],
 ] as const;
@@ -43,9 +48,25 @@ export async function Shell({
     dateStyle: 'full',
     timeZone: 'UTC',
   }).format(new Date(`${today}T12:00:00Z`));
-  const age = child.birth_date
-    ? t('days', { days: ageInDays(child.birth_date, today) })
-    : t('weeks', { weeks: pregnancyWeek(child.due_date!, today) });
+  const ageFor = (c: typeof child) =>
+    c.birth_date
+      ? t('days', { days: ageInDays(c.birth_date, today) })
+      : t('weeks', { weeks: pregnancyWeek(c.due_date!, today) });
+  const age = ageFor(child);
+  const childInTopbar = [
+    'today',
+    'calendar',
+    'insights',
+    'community',
+    'family',
+    'services',
+  ].includes(section);
+  const childOptions = all.map((c) => ({
+    id: c.id,
+    name: c.name,
+    age: ageFor(c),
+    href: `/${locale}/${childRoute ?? section}?${new URLSearchParams({ ...routeQuery, child: c.id })}`,
+  }));
   return (
     <div className="app-shell">
       <a href="#main" className="skip-link">
@@ -61,12 +82,12 @@ export async function Shell({
           {navigation.map(([key, Icon]) => (
             <Link
               key={key}
-              href={`/${locale}/${key}?child=${child.id}`}
+              href={`/${locale}/${key === 'community' ? 'community/diaries' : key}?child=${child.id}`}
               className={`nav-link ${section === key ? 'active' : ''}`}
               aria-current={section === key ? 'page' : undefined}
             >
               <Icon size={20} />
-              {t(key)}
+              {t(key === 'community' ? 'growthDiary' : key)}
               {section === key && <span className="nav-dot" />}
             </Link>
           ))}
@@ -74,7 +95,6 @@ export async function Shell({
         <div className="sidebar-bottom">
           <div className="gentle-note">
             <Heart size={18} />
-            <strong>{t('helpTitle')}</strong>
             <p>{t('helpBody')}</p>
           </div>
           <Link
@@ -88,7 +108,16 @@ export async function Shell({
       </aside>
       <div className="app-content">
         <header className="topbar">
-          <div className="date">{date}</div>
+          {childInTopbar ? (
+            <TopbarChildPicker
+              key={child.id}
+              current={childOptions.find((option) => option.id === child.id)!}
+              options={childOptions}
+              label={t('childSelect')}
+            />
+          ) : (
+            <div className="date">{date}</div>
+          )}
           <div className="topbar-actions">
             <Link
               className="language"
@@ -106,61 +135,50 @@ export async function Shell({
           </div>
         </header>
         <main id="main" className="main-content">
-          <nav
-            className="feature-nav"
-            aria-label={locale === 'ko' ? '함께 이용하기' : 'More features'}
-          >
-            {(['community', 'polls', 'notifications', 'data'] as const).map(
-              (key) => (
-                <Link
-                  key={key}
-                  href={`/${locale}/${key}${key === 'community' ? `?family=${context.family.id}` : ''}`}
-                >
-                  {t(key)}
-                </Link>
-              ),
-            )}
-          </nav>
-          <section className="child-bar">
-            <div className="child-avatar">
-              <Heart size={21} />
-            </div>
-            <div>
-              <strong>{child.name}</strong>
-              <span>{age}</span>
-            </div>
-            <details className="child-picker">
-              <summary>
-                {t('childSelect')} <ArrowRight size={14} />
-              </summary>
-              <div className="child-options">
-                {all.map((c) => (
-                  <Link
-                    key={c.id}
-                    href={`/${locale}/${childRoute ?? section}?${new URLSearchParams({ ...routeQuery, child: c.id })}`}
-                  >
-                    {c.name}
-                    {c.id === child.id ? ' ✓' : ''}
-                  </Link>
-                ))}
+          {!childInTopbar && (
+            <section className="child-bar">
+              <div className="child-avatar">
+                <Heart size={21} />
               </div>
-            </details>
-          </section>
+              <div>
+                <strong>{child.name}</strong>
+                <span>{age}</span>
+              </div>
+              <details className="child-picker">
+                <summary>
+                  {t('childSelect')} <ArrowRight size={14} />
+                </summary>
+                <div className="child-options">
+                  {all.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/${locale}/${childRoute ?? section}?${new URLSearchParams({ ...routeQuery, child: c.id })}`}
+                    >
+                      {c.name}
+                      {c.id === child.id ? ' ✓' : ''}
+                    </Link>
+                  ))}
+                </div>
+              </details>
+            </section>
+          )}
           {children}
         </main>
         <footer className="app-footer">PODUNG · {t('tagline')}</footer>
       </div>
       <nav className="mobile-nav" aria-label={t('services')}>
-        {navigation.map(([key, Icon]) => (
-          <Link
-            key={key}
-            className={section === key ? 'active' : ''}
-            href={`/${locale}/${key}?child=${child.id}`}
-          >
-            <Icon size={21} />
-            <span>{t(key)}</span>
-          </Link>
-        ))}
+        {navigation
+          .filter(([key]) => key !== 'records')
+          .map(([key, Icon]) => (
+            <Link
+              key={key}
+              className={section === key ? 'active' : ''}
+              href={`/${locale}/${key === 'community' ? 'community/diaries' : key}?child=${child.id}`}
+            >
+              <Icon size={21} />
+              <span>{t(key === 'community' ? 'growthDiary' : key)}</span>
+            </Link>
+          ))}
       </nav>
     </div>
   );

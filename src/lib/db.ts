@@ -1,6 +1,7 @@
 import type { Database as Generated } from './database.types';
 // PostgreSQL parameters are nullable; codegen does not infer nullability from RPC bodies.
 type NullableParameter =
+  | 'p_age'
   | 'p_due_date'
   | 'p_birth_date'
   | 'p_ended_at'

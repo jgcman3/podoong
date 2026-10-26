@@ -5,7 +5,8 @@ import type { Row } from '@/lib/db';
 import type { Locale } from '@/lib/domain';
 import { endFromDuration } from '@/features/care/feeding-record';
 import { childCopy, kindLabel } from './copy';
-import type { ChildService } from './schema';
+import { activityKinds, type ChildService } from './schema';
+import { ActivityFields } from '@/features/care/activity-fields';
 import { saveChildRecord } from './actions';
 const subscribe = () => () => {};
 export function ChildRecordForm(props: {
@@ -47,7 +48,9 @@ function Editor({
       ? ['nap', 'night']
       : service === 'diaper'
         ? ['wet', 'dirty', 'mixed', 'dry']
-        : ['measurement', 'observation'];
+        : service === 'activity'
+          ? [...activityKinds]
+          : ['measurement', 'observation'];
   const [id] = useState(record?.id ?? crypto.randomUUID());
   const [kind, setKind] = useState(
     record?.kind ??
@@ -188,6 +191,14 @@ function Editor({
           ))}
         </div>
       )}
+      {service === 'activity' && (
+        <ActivityFields
+          key={kind}
+          kind={kind}
+          locale={locale}
+          record={record}
+        />
+      )}
       {service === 'growth' && kind === 'measurement' && (
         <>
           <p className="small muted">{t.optional}</p>
@@ -213,17 +224,6 @@ function Editor({
             ))}
           </div>
         </>
-      )}
-      {service === 'growth' && kind === 'observation' && (
-        <label>
-          {t.title}
-          <input
-            name="title"
-            required
-            maxLength={200}
-            defaultValue={record?.title}
-          />
-        </label>
       )}
       <label>
         {t.note}

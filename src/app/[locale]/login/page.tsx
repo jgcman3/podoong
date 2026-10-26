@@ -43,9 +43,6 @@ export default async function Login({
           </div>
         </section>
         <section className="login-card">
-          <span className="eyebrow">WELCOME TO PODUNG</span>
-          <h2>{t('socialStart')}</h2>
-          <p>{t('noPassword')}</p>
           <Flash error={query.error} />
           <SocialButtons locale={locale} next={query.next} />
           {(!configured() ||
@@ -59,11 +56,7 @@ export default async function Login({
               <p>{t('setupSub')}</p>
             </div>
           )}
-          <div className="login-footer">
-            {t('helpTitle')}
-            <br />
-            {t('helpBody')}
-          </div>
+          <div className="login-footer">{t('helpBody')}</div>
         </section>
       </div>
     </main>

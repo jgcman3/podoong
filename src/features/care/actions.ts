@@ -1,9 +1,12 @@
 'use server';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { calendarReturn } from './calendar-return';
 import { requireUser } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
-import { feedingKinds, isFood } from './feeding-record';
+import { isFood } from './feeding-record';
+import { feedingRecordSchema } from './feeding-schema';
 const optionalDate = z
   .union([z.literal(''), z.iso.date()])
   .transform((v) => v || null);
@@ -18,50 +21,19 @@ function localeOf(form: FormData): Locale {
 export async function saveRecord(form: FormData) {
   const locale = localeOf(form);
   const { db } = await requireUser(locale);
-  const parsed = z
-    .object({
-      id: uuid,
-      childId: uuid,
-      kind: z.enum(feedingKinds),
-      foodName: z.string().trim().max(200),
-      timezone: z
-        .string()
-        .min(1)
-        .max(100)
-        .refine((value) => {
-          try {
-            new Intl.DateTimeFormat('en', { timeZone: value });
-            return true;
-          } catch {
-            return false;
-          }
-        }),
-      startedAt: z.iso.datetime({ offset: true }),
-      endedAt: z
-        .union([z.literal(''), z.iso.datetime({ offset: true })])
-        .transform((v) => v || null),
-      amount: z
-        .union([z.literal(''), z.coerce.number().min(0).max(3000)])
-        .transform((v) => (v === '' ? null : v)),
-      note: z.string().max(2000),
-      version: z
-        .union([z.literal(''), z.coerce.number().int().positive()])
-        .transform((v) => (v === '' ? null : v)),
-    })
-    .refine(
-      (v) => !v.endedAt || Date.parse(v.endedAt) >= Date.parse(v.startedAt),
-    )
-    .safeParse(Object.fromEntries(form));
+  const parsed = feedingRecordSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect(`/${locale}/records?error=invalid`);
   const v = parsed.data;
+  const legacyGrams =
+    isFood(v.kind) && v.version !== null && form.get('amountUnit') === 'g';
   const { error } = await db.rpc('save_feeding_record', {
     p_id: v.id,
     p_child_id: v.childId,
     p_kind: v.kind,
     p_started_at: v.startedAt,
     p_ended_at: v.endedAt,
-    p_amount_ml: isFood(v.kind) ? null : v.amount,
-    p_amount_g: isFood(v.kind) ? v.amount : null,
+    p_amount_ml: legacyGrams ? null : v.amount,
+    p_amount_g: legacyGrams ? v.amount : null,
     p_food_name: isFood(v.kind) ? v.foodName : '',
     p_timezone: v.timezone,
     p_note: v.note,
@@ -81,6 +53,7 @@ export async function deleteRecord(form: FormData) {
 }
 export async function saveTask(form: FormData) {
   const locale = localeOf(form);
+  const target = form.get('returnTo') === 'today' ? 'today' : 'calendar';
   const { db } = await requireUser(locale);
   const parsed = z
     .object({
@@ -93,7 +66,12 @@ export async function saveTask(form: FormData) {
       assignee: z.union([z.literal(''), uuid]).transform((v) => v || null),
     })
     .safeParse(Object.fromEntries(form));
-  if (!parsed.success) redirect(`/${locale}/calendar?error=invalid`);
+  if (!parsed.success) {
+    const child = uuid.safeParse(form.get('childId'));
+    redirect(
+      `/${locale}/${target}?${child.success ? `child=${child.data}&` : ''}error=invalid`,
+    );
+  }
   const v = parsed.data;
   const { error } = await db.rpc('save_task', {
     p_id: v.id,
@@ -104,7 +82,14 @@ export async function saveTask(form: FormData) {
     p_status: v.status,
     p_assignee_id: v.assignee,
   });
-  redirect(`/${locale}/calendar?child=${v.childId}&${statusQuery(error)}`);
+  if (!error && form.get('intent') === 'toggle') {
+    revalidatePath(`/${locale}/today`);
+    revalidatePath(`/${locale}/calendar`);
+    return;
+  }
+  redirect(
+    `${target === 'today' ? `/${locale}/today?child=${v.childId}` : calendarReturn(locale, v.childId, v.date ?? form.get('calendarDay'))}&${statusQuery(error)}`,
+  );
 }
 export async function saveEvent(form: FormData) {
   const locale = localeOf(form);
@@ -116,18 +101,33 @@ export async function saveEvent(form: FormData) {
       title: z.string().trim().min(1).max(200),
       date: z.iso.date(),
       note: z.string().max(2000),
+      eventKind: z
+        .enum(['general', 'hospital', 'medication'])
+        .default('general'),
+      eventTime: z
+        .union([
+          z.literal(''),
+          z.string().regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/),
+        ])
+        .default(''),
+      eventTimezone: z.string().max(100).default(''),
     })
     .safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect(`/${locale}/calendar?error=invalid`);
   const v = parsed.data;
-  const { error } = await db.rpc('save_event', {
+  const { error } = await db.rpc('save_calendar_event', {
     p_id: v.id,
     p_child_id: v.childId,
     p_title: v.title,
     p_date: v.date,
     p_note: v.note,
+    p_event_kind: v.eventKind,
+    p_event_time: v.eventTime,
+    p_event_timezone: v.eventTimezone,
   });
-  redirect(`/${locale}/calendar?child=${v.childId}&${statusQuery(error)}`);
+  redirect(
+    `${calendarReturn(locale, v.childId, v.date)}&${statusQuery(error)}`,
+  );
 }
 export async function deleteCalendar(form: FormData) {
   const locale = localeOf(form);
@@ -141,7 +141,9 @@ export async function deleteCalendar(form: FormData) {
     p_id: id.data,
     p_kind: kind.data,
   });
-  redirect(`/${locale}/calendar?child=${child.data}&${statusQuery(error)}`);
+  redirect(
+    `${calendarReturn(locale, child.data, form.get('calendarDay'))}&${statusQuery(error)}`,
+  );
 }
 export async function addTemplates(form: FormData) {
   const locale = localeOf(form);
@@ -152,5 +154,7 @@ export async function addTemplates(form: FormData) {
     p_child_id: child.data,
     p_locale: locale,
   });
-  redirect(`/${locale}/calendar?child=${child.data}&${statusQuery(error)}`);
+  redirect(
+    `${calendarReturn(locale, child.data, form.get('calendarDay'))}&${statusQuery(error)}`,
+  );
 }

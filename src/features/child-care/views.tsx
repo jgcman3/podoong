@@ -12,6 +12,7 @@ import { Timer } from '@/features/care/record-form';
 import { childCopy, kindLabel } from './copy';
 import { isChildService, type ChildService } from './schema';
 import { ChildRecordForm, Submit } from './form';
+import { DiarySharing } from '@/features/growth-community/sharing';
 import { GrowthDiaryEntry } from './growth-diary';
 import {
   deleteChildRecord,
@@ -74,7 +75,18 @@ export function RecordSummary({
           {t.head}: {record.head_cm}
         </p>
       )}
-      {record.title && <p>{record.title}</p>}
+      {record.temperature_c != null && <p>{record.temperature_c} °C</p>}
+      {record.medicine_name && (
+        <p>
+          {record.medicine_name} · {record.dose_amount} {record.dose_unit}
+        </p>
+      )}
+      {record.duration_minutes != null && (
+        <p>
+          {record.duration_minutes} {t.minutes}
+        </p>
+      )}
+      {record.service !== 'growth' && record.title && <p>{record.title}</p>}
       {record.note && <p className="record-note">{record.note}</p>}
     </>
   );
@@ -400,7 +412,7 @@ export async function ChildDetailPage({
               <article key={photo.id}>
                 <Image
                   src={`/api/care/photos/${photo.id}`}
-                  alt={record.title || t.photo}
+                  alt={t.photo}
                   width={320}
                   height={240}
                   unoptimized
@@ -442,6 +454,13 @@ export async function ChildDetailPage({
             </form>
           )}
         </section>
+      )}
+      {p.service === 'growth' && context.writable && (
+        <DiarySharing
+          context={context}
+          recordId={record.id}
+          locale={p.locale}
+        />
       )}
     </Shell>
   );

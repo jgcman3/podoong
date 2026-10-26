@@ -27,7 +27,8 @@ export default async function ServicePage({
   }
   if (service === 'community' || service === 'polls')
     redirect(`/${locale}/${service}`);
-  if (!services.some((v) => v[0] === service)) notFound();
+  if (!isChildService(service) && !services.some((v) => v[0] === service))
+    notFound();
   const context = await loadCare(
     locale,
     q.child,

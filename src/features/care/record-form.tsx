@@ -64,6 +64,11 @@ function RecordEditor({
   const t = useTranslations();
   const [kind, setKind] = useState(record?.kind ?? defaultKind ?? 'breast');
   const food = isFood(kind);
+  const legacyGrams =
+    food &&
+    record?.kind === kind &&
+    record?.amount_g != null &&
+    record.amount_ml === null;
   const [id] = useState(() => record?.id ?? crypto.randomUUID());
   const [start, setStart] = useState(() =>
     localInput(record?.started_at ?? now),
@@ -157,18 +162,21 @@ function RecordEditor({
         name="foodName"
         value={record?.kind === kind ? record.food_name : ''}
       />
+      <input type="hidden" name="amountUnit" value={legacyGrams ? 'g' : 'ml'} />
       {kind !== 'breast' || record?.amount_ml != null ? (
         <label>
-          {food ? t('amountG') : t('amount')}
+          {legacyGrams ? t('amountG') : t('amount')}
           <FeedingSelect
             key={kind}
-            label={food ? t('amountG') : t('amount')}
+            label={legacyGrams ? t('amountG') : t('amount')}
             name="amount"
             choices={food ? 'g' : 'ml'}
-            unit={food ? 'g' : 'ml'}
+            unit={legacyGrams ? 'g' : 'ml'}
             defaultValue={
               record?.kind === kind
-                ? String((food ? record.amount_g : record.amount_ml) ?? '')
+                ? String(
+                    (legacyGrams ? record.amount_g : record.amount_ml) ?? '',
+                  )
                 : ''
             }
           />

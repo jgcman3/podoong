@@ -51,7 +51,7 @@ describe('child care entry validation', () => {
       }).success,
     ).toBe(false);
   });
-  it('requires a title for development diaries and rejects non-positive measurements', () => {
+  it('accepts title-free development diaries and rejects non-positive measurements', () => {
     expect(
       childRecordSchema.safeParse({
         ...base,
@@ -65,9 +65,9 @@ describe('child care entry validation', () => {
         ...base,
         service: 'growth',
         kind: 'observation',
-        title: ' ',
+        note: 'A quiet day together',
       }).success,
-    ).toBe(false);
+    ).toBe(true);
     expect(
       childRecordSchema.safeParse({
         ...base,
@@ -114,5 +114,58 @@ describe('child care entry validation', () => {
     );
     expect(imageType(new TextEncoder().encode('<svg/>'))).toBeNull();
     expect(imageType(new Uint8Array())).toBeNull();
+  });
+});
+
+describe('daily care validation', () => {
+  it('requires a temperature and an explicit medication name, dose and unit', () => {
+    const record = { ...base, service: 'activity' };
+    expect(
+      childRecordSchema.safeParse({ ...record, kind: 'temperature' }).success,
+    ).toBe(false);
+    expect(
+      childRecordSchema.safeParse({
+        ...record,
+        kind: 'temperature',
+        temperature: '36.8',
+      }).success,
+    ).toBe(true);
+    expect(
+      childRecordSchema.safeParse({
+        ...record,
+        kind: 'temperature',
+        temperature: '29',
+      }).success,
+    ).toBe(false);
+    expect(
+      childRecordSchema.safeParse({
+        ...record,
+        kind: 'medication',
+        medicine: '약',
+      }).success,
+    ).toBe(false);
+    expect(
+      childRecordSchema.safeParse({
+        ...record,
+        kind: 'medication',
+        medicine: '약',
+        dose: '2.5',
+        doseUnit: 'ml',
+      }).success,
+    ).toBe(true);
+  });
+  it('keeps unrecorded durations null and rejects invalid durations', () => {
+    expect(
+      childRecordSchema.parse({ ...base, service: 'activity', kind: 'play' })
+        .activityDuration,
+    ).toBeNull();
+    expect(
+      childRecordSchema.safeParse({
+        ...base,
+        service: 'activity',
+        kind: 'tummy',
+        activityDuration: '0',
+      }).success,
+    ).toBe(false);
   });
 });

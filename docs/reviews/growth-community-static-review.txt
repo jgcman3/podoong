@@ -1,0 +1,7 @@
+Growth diary community follow-up review — 2026-10-26
+Scope: 202610260023_growth_community.sql; growth-community actions/sharing UI; community/diaries page; community/diary-photos API; corresponding shell integration and tests.
+Outcome: no remaining actionable findings in the static re-review.
+Closed P1: growth_community_photo_read now checks storage.allow_only_operation('object.get_authenticated'). The new grant no longer authorizes object.sign / object.sign_many. SQL regression assertions cover those operations.
+Closed P2: share_growth_diary now locks children before child_records and rechecks record existence and write permission, matching save_child_record ordering.
+Verified by source: birth-date equality includes year; all-feed measurement columns are SQL NULL; private child record/photo RLS unchanged; separate opt-in settings; disabled sharing removes feed/photo RPC access; bounded 21-row pagination; mobile/desktop navigation.
+Limits: no DB/server/test execution performed by reviewer. Parent owns runtime verification and migration deployment. This is an independent static read review, not a completed ce-code-review full-spine receipt. The skill's auth/public-contract depth rule does not permit focused mode for this change.
