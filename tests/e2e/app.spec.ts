@@ -90,7 +90,7 @@ async function signIn(context: BrowserContext) {
             ...values.map((c) => ({
               name: c.name,
               value: c.value,
-              url: 'http://127.0.0.1:3187',
+              url: 'http://127.0.0.1:3188',
               sameSite: 'Lax' as const,
             })),
           );
@@ -289,7 +289,9 @@ test('family residence persists across children and sessions, respects family ro
     await readerPage.goto(`/en/family?child=${child}`);
     const readerPanel = readerPage.locator('.family-residence');
     await expect(
-      readerPanel.getByText('서울특별시 강남구 역삼동', { exact: true }),
+      readerPanel.getByText('South Korea 서울특별시 강남구 역삼동', {
+        exact: true,
+      }),
     ).toBeVisible();
     await expect(readerPanel.locator('input')).toHaveCount(0);
     await expect(
@@ -332,6 +334,34 @@ test('family residence persists across children and sessions, respects family ro
     ),
   ).toBe(true);
   await panel.screenshot({ path: 'test-results/family-residence-390.png' });
+  await panel
+    .getByRole('combobox', { name: '국가 / 지역', exact: true })
+    .selectOption('US');
+  await expect(
+    panel.getByRole('combobox', { name: '시·도', exact: true }),
+  ).toHaveCount(0);
+  await panel
+    .getByRole('button', { name: '거주지역 저장', exact: true })
+    .click();
+  await expect(panel.locator('input[name="version"]')).toHaveValue('3');
+  await page.reload();
+  await expect(
+    panel.getByRole('combobox', { name: '국가 / 지역', exact: true }),
+  ).toHaveValue('US');
+  const overseas = await admin
+    .from('families')
+    .select(
+      'residence_country_code,residence_region_code,residence_city,residence_locality',
+    )
+    .eq('id', family)
+    .single();
+  expect(overseas.data).toEqual({
+    residence_country_code: 'US',
+    residence_region_code: null,
+    residence_city: null,
+    residence_locality: null,
+  });
+
   await panel
     .getByRole('button', { name: '거주지역 삭제', exact: true })
     .click();
@@ -863,7 +893,7 @@ test('growth measurements and diary photos remain private to the child and are c
   const guest = await browser.newContext();
   try {
     expect(
-      (await guest.request.get(`http://127.0.0.1:3187${url}`)).status(),
+      (await guest.request.get(`http://127.0.0.1:3188${url}`)).status(),
     ).toBe(401);
   } finally {
     await guest.close();
@@ -1036,10 +1066,14 @@ test('family owner can add another child and read both children after saving', a
   await expect(page.locator('.topbar-child-info strong')).toHaveText('둘째');
   await page.reload();
   await expect(page.locator('.topbar-child-info strong')).toHaveText('둘째');
-  await page.locator('.topbar-child-picker summary').click();
+  await page
+    .locator(
+      '.topbar-child-picker:visible summary, .bottom-child-picker:visible summary',
+    )
+    .click();
   await expect(page.locator('.topbar-child-options a')).toHaveCount(2);
   await page
-    .locator('.topbar-child-options')
+    .locator('.topbar-child-options:visible, .bottom-child-options:visible')
     .getByRole('link')
     .filter({ hasText: '첫째' })
     .click();
@@ -1049,8 +1083,16 @@ test('family owner can add another child and read both children after saving', a
   await expect(page.locator('.topbar-child-info')).toContainText('생후');
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.locator('.topbar-child-picker summary').click();
-    await expect(page.locator('.topbar-child-options')).toBeVisible();
+    await page
+      .locator(
+        '.topbar-child-picker:visible summary, .bottom-child-picker:visible summary',
+      )
+      .click();
+    await expect(
+      page.locator(
+        '.topbar-child-options:visible, .bottom-child-options:visible',
+      ),
+    ).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -1061,11 +1103,23 @@ test('family owner can add another child and read both children after saving', a
       fullPage: false,
     });
     await page.keyboard.press('Escape');
-    await expect(page.locator('.topbar-child-options')).not.toBeVisible();
+    await expect(
+      page.locator(
+        '.topbar-child-options:visible, .bottom-child-options:visible',
+      ),
+    ).not.toBeVisible();
   }
-  await page.locator('.topbar-child-picker summary').click();
+  await page
+    .locator(
+      '.topbar-child-picker:visible summary, .bottom-child-picker:visible summary',
+    )
+    .click();
   await page.locator('[data-last-care="sleep"]').click();
-  await expect(page.locator('.topbar-child-options')).not.toBeVisible();
+  await expect(
+    page.locator(
+      '.topbar-child-options:visible, .bottom-child-options:visible',
+    ),
+  ).not.toBeVisible();
   const firstId = new URL(page.url()).searchParams.get('child')!;
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -1080,11 +1134,17 @@ test('family owner can add another child and read both children after saving', a
       await expect(
         page.locator('.child-bar,.child-picker,.topbar .date'),
       ).toHaveCount(0);
-      await expect(page.locator('.topbar .language')).toBeVisible();
-      await expect(page.locator('.topbar .avatar')).toBeVisible();
-      await page.locator('.topbar-child-picker summary').click();
+      await expect(page.locator('.topbar .language')).toHaveCount(0);
+      if (width > 760)
+        await expect(page.locator('.topbar .avatar')).toBeVisible();
+      else await expect(page.locator('.topbar')).toBeHidden();
       await page
-        .locator('.topbar-child-options')
+        .locator(
+          '.topbar-child-picker:visible summary, .bottom-child-picker:visible summary',
+        )
+        .click();
+      await page
+        .locator('.topbar-child-options:visible, .bottom-child-options:visible')
         .getByRole('link')
         .filter({ hasText: '둘째' })
         .click();
@@ -1098,14 +1158,6 @@ test('family owner can add another child and read both children after saving', a
         expect(target.searchParams.get('month')).toBe('2026-11');
         expect(target.searchParams.get('day')).toBe('2026-11-05');
       }
-      const language = new URL(
-        (await page.locator('.topbar .language').getAttribute('href'))!,
-        page.url(),
-      );
-      expect(language.pathname).toBe(`/en/${section}`);
-      expect(language.searchParams.get('child')).toBe(
-        target.searchParams.get('child'),
-      );
       await expect(page.locator('.topbar .avatar')).toHaveAttribute(
         'href',
         `/ko/settings?child=${target.searchParams.get('child')}`,
@@ -2335,6 +2387,13 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
   browser,
 }) => {
   test.setTimeout(150000);
+  // LAN HTTP does not expose randomUUID, unlike localhost's secure context.
+  await context.addInitScript(() => {
+    Object.defineProperty(crypto, 'randomUUID', {
+      value: undefined,
+      configurable: true,
+    });
+  });
   const { owner, family, child } = await childCareFamily(context);
   await page.setViewportSize({ width: 1440, height: 1050 });
   await page.goto(`/ko/today?child=${child}`);
@@ -2406,9 +2465,29 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
   await expect
     .poll(() => dialog.evaluate((d) => d.matches(':modal')))
     .toBe(true);
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const selector of [
+      '.quick-amount-presets',
+      '.quick-feeding-duration .quick-choices',
+    ]) {
+      const rows = await dialog
+        .locator(`${selector} > button`)
+        .evaluateAll((buttons) =>
+          buttons.map((button) =>
+            Math.round(button.getBoundingClientRect().top),
+          ),
+        );
+      expect(new Set(rows).size).toBe(1);
+      expect(rows).toHaveLength(7);
+    }
+    await dialog.screenshot({
+      path: `test-results/feeding-presets-${width}.png`,
+    });
+  }
   await dialog.getByRole('button', { name: '저장하기', exact: true }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(quick.getByRole('status')).toContainText('저장했어요.');
+  await expect(quick.getByRole('status')).toHaveCount(0);
   await expectPhoneFunctionDock(page, quick.locator('.quick-grid'));
   await page.screenshot({
     path: 'test-results/phone-functions-today.png',
@@ -2465,8 +2544,7 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
     .locator('.quick-grid')
     .getByRole('button', { name: '모유', exact: true })
     .click();
-  await dialog.locator('.quick-extra > summary').click();
-  await dialog.getByLabel('메모', { exact: true }).fill('빠른 타이머 메모');
+  await expect(dialog.getByLabel('메모', { exact: true })).toHaveCount(0);
   const startedAt = Date.now();
   await dialog.getByRole('button', { name: '시작하기', exact: true }).click();
   await expect(dialog).not.toBeVisible();
@@ -2498,7 +2576,7 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
   expect(stopped.data).toMatchObject({
     version: 2,
     amount_ml: null,
-    note: '빠른 타이머 메모',
+    note: '',
   });
   expect(Date.parse(stopped.data!.ended_at!)).toBeGreaterThan(
     Date.parse(stopped.data!.started_at),
@@ -2686,7 +2764,7 @@ test('today care shows all local-day records and overnight sleep without a last 
   await expect(page.locator('.quick-timeline > li')).toHaveCount(22);
   await expect(page.locator('.quick-timeline')).not.toContainText('55 g');
   await expect(page.locator('.quick-day-total')).toHaveText(
-    '총 1,660 ml(분유 1,600 + 이유식 60)',
+    '총 1,660 ml(1,600 + 60)',
   );
   await expect(
     page
@@ -2723,7 +2801,7 @@ test('today care shows all local-day records and overnight sleep without a last 
   await expect(heading).toHaveAttribute('datetime', yesterday);
   await expect(page.locator('.quick-timeline > li')).toHaveCount(3);
   await expect(page.locator('.quick-day-total')).toHaveText(
-    '총 120 ml(분유 120 + 이유식 0)',
+    '총 120 ml(120 + 0)',
   );
   await expect(page.locator('.quick-timeline')).toContainText('55 g');
   await expect(page.locator('.quick-running')).toHaveCount(1);
@@ -2738,13 +2816,10 @@ test('today care shows all local-day records and overnight sleep without a last 
   await expect(heading).toHaveAttribute('datetime', yesterday);
   await page.getByRole('button', { name: '이전 날짜', exact: true }).click();
   await expect(page.locator('.quick-timeline-empty')).toBeVisible();
-  await expect(page.locator('.quick-day-total')).toHaveText(
-    '총 0 ml(분유 0 + 이유식 0)',
-  );
+  await expect(page.locator('.quick-day-total')).toHaveText('총 0 ml(0 + 0)');
   await expect(page.locator('.quick-running')).toHaveCount(1);
-  await page
-    .getByRole('button', { name: '오늘로 돌아가기', exact: true })
-    .click();
+  await page.getByRole('button', { name: '다음 날짜', exact: true }).click();
+  await page.getByRole('button', { name: '다음 날짜', exact: true }).click();
   await expect(heading).toHaveAttribute('datetime', today);
   await expect(page.locator('.quick-timeline > li')).toHaveCount(22);
 
@@ -2866,15 +2941,24 @@ test('daily care picker scrolls by mouse drag and saves the new health and activ
   ] as const;
   for (const [label, kind] of entries) {
     await rail.getByRole('button', { name: label, exact: true }).click();
-    if (kind === 'temperature')
+    if (kind === 'temperature') {
       await dialog.getByRole('button', { name: '37.5°C', exact: true }).click();
-    if (kind === 'medication') {
-      await dialog.getByLabel('약 이름', { exact: true }).fill('테스트 약');
-      await dialog.getByLabel('복용량', { exact: true }).fill('2.5');
-      await dialog.getByLabel('단위', { exact: true }).selectOption('ml');
+      const temperature = dialog.getByRole('slider', { name: '체온 (°C)' });
+      await expect(temperature).toHaveValue('37.5');
+      await temperature.focus();
+      await temperature.press('ArrowUp');
+      await expect(temperature).toHaveValue('37.6');
     }
-    if (['bath', 'play', 'tummy'].includes(kind))
+    if (kind === 'medication') {
+      await dialog.getByRole('button', { name: '해열제', exact: true }).click();
+      await expect(dialog.getByRole('spinbutton')).toHaveCount(0);
+    }
+    if (['bath', 'play', 'tummy'].includes(kind)) {
+      await expect(
+        dialog.getByRole('button', { name: '기록 안 함', exact: true }),
+      ).toHaveCount(0);
       await dialog.getByRole('button', { name: '5분', exact: true }).click();
+    }
     await dialog.getByRole('button', { name: '저장하기', exact: true }).click();
     await expect(dialog).not.toBeVisible();
     const record = await admin
@@ -2885,12 +2969,12 @@ test('daily care picker scrolls by mouse drag and saves the new health and activ
       .single();
     expect(record.error).toBeNull();
     expect(record.data?.created_by).toBe(owner);
-    if (kind === 'temperature') expect(record.data?.temperature_c).toBe(37.5);
+    if (kind === 'temperature') expect(record.data?.temperature_c).toBe(37.6);
     if (kind === 'medication')
       expect(record.data).toMatchObject({
-        medicine_name: '테스트 약',
-        dose_amount: 2.5,
-        dose_unit: 'ml',
+        medicine_name: '해열제',
+        dose_amount: null,
+        dose_unit: null,
       });
   }
   await expect(quick.locator('.quick-timeline > li')).toHaveCount(8);
@@ -2926,11 +3010,15 @@ test('daily care picker scrolls by mouse drag and saves the new health and activ
   });
   await quick
     .locator('.quick-timeline a')
-    .filter({ hasText: '37.5 °C' })
+    .filter({ hasText: '37.6 °C' })
     .click();
-  await expect(page.getByText('37.5 °C', { exact: true })).toBeVisible();
+  await expect(page.getByText('37.6 °C', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: '수정', exact: true }).click();
-  await page.getByLabel('체온 (°C)', { exact: true }).fill('36.8');
+  await page.getByRole('button', { name: '36.5°C', exact: true }).click();
+  const editTemperature = page.getByRole('slider', { name: '체온 (°C)' });
+  await editTemperature.press('ArrowUp');
+  await editTemperature.press('ArrowUp');
+  await editTemperature.press('ArrowUp');
   await page.getByRole('button', { name: '저장하기', exact: true }).click();
   await expect(page.getByText('36.8 °C', { exact: true })).toBeVisible();
   await page.goto(`/ko/today?child=${child}`);
@@ -3911,7 +3999,7 @@ test('Today groups records, tasks and events under one selected date and saves p
     agenda.getByRole('heading', { name: '할 일', exact: true }),
   ).toBeVisible();
   await expect(group.locator('.quick-day-total')).toHaveText(
-    '총 100 ml(분유 100 + 이유식 0)',
+    '총 100 ml(100 + 0)',
   );
   const checkbox = agenda.getByRole('checkbox');
   await checkbox.evaluate((node) =>
@@ -3928,9 +4016,7 @@ test('Today groups records, tasks and events under one selected date and saves p
     (await admin.from('tasks').select('status').eq('id', pastTask).single())
       .data?.status,
   ).toBe('done');
-  await group
-    .getByRole('button', { name: '오늘로 돌아가기', exact: true })
-    .click();
+  await group.getByRole('button', { name: '다음 날짜', exact: true }).click();
   await expect(agenda).toContainText('오늘 날짜 준비물');
   await group.getByRole('button', { name: '이전 날짜', exact: true }).click();
   await expect(heading).toHaveAttribute('datetime', yesterday);
@@ -4492,9 +4578,13 @@ test('insights supports rolling seven days, multiple activity patterns and child
     .single();
   expect(second.error).toBeNull();
   await page.reload();
-  await page.locator('.topbar-child-picker summary').click();
   await page
-    .locator('.topbar-child-options')
+    .locator(
+      '.topbar-child-picker:visible summary, .bottom-child-picker:visible summary',
+    )
+    .click();
+  await page
+    .locator('.topbar-child-options:visible, .bottom-child-options:visible')
     .getByRole('link')
     .filter({ hasText: '빈 기록 아이' })
     .click();
@@ -4502,7 +4592,9 @@ test('insights supports rolling seven days, multiple activity patterns and child
     page.locator('[data-statistic="feeding"]').getByTestId('statistic-total'),
   ).toHaveText('—ml');
   expect(new URL(page.url()).searchParams.get('week')).toBe(week);
-  await page.locator('.topbar .language').click();
+  const englishInsight = new URL(page.url());
+  englishInsight.pathname = englishInsight.pathname.replace('/ko/', '/en/');
+  await page.goto(englishInsight.toString());
   await expect(
     page.getByRole('button', { name: 'Weekly pattern', exact: true }),
   ).toBeVisible();
@@ -5036,4 +5128,484 @@ test('own diary uses a bottom sheet with optional growth measurements', async ({
   await expect(
     page.getByRole('button', { name: '일기 쓰기', exact: true }),
   ).toHaveCount(0);
+});
+
+test('development guide hides the activity dock and preserves pattern selections', async ({
+  page,
+  context,
+}) => {
+  const own = await childCareFamily(context);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(
+    `/ko/insights?child=${own.child}&kind=formula,sleep&pattern=guide`,
+  );
+  await expect(
+    page.getByRole('button', { name: '육아 가이드', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { name: '발달 살펴보기' }),
+  ).toBeVisible();
+  const age = page.locator('.development-age-nav strong');
+  const initial = parseInt(await age.innerText(), 10);
+  await page.getByRole('button', { name: '이전 월령' }).click();
+  await expect(age).toHaveText(`${initial - 1}개월`);
+  await page.getByRole('button', { name: '다음 월령' }).click();
+  await expect(age).toHaveText(`${initial}개월`);
+  await page.screenshot({
+    path: '/tmp/podung-development-mobile.png',
+    fullPage: true,
+  });
+  await page.getByRole('button', { name: '기록 분석', exact: true }).click();
+  await page.getByRole('button', { name: '주간 패턴', exact: true }).click();
+  await expect(page.locator('.insight-kind-rail')).toBeVisible();
+  expect(new URL(page.url()).searchParams.get('kind')).toBe('formula,sleep');
+  await page.getByRole('button', { name: '육아 가이드', exact: true }).click();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
+  await page.screenshot({
+    path: '/tmp/podung-development-desktop.png',
+    fullPage: true,
+  });
+  await page.goto(`/en/insights?child=${own.child}&kind=&pattern=guide`);
+  await expect(
+    page.getByRole('heading', { name: 'Development', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
+  await page
+    .getByRole('button', { name: 'Record analysis', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Statistics', exact: true }).click();
+  await expect(page.getByText('Select activities to compare.')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Care guide', exact: true }),
+  ).toBeVisible();
+});
+
+test('growth curves use private measurements and milestone checks persist by child', async ({
+  page,
+  context,
+}) => {
+  const graphWarnings: string[] = [];
+  page.on('console', (message) => {
+    if (
+      message.type() === 'error' &&
+      /growth-reference|growth-child-point/.test(message.text())
+    )
+      graphWarnings.push(message.text());
+  });
+  const own = await childCareFamily(context);
+  await admin.from('children').update({ sex: 'female' }).eq('id', own.child);
+  const record = await admin.from('child_records').insert({
+    id: crypto.randomUUID(),
+    child_id: own.child,
+    service: 'growth',
+    kind: 'measurement',
+    occurred_at: '2026-07-13T01:00:00Z',
+    record_timezone: 'Asia/Seoul',
+    weight_kg: 8.3,
+    height_cm: 67,
+    head_cm: 42,
+    created_by: own.owner,
+  });
+  expect(record.error).toBeNull();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/insights?child=${own.child}&pattern=curve`);
+  await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
+  await expect(page.locator('.growth-selected')).toContainText('8.3 kg');
+  await expect(page.locator('.growth-selected')).toContainText('D+193');
+  await expect(page.locator('.growth-reference')).toHaveCount(7);
+  await expect(page.locator('.growth-selected')).toContainText('백분위');
+  await page.getByRole('button', { name: '키', exact: true }).click();
+  await expect(page.locator('.growth-selected')).toContainText('67 cm');
+  await page.getByRole('button', { name: '머리둘레', exact: true }).click();
+  await expect(page.locator('.growth-selected')).toContainText('42 cm');
+  await page.getByRole('button', { name: '몸무게', exact: true }).click();
+  await page.screenshot({
+    path: '/tmp/podung-growth-curve-mobile.png',
+    fullPage: true,
+  });
+  await page.getByRole('button', { name: '마일스톤', exact: true }).click();
+  await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
+  const checkbox = page.getByRole('checkbox', {
+    name: '도움 없이 앉아요',
+    exact: true,
+  });
+  await expect(checkbox).not.toBeChecked();
+  await checkbox.check();
+  await expect(checkbox).toBeChecked();
+  await expect(checkbox).toBeEnabled();
+  await expect(
+    page.locator('.milestones-panel').getByRole('alert'),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(checkbox).toBeChecked();
+  await page.screenshot({
+    path: '/tmp/podung-milestones-mobile.png',
+    fullPage: true,
+  });
+  const stored = await admin
+    .from('child_milestones')
+    .select('*')
+    .eq('child_id', own.child);
+  expect(stored.data?.map((row) => row.milestone_key)).toEqual([
+    'cdc-v1-9-sit',
+  ]);
+  await page.getByRole('button', { name: '다음 발달 월령' }).click();
+  await expect(page.locator('.development-age-nav')).toContainText('12개월');
+  await page.getByRole('button', { name: '이전 발달 월령' }).click();
+  await expect(checkbox).toBeChecked();
+  await checkbox.uncheck();
+  await expect(checkbox).not.toBeChecked();
+  await expect(checkbox).toBeEnabled();
+  await page.reload();
+  await expect(checkbox).not.toBeChecked();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByRole('button', { name: '성장곡선', exact: true }).click();
+  await page.screenshot({
+    path: '/tmp/podung-growth-curve-desktop.png',
+    fullPage: true,
+  });
+  await page.goto(`/en/insights?child=${own.child}&pattern=milestones`);
+  await expect(
+    page.getByRole('heading', { name: 'Movement', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('checkbox', { name: 'Sits without support', exact: true }),
+  ).not.toBeChecked();
+  expect(graphWarnings).toEqual([]);
+});
+
+test('growth report compares completed weeks and groups insight navigation', async ({
+  page,
+  context,
+}) => {
+  const own = await childCareFamily(context);
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  const day = (offset: number) =>
+    new Date(Date.parse(`${today}T00:00:00Z`) + offset * 86400000)
+      .toISOString()
+      .slice(0, 10);
+  const saved = await admin.from('care_records').insert(
+    [-10, -9, -8, -3, -2, -1, 0].map((offset) => ({
+      id: crypto.randomUUID(),
+      child_id: own.child,
+      kind: 'formula',
+      started_at: `${day(offset)}T01:00:00Z`,
+      ended_at: `${day(offset)}T01:10:00Z`,
+      amount_ml: offset === 0 ? 999 : offset < -7 ? 100 : 120,
+      record_timezone: 'Asia/Seoul',
+      created_by: own.owner,
+      updated_by: own.owner,
+    })),
+  );
+  expect(saved.error).toBeNull();
+  await admin.from('children').update({ sex: 'female' }).eq('id', own.child);
+  const measured = await admin.from('child_records').insert(
+    [-15, -2].map((offset, index) => ({
+      id: crypto.randomUUID(),
+      child_id: own.child,
+      service: 'growth',
+      kind: 'measurement',
+      occurred_at: `${day(offset)}T01:00:00Z`,
+      record_timezone: 'Asia/Seoul',
+      weight_kg: index ? 8.3 : 7.8,
+      created_by: own.owner,
+    })),
+  );
+  expect(measured.error).toBeNull();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/insights?child=${own.child}&pattern=report`);
+  await expect(
+    page.getByRole('heading', { name: '성장 분석 보고서', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
+  await expect(page.locator('.report-measurements')).toContainText('8.3 kg');
+  await expect(
+    page.getByRole('img', { name: '기록된 몸무게 변화' }),
+  ).toBeVisible();
+  const formula = page.getByRole('row').filter({
+    has: page.getByRole('rowheader', { name: '분유', exact: true }),
+  });
+  await expect(formula).toContainText('100 ml');
+  await expect(formula).toContainText('120 ml');
+  await expect(formula).toContainText('+20.0%');
+  await expect(formula).not.toContainText('999');
+  const sleep = page.getByRole('row').filter({
+    has: page.getByRole('rowheader', { name: '수면', exact: true }),
+  });
+  await expect(sleep).toContainText('미기록');
+  await expect(sleep).not.toContainText('0시간');
+  await page.screenshot({
+    path: '/tmp/podung-report-mobile.png',
+    fullPage: true,
+  });
+  await page.getByRole('button', { name: '성장·발달', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: '성장곡선', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: '통계 정보', exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole('button', { name: '기록 분석', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: '성장 보고서', exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole('button', { name: '성장·발달', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: '성장 보고서', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.screenshot({
+    path: '/tmp/podung-report-desktop.png',
+    fullPage: true,
+  });
+  await page.goto(`/en/insights?child=${own.child}&pattern=report`);
+  await expect(
+    page.getByRole('heading', { name: 'Growth report', exact: true }),
+  ).toBeVisible();
+});
+
+test('compact mobile navigation switches children and opens language settings', async ({
+  page,
+  context,
+}) => {
+  const { child, family } = await childCareFamily(context);
+  const second = await admin
+    .from('children')
+    .insert({ family_id: family, name: '둘째', birth_date: '2026-09-01' })
+    .select('id')
+    .single();
+  expect(second.error).toBeNull();
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto(`/ko/today?child=${child}`);
+    await expect(page.locator('.topbar')).toBeHidden();
+    const picker = page.locator('.bottom-child-picker');
+    await picker.locator('summary').click();
+    await expect(picker.locator('nav')).toBeVisible();
+    await picker.getByRole('link', { name: /둘째/ }).click();
+    await expect(page).toHaveURL(new RegExp(`child=${second.data!.id}`));
+    await expect(picker.locator('summary')).toContainText('둘째');
+    await picker.locator('summary').click();
+    await expect(picker.locator('nav')).toContainText('생후');
+    await page.keyboard.press('Escape');
+    await expect(picker.locator('nav')).toBeHidden();
+    for (const section of ['today', 'calendar', 'insights']) {
+      await page.goto(`/ko/${section}?child=${child}`);
+      const rail = page.locator('.mobile-function-rail');
+      await expect(rail).toBeVisible();
+      const box = await rail.boundingBox();
+      expect(box!.height).toBeLessThanOrEqual(68);
+      await page.screenshot({
+        path: `test-results/compact-${section}-${width}.png`,
+      });
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+    }
+    await page.screenshot({ path: `test-results/compact-mobile-${width}.png` });
+  }
+  await page.locator('.bottom-child-picker summary').click();
+  await page
+    .locator('.bottom-child-picker')
+    .getByRole('link', { name: '계정 설정', exact: true })
+    .click();
+  await page
+    .locator('.settings-language')
+    .getByRole('link', { name: 'English', exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/en/settings\\?child=${child}`));
+  await expect(page.locator('.settings-language')).toContainText('Language');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`/ko/today?child=${child}`);
+  await expect(page.locator('.topbar')).toBeVisible();
+  await expect(page.locator('.mobile-nav')).toBeHidden();
+});
+
+test('quick feeding remembers each kind across days and allows direct start-time edits', async ({
+  page,
+  context,
+}) => {
+  const { child, owner } = await childCareFamily(context);
+  const old = Date.now() - 10 * 86400000;
+  const rows = [
+    ['formula', 170],
+    ['solids', 90],
+  ].map(([kind, amount], i) => ({
+    id: crypto.randomUUID(),
+    child_id: child,
+    kind: String(kind),
+    amount_ml: Number(amount),
+    started_at: new Date(old + i * 3600000).toISOString(),
+    ended_at: new Date(old + i * 3600000 + 600000).toISOString(),
+    created_by: owner,
+    updated_by: owner,
+  }));
+  expect((await admin.from('care_records').insert(rows)).error).toBeNull();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/today?child=${child}`);
+  const quick = page.locator('.quick-care');
+  const dialog = quick.locator('dialog');
+  for (const [name, amount] of [
+    ['분유', '170'],
+    ['이유식', '90'],
+  ]) {
+    await quick
+      .locator('.quick-grid')
+      .getByRole('button', { name, exact: true })
+      .click();
+    await expect(dialog.getByRole('slider')).toHaveValue(amount);
+    await expect(
+      dialog.getByRole('link', { name: '자세히 기록', exact: true }),
+    ).toHaveCount(0);
+    await expect(dialog.locator('.quick-time-edit input')).toBeVisible();
+    const timeBox = await dialog.locator('.quick-time-control').boundingBox();
+    const rulerBox = await dialog.locator('.quick-ruler').boundingBox();
+    expect(Math.abs(timeBox!.x - rulerBox!.x)).toBeLessThan(2);
+    expect(Math.abs(timeBox!.width - rulerBox!.width)).toBeLessThan(2);
+    const cancelBox = await dialog
+      .getByRole('button', { name: '취소', exact: true })
+      .boundingBox();
+    const saveBox = await dialog
+      .getByRole('button', { name: '저장하기', exact: true })
+      .boundingBox();
+    expect(cancelBox!.x).toBeLessThan(saveBox!.x);
+    await expect(dialog.locator('textarea')).toHaveCount(0);
+    await expect(dialog.locator('.quick-composer-heading button')).toHaveCount(
+      0,
+    );
+
+    await dialog.getByRole('button', { name: '취소', exact: true }).click();
+  }
+  await quick
+    .locator('.quick-grid')
+    .getByRole('button', { name: '분유', exact: true })
+    .click();
+  const start = await page.evaluate(() => {
+    const date = new Date(Date.now() - 7200000);
+    date.setSeconds(0, 0);
+    const value = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+    return { value, iso: date.toISOString() };
+  });
+  await dialog
+    .locator('.quick-time-edit input')
+    .fill(start.value.slice(11, 16));
+  await dialog.getByRole('button', { name: '15분', exact: true }).click();
+  await expect(dialog.locator('.quick-time-edit input')).toHaveValue(
+    start.value.slice(11, 16),
+  );
+  await dialog.getByRole('button', { name: '저장하기', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  const latest = await admin
+    .from('care_records')
+    .select('started_at,amount_ml')
+    .eq('child_id', child)
+    .eq('kind', 'formula')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .single();
+  expect(latest.error).toBeNull();
+  expect(latest.data!.amount_ml).toBe(170);
+  expect(new Date(latest.data!.started_at).toISOString()).toBe(start.iso);
+});
+
+test('quick record subtitles and control gaps stay consistent across mobile and desktop', async ({
+  page,
+  context,
+}) => {
+  const { child } = await childCareFamily(context);
+  await page.goto(`/ko/today?child=${child}`);
+  const quick = page.locator('.quick-care');
+  const dialog = quick.locator('dialog');
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const kind of ['분유', '이유식', '기저귀', '체온']) {
+      await quick
+        .locator('.quick-grid')
+        .getByRole('button', { name: kind, exact: true })
+        .click();
+      await expect(dialog).toBeVisible();
+      await expect(dialog.locator('#quick-composer-title')).toBeFocused();
+      for (const selector of [
+        '.quick-composer-heading',
+        '#quick-composer-title',
+      ]) {
+        await expect(dialog.locator(selector)).toHaveCSS(
+          'outline-style',
+          'none',
+        );
+        await expect(dialog.locator(selector)).toHaveCSS('box-shadow', 'none');
+      }
+      const subtitles = dialog.locator(
+        '.quick-amount-label > span, .quick-duration legend > span, .quick-time-edit label > span:first-child',
+      );
+      for (const title of await subtitles.all()) {
+        await expect(title).toHaveCSS('font-size', '12px');
+        await expect(title).toHaveCSS('font-weight', '600');
+        await expect(title).toHaveCSS('line-height', '18px');
+      }
+      for (const selector of [
+        '.quick-amount-presets',
+        '.quick-feeding-duration .quick-choices',
+      ]) {
+        const buttons = dialog.locator(`${selector} > button`);
+        if (await buttons.count()) {
+          const tops = await buttons.evaluateAll((nodes) =>
+            nodes.map((node) => node.getBoundingClientRect().top),
+          );
+          expect(Math.max(...tops) - Math.min(...tops)).toBeLessThan(1);
+        }
+      }
+      const timeWidth = (await dialog
+        .locator('.quick-time-control')
+        .boundingBox())!.width;
+      const fieldWidth = (await dialog.locator('.quick-fields').boundingBox())!
+        .width;
+      expect(Math.abs(timeWidth - fieldWidth)).toBeLessThan(1);
+      const gaps = await dialog.evaluate((node) => {
+        const pairs = [
+          [
+            '.quick-amount-label',
+            '.quick-amount-presets, .quick-temperature-presets',
+          ],
+          ['.quick-duration legend', '.quick-duration .quick-choices'],
+          ['.quick-time-edit label > span:first-child', '.quick-time-control'],
+        ];
+        return pairs.flatMap(([titleSelector, controlSelector]) => {
+          const title = node.querySelector(titleSelector);
+          const control = node.querySelector(controlSelector);
+          if (!title || !control) return [];
+          // Legend padding is the spacing before its controls.
+          const padding = parseFloat(getComputedStyle(title).paddingBottom);
+          return [
+            control.getBoundingClientRect().top -
+              title.getBoundingClientRect().bottom +
+              padding,
+          ];
+        });
+      });
+      for (const gap of gaps) expect(Math.abs(gap - 10)).toBeLessThan(1);
+      expect(
+        await dialog.evaluate((node) => node.scrollWidth <= node.clientWidth),
+      ).toBe(true);
+      if (width === 390 && ['분유', '체온'].includes(kind)) {
+        await page.screenshot({
+          path: `test-results/quick-subtitles-${kind === '분유' ? 'formula' : 'temperature'}.png`,
+        });
+      }
+      await dialog.getByRole('button', { name: '취소', exact: true }).click();
+      await expect(dialog).not.toBeVisible();
+    }
+  }
 });

@@ -1,4 +1,5 @@
 'use client';
+import { createRecordId } from '@/lib/record-id';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useTranslations } from 'next-intl';
 import { saveRecord } from './actions';
@@ -69,7 +70,7 @@ function RecordEditor({
     record?.kind === kind &&
     record?.amount_g != null &&
     record.amount_ml === null;
-  const [id] = useState(() => record?.id ?? crypto.randomUUID());
+  const [id] = useState(() => record?.id ?? createRecordId());
   const [start, setStart] = useState(() =>
     localInput(record?.started_at ?? now),
   );

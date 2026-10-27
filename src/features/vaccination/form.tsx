@@ -1,4 +1,5 @@
 'use client';
+import { createRecordId } from '@/lib/record-id';
 import { useState, useSyncExternalStore } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
@@ -40,7 +41,7 @@ export function VaccinationForm({
     () => false,
   );
   const t = vaccinationCopy(locale);
-  const [id] = useState(() => record?.id ?? crypto.randomUUID());
+  const [id] = useState(() => record?.id ?? createRecordId());
   const [vaccine, setVaccine] = useState(
     record?.vaccine ?? (returnTo === 'calendar' ? '' : 'influenza'),
   );

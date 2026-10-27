@@ -1,6 +1,7 @@
 'use client';
+import { BreastIcon } from '@/components/breast-icon';
 import { useEffect, useState } from 'react';
-import { Baby, Heart, Milk, Utensils, Moon } from 'lucide-react';
+import { Baby, Milk, Utensils, Moon } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import type { Row } from '@/lib/db';
 import { kindLabel } from '@/features/child-care/copy';
@@ -70,7 +71,7 @@ export function LastCare({
   const cards = [
     {
       key: 'diaper',
-      label: ko ? '마지막 기저귀' : 'Last diaper',
+      label: ko ? '마지막 용변' : 'Last potty',
       color: 'diaper',
       icon: Baby,
       at: diaper?.occurred_at,
@@ -83,7 +84,7 @@ export function LastCare({
       color: feeding?.kind ?? 'formula',
       icon:
         feeding?.kind === 'breast'
-          ? Heart
+          ? BreastIcon
           : feeding?.kind === 'solids'
             ? Utensils
             : Milk,

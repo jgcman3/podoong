@@ -1,4 +1,5 @@
 'use client';
+import { createRecordId } from '@/lib/record-id';
 import { useState, useSyncExternalStore } from 'react';
 import { useFormStatus } from 'react-dom';
 import type { Row } from '@/lib/db';
@@ -51,7 +52,7 @@ function Editor({
         : service === 'activity'
           ? [...activityKinds]
           : ['measurement', 'observation'];
-  const [id] = useState(record?.id ?? crypto.randomUUID());
+  const [id] = useState(record?.id ?? createRecordId());
   const [kind, setKind] = useState(
     record?.kind ??
       (kinds.includes(defaultKind ?? '') ? defaultKind! : kinds[0]),

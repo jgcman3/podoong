@@ -1,3 +1,10 @@
+import { GrowthCurve } from './growth-curve';
+import { Milestones } from './milestones';
+import reference from './reference/who-lms.json';
+import { loadGrowthPoints } from './growth-data';
+import { GrowthReport } from './report';
+import { InsightTabs } from './tabs';
+import { DevelopmentGuide } from './development-guide';
 import type { CareContext } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
 import { selectedKinds } from './config';
@@ -28,6 +35,72 @@ export async function Insights({
   const selected = selectedKinds(rawKind),
     start = resolveWeek(rawWeek, context.today),
     interval = rawInterval === 'week' ? 'week' : 'day';
+  if (pattern === 'report')
+    return (
+      <InsightsNavigation selected={selected}>
+        <div className="insights-page">
+          <InsightTabs mode={pattern} locale={locale} />
+          <GrowthReport context={context} locale={locale} />
+        </div>
+      </InsightsNavigation>
+    );
+  if (pattern === 'curve' || pattern === 'milestones') {
+    let content;
+    if (pattern === 'curve') {
+      const points = await loadGrowthPoints(context);
+      content = (
+        <GrowthCurve
+          key={context.child.id}
+          points={points}
+          reference={reference}
+          sex={context.child.sex}
+          birthDate={context.child.birth_date}
+          child={context.child.id}
+          locale={locale}
+        />
+      );
+    } else {
+      const { data, error } = await context.db
+        .from('child_milestones')
+        .select('milestone_key')
+        .eq('child_id', context.child.id);
+      if (error) throw new Error('Milestones unavailable');
+      content = (
+        <Milestones
+          key={context.child.id}
+          child={context.child.id}
+          birthDate={context.child.birth_date}
+          today={context.today}
+          checked={data.map((row) => row.milestone_key)}
+          writable={context.writable}
+          locale={locale}
+        />
+      );
+    }
+    return (
+      <InsightsNavigation selected={selected}>
+        <div className="insights-page">
+          <InsightTabs mode={pattern} locale={locale} />
+          {content}
+        </div>
+      </InsightsNavigation>
+    );
+  }
+  if (pattern === 'guide')
+    return (
+      <InsightsNavigation selected={selected}>
+        <div className="insights-page">
+          <InsightTabs mode={pattern} locale={locale} />
+          <DevelopmentGuide
+            key={context.child.id}
+            birthDate={context.child.birth_date}
+            today={context.today}
+            child={context.child.id}
+            locale={locale}
+          />
+        </div>
+      </InsightsNavigation>
+    );
   const { week, weeks } = await loadInsights(
     context,
     start,
@@ -37,6 +110,7 @@ export async function Insights({
   return (
     <InsightsNavigation selected={selected}>
       <div className="insights-page">
+        <InsightTabs mode={pattern} locale={locale} />
         <KindPicker locale={locale} />
         {selected.length ? (
           <PatternBrowser

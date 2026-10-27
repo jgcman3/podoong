@@ -1,4 +1,7 @@
 'use client';
+import { QuickFieldTitle } from './quick-field-title';
+import { BreastIcon } from '@/components/breast-icon';
+import { createRecordId } from '@/lib/record-id';
 import {
   useState,
   useEffect,
@@ -25,10 +28,7 @@ import {
   Baby,
   Ruler,
   Heart,
-  X,
   Check,
-  Clock,
-  ArrowUpRight,
   Play,
   Square,
   ChevronRight,
@@ -56,7 +56,7 @@ import { ActivityFields } from './activity-fields';
 import { activityKinds } from '@/features/child-care/schema';
 import { quickCopy } from './quick-copy';
 const icons = {
-  breast: Heart,
+  breast: BreastIcon,
   formula: Milk,
   solids: Utensils,
   sleep: Moon,
@@ -141,6 +141,7 @@ export function QuickCare({
   locale,
   childId,
   entries,
+  recentAmounts,
   writable,
   timezone,
   today,
@@ -149,6 +150,7 @@ export function QuickCare({
   locale: Locale;
   childId: string;
   entries: QuickEntry[];
+  recentAmounts: { formula: number | null; solids: number | null };
   writable: boolean;
   timezone: string;
   today: string;
@@ -161,7 +163,6 @@ export function QuickCare({
     active?: QuickEntry;
   } | null>(null);
   const [historyRevision, setHistoryRevision] = useState(0);
-  const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const mobile = useSyncExternalStore(
@@ -213,10 +214,13 @@ export function QuickCare({
       }
       if (focused && node.contains(focused))
         focused.focus({ preventScroll: true });
+      else
+        node
+          .querySelector<HTMLElement>('#quick-composer-title')
+          ?.focus({ preventScroll: true });
     }
   }, [selection, mobile]); // Keep the same editor and its values when the viewport changes.
   const open = (kind: QuickKind, record?: QuickEntry) => {
-    setSaved(false);
     setSelection({
       kind,
       active:
@@ -228,7 +232,6 @@ export function QuickCare({
   };
   const completed = () => {
     setBusy(false);
-    setSaved(true);
     setHistoryRevision((value) => value + 1);
     setSelection(null);
     router.refresh();
@@ -238,12 +241,6 @@ export function QuickCare({
       className="quick-care"
       aria-label={locale === 'ko' ? '육아 기록' : 'Care records'}
     >
-      {saved && (
-        <div className="flash quick-saved" role="status">
-          <Check size={18} />
-          <span>{c.saved}</span>
-        </div>
-      )}
       <div
         className="quick-grid quick-orbit mobile-function-rail"
         ref={rail}
@@ -491,6 +488,12 @@ export function QuickCare({
                     childId={childId}
                     kind={selection.kind}
                     active={selection.active}
+                    initialAmount={
+                      selection.kind === 'formula' ||
+                      selection.kind === 'solids'
+                        ? recentAmounts[selection.kind]
+                        : null
+                    }
                     close={close}
                     completed={completed}
                     onPending={setBusy}
@@ -509,6 +512,7 @@ type QuickEditorProps = {
   childId: string;
   kind: Exclude<QuickKind, 'vaccination'>;
   active?: QuickEntry;
+  initialAmount: number | null;
   close: () => void;
   completed: () => void;
   onPending: (pending: boolean) => void;
@@ -518,6 +522,7 @@ function QuickEditor({
   childId,
   kind,
   active,
+  initialAmount,
   close,
   completed,
   onPending,
@@ -536,13 +541,15 @@ function QuickEditor({
         ? 'start'
         : 'record',
   );
-  const [id] = useState(() => active?.id ?? crypto.randomUUID());
+  const [id] = useState(() => active?.id ?? createRecordId());
   const [start, setStart] = useState(() =>
     localDateInput(active?.startedAt ?? new Date().toISOString()),
   );
   const [timeEdited, setTimeEdited] = useState(false);
   const [duration, setDuration] = useState('');
-  const [amount, setAmount] = useState(kind === 'solids' ? '50' : '80');
+  const [amount, setAmount] = useState(
+    String(initialAmount ?? (kind === 'solids' ? 50 : 80)),
+  );
   const [recordKind, setRecordKind] = useState(
     active?.kind ??
       (kind === 'sleep'
@@ -553,7 +560,6 @@ function QuickEditor({
             ? 'wet'
             : kind),
   );
-  const [note, setNote] = useState('');
   const [state, action, pending] = useActionState<QuickSaveState, FormData>(
     saveQuickCare,
     { status: 'idle' },
@@ -568,7 +574,10 @@ function QuickEditor({
   }, [state, completed]);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const startIso =
-    active?.startedAt ?? (start ? new Date(start).toISOString() : '');
+    active?.startedAt ??
+    (start && Number.isFinite(new Date(start).getTime())
+      ? new Date(start).toISOString()
+      : '');
   const endedAt =
     mode === 'record' && (feed || kind === 'sleep')
       ? endFromDuration(startIso, duration)
@@ -581,11 +590,6 @@ function QuickEditor({
       }).format(new Date(startIso))
     : '--:--';
   const Icon = icons[kind];
-  const detailed = active
-    ? entryHref(active, locale, childId)
-    : feed
-      ? `/${locale}/records?child=${childId}&kind=${kind}`
-      : `/${locale}/care/${activity ? 'activity' : diaper ? 'diaper' : kind}/new?child=${childId}&kind=${recordKind}`;
   const changeDuration = (value: number, currentTime: number) => {
     setDuration(String(value));
     if (!timeEdited)
@@ -596,20 +600,20 @@ function QuickEditor({
   const durationNeeded = mode === 'record' && (feed || kind === 'sleep');
   return (
     <form action={action} className="quick-editor-form" aria-label={title}>
-      <header className="quick-composer-heading">
+      <header
+        className="quick-composer-heading"
+        style={{ outline: 'none', boxShadow: 'none' }}
+      >
         <span className={`quick-kind-badge quick-color-${kind}`}>
           <Icon size={19} />
         </span>
-        <h3 id="quick-composer-title">{title}</h3>
-        <button
-          type="button"
-          className="quick-close"
-          onClick={close}
-          disabled={pending}
-          aria-label={c.close}
+        <h3
+          id="quick-composer-title"
+          tabIndex={-1}
+          style={{ outline: 'none', boxShadow: 'none' }}
         >
-          <X size={21} />
-        </button>
+          {title}
+        </h3>
       </header>
       <input type="hidden" name="locale" value={locale} />
       <input
@@ -741,9 +745,13 @@ function QuickEditor({
               </div>
             )}
             {durationNeeded && (
-              <fieldset className="quick-duration">
+              <fieldset
+                className={`quick-duration ${feed ? 'quick-feeding-duration' : ''}`}
+              >
                 <legend>
-                  {kind === 'sleep' ? c.sleepDuration : c.duration}
+                  <QuickFieldTitle>
+                    {kind === 'sleep' ? c.sleepDuration : c.duration}
+                  </QuickFieldTitle>
                 </legend>
                 <div className="quick-choices">
                   {(kind === 'sleep'
@@ -761,74 +769,89 @@ function QuickEditor({
                     </button>
                   ))}
                 </div>
-                <p>{kind === 'sleep' ? c.sleepHelp : c.durationHelp}</p>
+                {kind === 'sleep' && <p>{c.sleepHelp}</p>}
               </fieldset>
             )}
-            <details className="quick-extra">
-              <summary>
-                <Clock size={15} />
-                {diaper
-                  ? c.diaperTime
-                  : activity
-                    ? locale === 'ko'
-                      ? '기록 시각'
-                      : 'Time'
-                    : c.time}{' '}
-                · {clock}
-                <span>{c.extras}</span>
-              </summary>
+            <div className="quick-time-edit">
               <label>
-                {diaper
-                  ? c.diaperTime
-                  : activity
-                    ? locale === 'ko'
-                      ? '기록 시각'
-                      : 'Time'
-                    : c.time}
-                <input
-                  aria-label={
-                    diaper
-                      ? c.diaperTime
-                      : activity
-                        ? locale === 'ko'
-                          ? '기록 시각'
-                          : 'Time'
-                        : c.time
-                  }
-                  type="datetime-local"
-                  value={start}
-                  onChange={(event) => {
-                    setStart(event.target.value);
-                    setTimeEdited(true);
+                <QuickFieldTitle>
+                  {diaper
+                    ? c.diaperTime
+                    : activity
+                      ? locale === 'ko'
+                        ? '기록 시각'
+                        : 'Time'
+                      : c.time}
+                </QuickFieldTitle>
+                <span
+                  className="quick-time-control"
+                  style={{
+                    display: 'flex',
+                    position: 'relative',
+                    width: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
+                    height: 46,
+                    alignItems: 'center',
+                    marginTop: 0,
                   }}
-                  required
-                />
+                >
+                  <span aria-hidden="true">{clock}</span>
+                  <input
+                    aria-label={
+                      diaper
+                        ? c.diaperTime
+                        : activity
+                          ? locale === 'ko'
+                            ? '기록 시각'
+                            : 'Time'
+                          : c.time
+                    }
+                    type="time"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      opacity: 0,
+                      width: '100%',
+                      maxWidth: '100%',
+                      minWidth: 0,
+                      height: '100%',
+                      boxSizing: 'border-box',
+                      margin: 0,
+                      padding: 0,
+                      border: 0,
+                    }}
+                    value={start ? start.slice(11, 16) : ''}
+                    onChange={(event) => {
+                      const date = (
+                        start || localDateInput(new Date().toISOString())
+                      ).slice(0, 10);
+                      setStart(
+                        event.target.value
+                          ? `${date}T${event.target.value}`
+                          : '',
+                      );
+                      setTimeEdited(true);
+                    }}
+                    required
+                  />
+                </span>
               </label>
-              <label>
-                {c.note}
-                <textarea
-                  name="note"
-                  maxLength={2000}
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                />
-              </label>
-            </details>
+            </div>
           </>
         )}
       </fieldset>
-      {mode === 'stop' && <input type="hidden" name="note" value="" />}
+      <input type="hidden" name="note" value="" />
       <footer className="quick-composer-footer">
-        <Link
-          href={detailed}
-          aria-disabled={pending}
-          onClick={(event) => {
-            if (pending) event.preventDefault();
-          }}
+        <button
+          type="button"
+          className="button secondary quick-cancel"
+          onClick={close}
+          disabled={pending}
         >
-          {active ? c.editDetails : c.details}
-          <ArrowUpRight size={13} />
-        </Link>
+          {locale === 'ko' ? '취소' : 'Cancel'}
+        </button>
         <button
           className="button primary quick-confirm"
           disabled={pending || !startIso || (durationNeeded && !endedAt)}
@@ -870,7 +893,10 @@ function AmountRuler({
 }) {
   const c = quickCopy(locale),
     unit = 'ml',
-    max = kind === 'solids' ? 500 : 600,
+    max = Math.max(
+      kind === 'solids' ? 500 : 600,
+      Math.ceil(Number(value) / 100) * 100,
+    ),
     step = kind === 'solids' ? 5 : 10,
     divisions = max / 100;
   const presets =
@@ -880,8 +906,7 @@ function AmountRuler({
   return (
     <div className="quick-amount-picker">
       <div className="quick-amount-heading">
-        <span>{c.amount}</span>
-        <output aria-live="polite">
+        <output aria-live="polite" aria-label={c.amount}>
           {value === '' ? (
             c.unknown
           ) : (
@@ -924,25 +949,29 @@ function AmountRuler({
           <Minus size={14} />
         </div>
       </div>
-      <p className="quick-ruler-help">{c.amountHelp}</p>
+      <h4 className="quick-amount-label">
+        <QuickFieldTitle>{c.amount}</QuickFieldTitle>
+      </h4>
       <div className="quick-choices quick-amount-presets">
         {presets.map((v) => (
           <button
             type="button"
             key={v}
+            aria-label={`${v} ${unit}`}
             aria-pressed={value === String(v)}
             onClick={() => onChange(String(v))}
           >
-            {v} {unit}
+            {v}
           </button>
         ))}
         <button
           type="button"
           className="quick-unknown"
+          aria-label={c.unknown}
           aria-pressed={value === ''}
           onClick={() => onChange(value === '' ? '80' : '')}
         >
-          {c.unknown}
+          {locale === 'ko' ? '모름' : '?'}
         </button>
       </div>
     </div>

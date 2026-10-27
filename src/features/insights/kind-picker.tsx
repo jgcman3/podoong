@@ -1,7 +1,7 @@
 'use client';
+import { BreastIcon } from '@/components/breast-icon';
 import { useRef, useState } from 'react';
 import {
-  Heart,
   Milk,
   Utensils,
   Moon,
@@ -17,13 +17,12 @@ import {
   Smile,
   Ruler,
   BookHeart,
-  Check,
 } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import { insightKinds, kindName } from './config';
 import { useInsightsNavigation } from './navigation';
 const icons = [
-  Heart,
+  BreastIcon,
   Milk,
   Utensils,
   Moon,
@@ -118,7 +117,6 @@ export function KindPicker({ locale }: { locale: Locale }) {
           >
             <span>
               <Icon size={20} />
-              {active && <Check className="insight-kind-check" size={12} />}
             </span>
             <strong>{kindName(kind, locale)}</strong>
           </button>

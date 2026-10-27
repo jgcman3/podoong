@@ -1,7 +1,7 @@
 'use client';
+import { createRecordId } from '@/lib/record-id';
 import { useActionState, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { Syringe, X, Check, ChevronRight } from 'lucide-react';
+import { Syringe, Check } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import { names, vaccines } from '@/features/vaccination/copy';
 import { quickCopy } from './quick-copy';
@@ -60,7 +60,7 @@ export function QuickVaccination({
 }) {
   const ko = locale === 'ko',
     c = quickCopy(locale);
-  const [id] = useState(() => crypto.randomUUID());
+  const [id] = useState(() => createRecordId());
   const [vaccine, setVaccine] = useState('');
   const [custom, setCustom] = useState('');
   const [date, setDate] = useState(today);
@@ -82,20 +82,20 @@ export function QuickVaccination({
       className="quick-editor-form quick-vaccination-form"
       aria-label={ko ? '예방접종' : 'Vaccination'}
     >
-      <header className="quick-composer-heading">
+      <header
+        className="quick-composer-heading"
+        style={{ outline: 'none', boxShadow: 'none' }}
+      >
         <span className="quick-kind-badge quick-color-vaccination">
           <Syringe size={19} />
         </span>
-        <h3 id="quick-composer-title">{ko ? '예방접종' : 'Vaccination'}</h3>
-        <button
-          type="button"
-          className="quick-close"
-          disabled={pending}
-          aria-label={c.close}
-          onClick={close}
+        <h3
+          id="quick-composer-title"
+          tabIndex={-1}
+          style={{ outline: 'none', boxShadow: 'none' }}
         >
-          <X size={21} />
-        </button>
+          {ko ? '예방접종' : 'Vaccination'}
+        </h3>
       </header>
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="id" value={id} />
@@ -186,16 +186,14 @@ export function QuickVaccination({
         </details>
       </fieldset>
       <footer className="quick-composer-footer">
-        <Link
-          href={`/${locale}/services/vaccination?child=${childId}&tab=completed`}
-          aria-disabled={pending}
-          onClick={(e) => {
-            if (pending) e.preventDefault();
-          }}
+        <button
+          type="button"
+          className="button secondary quick-cancel"
+          disabled={pending}
+          onClick={close}
         >
-          {ko ? '접종 기록' : 'Vaccination records'}
-          <ChevronRight size={13} />
-        </Link>
+          {ko ? '취소' : 'Cancel'}
+        </button>
         <button
           className="button primary quick-confirm"
           disabled={

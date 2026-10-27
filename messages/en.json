@@ -194,6 +194,8 @@
   "residenceEmpty": "No residence saved yet.",
   "residenceOwnerOnly": "The family owner can change the residence.",
   "residenceProvince": "Province / metropolitan city",
+  "residenceCountry": "Country / region",
+  "residenceGlobalHelp": "Save your country now. City and neighborhood selection will be available as regional catalogues are added.",
   "residenceKorea": "South Korea · Korean regions",
   "residenceChoose": "Choose a region",
   "residenceSelectHelp": "Choose a legal locality. Only your neighborhood is saved, without a street address.",

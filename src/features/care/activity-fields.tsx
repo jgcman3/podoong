@@ -1,5 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { QuickFieldTitle } from './quick-field-title';
+import { useState, type CSSProperties } from 'react';
+import { Plus, Minus } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import type { Row } from '@/lib/db';
 export function ActivityFields({
@@ -18,25 +20,66 @@ export function ActivityFields({
   const [duration, setDuration] = useState(
     String(record?.duration_minutes ?? ''),
   );
+  const [medicine, setMedicine] = useState(record?.medicine_name ?? '');
+  const medicines = ko
+    ? ['해열제', '감기약', '항생제', '알레르기약', '소화기약', '기타']
+    : [
+        'Fever medicine',
+        'Cold medicine',
+        'Antibiotic',
+        'Allergy medicine',
+        'Digestive medicine',
+        'Other',
+      ];
+  if (record?.medicine_name && !medicines.includes(record.medicine_name))
+    medicines.push(record.medicine_name);
+  const preserveDose = medicine === record?.medicine_name;
   return (
     <div className="activity-fields">
       {kind === 'temperature' && (
-        <>
-          <label>
-            {ko ? '체온 (°C)' : 'Temperature (°C)'}
+        <div className="quick-amount-picker">
+          <div className="quick-amount-heading">
+            <output aria-live="polite" aria-label={ko ? '체온' : 'Temperature'}>
+              {Number(temperature).toFixed(1)}
+              <small>°C</small>
+            </output>
+          </div>
+          <div
+            className="quick-ruler"
+            style={
+              {
+                '--quick-level': `${((Number(temperature) - 30) / 15) * 100}%`,
+              } as CSSProperties
+            }
+          >
+            <div className="quick-ruler-ticks" aria-hidden="true">
+              {[45, 42, 39, 36, 33, 30].map((value) => (
+                <span key={value}>
+                  <i />
+                  {value}
+                </span>
+              ))}
+            </div>
             <input
               name="temperature"
-              type="number"
-              inputMode="decimal"
+              type="range"
+              aria-label={ko ? '체온 (°C)' : 'Temperature (°C)'}
+              aria-valuetext={`${Number(temperature).toFixed(1)} °C`}
               min="30"
               max="45"
               step="0.1"
-              required
               value={temperature}
               onChange={(e) => setTemperature(e.target.value)}
             />
-          </label>
-          <div className="quick-choices">
+            <div className="quick-ruler-cue" aria-hidden="true">
+              <Plus size={14} />
+              <Minus size={14} />
+            </div>
+          </div>
+          <h4 className="quick-amount-label">
+            <QuickFieldTitle>{ko ? '체온' : 'Temperature'}</QuickFieldTitle>
+          </h4>
+          <div className="quick-choices quick-temperature-presets">
             {[36.5, 37, 37.5, 38, 38.5, 39].map((n) => (
               <button
                 key={n}
@@ -48,63 +91,57 @@ export function ActivityFields({
               </button>
             ))}
           </div>
-        </>
+        </div>
       )}
       {kind === 'medication' && (
-        <>
-          <label>
-            {ko ? '약 이름' : 'Medicine'}
-            <input
-              name="medicine"
-              maxLength={200}
-              required
-              defaultValue={record?.medicine_name ?? ''}
-            />
-          </label>
-          <div className="form-row">
-            <label>
-              {ko ? '복용량' : 'Dose'}
-              <input
-                name="dose"
-                type="number"
-                inputMode="decimal"
-                min="0.01"
-                max="10000"
-                step="any"
-                required
-                defaultValue={record?.dose_amount ?? ''}
-              />
-            </label>
-            <label>
-              {ko ? '단위' : 'Unit'}
-              <select
-                aria-label={ko ? '단위' : 'Unit'}
-                name="doseUnit"
-                defaultValue={record?.dose_unit ?? 'ml'}
+        <fieldset className="quick-vaccine-choices">
+          <legend>
+            <QuickFieldTitle>
+              {ko ? '약 종류' : 'Medicine type'}
+            </QuickFieldTitle>
+          </legend>
+          <input type="hidden" name="medicine" value={medicine} />
+          <input
+            type="hidden"
+            name="dose"
+            value={preserveDose ? (record?.dose_amount ?? '') : ''}
+          />
+          <input
+            type="hidden"
+            name="doseUnit"
+            value={preserveDose ? (record?.dose_unit ?? '') : ''}
+          />
+          <div>
+            {medicines.map((name) => (
+              <button
+                type="button"
+                key={name}
+                aria-pressed={medicine === name}
+                onClick={() => setMedicine(name)}
               >
-                {['ml', 'mg', 'g', 'tablet', 'drop', 'packet'].map((u, i) => (
-                  <option key={u} value={u}>
-                    {ko ? ['ml', 'mg', 'g', '정', '방울', '포'][i] : u}
-                  </option>
-                ))}
-              </select>
-            </label>
+                {name}
+              </button>
+            ))}
           </div>
-        </>
+        </fieldset>
       )}
       {['bath', 'play', 'tummy'].includes(kind) && (
-        <fieldset className="quick-duration">
-          <legend>{ko ? '소요 시간 (선택)' : 'Duration (optional)'}</legend>
+        <fieldset className="quick-duration quick-activity-duration">
+          <legend>
+            <QuickFieldTitle>
+              {ko ? '소요 시간 (선택)' : 'Duration (optional)'}
+            </QuickFieldTitle>
+          </legend>
           <input type="hidden" name="activityDuration" value={duration} />
           <div className="quick-choices">
-            {['', '3', '5', '10', '15', '20', '30', '60'].map((n) => (
+            {['3', '5', '10', '15', '20', '30', '60'].map((n) => (
               <button
                 key={n}
                 type="button"
                 aria-pressed={duration === n}
                 onClick={() => setDuration(n)}
               >
-                {n ? `${n}${ko ? '분' : ' min'}` : ko ? '기록 안 함' : 'Skip'}
+                {`${n}${ko ? '분' : ' min'}`}
               </button>
             ))}
           </div>

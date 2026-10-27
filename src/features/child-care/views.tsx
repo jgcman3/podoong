@@ -78,7 +78,10 @@ export function RecordSummary({
       {record.temperature_c != null && <p>{record.temperature_c} °C</p>}
       {record.medicine_name && (
         <p>
-          {record.medicine_name} · {record.dose_amount} {record.dose_unit}
+          {record.medicine_name}
+          {record.dose_amount !== null &&
+            record.dose_unit &&
+            ` · ${record.dose_amount} ${record.dose_unit}`}
         </p>
       )}
       {record.duration_minutes != null && (

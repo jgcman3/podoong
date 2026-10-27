@@ -6,7 +6,7 @@ export async function loadInsights(
   context: CareContext,
   start: string,
   now = new Date().toISOString(),
-  span: 1 | 6 = 1,
+  span: 1 | 2 | 6 = 1,
 ) {
   const first = shiftCareDay(start, -(span - 1) * 7),
     end = shiftCareDay(start, 7);

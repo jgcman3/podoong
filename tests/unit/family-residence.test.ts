@@ -7,6 +7,23 @@ const base = {
   version: '0',
 };
 describe('family residence selection', () => {
+  it('accepts country-only residence and rejects unknown or mismatched country codes', () => {
+    expect(
+      residenceSchema.safeParse({ ...base, countryCode: 'US', regionCode: '' })
+        .success,
+    ).toBe(true);
+    expect(
+      residenceSchema.safeParse({ ...base, countryCode: 'ZZ', regionCode: '' })
+        .success,
+    ).toBe(false);
+    expect(
+      residenceSchema.safeParse({
+        ...base,
+        countryCode: 'US',
+        regionCode: '1168010100',
+      }).success,
+    ).toBe(false);
+  });
   it('accepts a legal locality code or explicit removal, never a label', () => {
     expect(
       residenceSchema.safeParse({ ...base, regionCode: '1168010100' }).success,

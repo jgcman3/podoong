@@ -69,3 +69,27 @@ export async function loadQuickTimeline(
     context.timezone,
   );
 }
+
+export async function loadRecentFeedingAmounts(context: CareContext) {
+  const latest = async (kind: 'formula' | 'solids') => {
+    const result = await context.db
+      .from('care_records')
+      .select('amount_ml')
+      .eq('child_id', context.child.id)
+      .eq('kind', kind)
+      .not('amount_ml', 'is', null)
+      .not('ended_at', 'is', null)
+      .lte('started_at', new Date().toISOString())
+      .order('started_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (result.error) throw new Error('Recent feeding amount unavailable');
+    return result.data?.amount_ml ?? null;
+  };
+  const [formula, solids] = await Promise.all([
+    latest('formula'),
+    latest('solids'),
+  ]);
+  return { formula, solids };
+}

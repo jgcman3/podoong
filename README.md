@@ -88,7 +88,7 @@ npx supabase db push
 
 프로젝트 ID는 Supabase URL의 첫 부분입니다. 실행 전 연결 대상과 대기 중인 마이그레이션 목록을 확인합니다. 로컬에는 `npx supabase db push --local`을 사용합니다. 2026-10-14 연결된 `mkybqrhjrpouxmxizmpt` 프로젝트는 `014`까지 적용했습니다. 테스트 자료는 로컬 DB에만 생성합니다.
 
-`npm run test:local`은 실행 중인 로컬 Supabase의 키를 테스트 프로세스에만 주입합니다. 기존 `.env.local`의 원격 프로젝트 설정을 보존합니다. `npm run operations:local`은 포둥 로컬 사진 정리·계정 삭제 작업을 실행하며, `npm run backup:verify`는 격리 임시 DB로 복원하여 원본과 비교합니다. 운영 삭제 작업자는 [운영 절차](docs/operations/data-and-backup.md)에 따라 예약 실행해야 합니다. DB 백업과 Storage 파일 백업은 별도로 관리합니다.
+`npm run test:local`은 실행 중인 로컬 Supabase의 키를 테스트 프로세스에만 주입합니다. E2E는 별도 포트 `3188`과 빌드 폴더 `.next-e2e/`를 사용하므로 사용자가 접속 중인 `3187` 개발 서버를 중지하거나 재시작하지 마십시오. 기존 `.env.local`의 원격 프로젝트 설정을 보존합니다. `npm run operations:local`은 포둥 로컬 사진 정리·계정 삭제 작업을 실행하며, `npm run backup:verify`는 격리 임시 DB로 복원하여 원본과 비교합니다. 운영 삭제 작업자는 [운영 절차](docs/operations/data-and-backup.md)에 따라 예약 실행해야 합니다. DB 백업과 Storage 파일 백업은 별도로 관리합니다.
 
 B4의 30–50가족 4주 파일럿, 세 소셜 제공자의 실제 계정 시험, 전문가 콘텐츠 검수, 운영 프로젝트 백업 복원은 실제 운영에서 확인할 남은 항목입니다.
 

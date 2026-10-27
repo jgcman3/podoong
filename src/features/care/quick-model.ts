@@ -63,7 +63,14 @@ export function quickTimeline(
       r.title,
       r.temperature_c != null ? `${r.temperature_c} °C` : '',
       r.medicine_name
-        ? `${r.medicine_name} · ${r.dose_amount} ${r.dose_unit}`
+        ? [
+            r.medicine_name,
+            r.dose_amount !== null && r.dose_unit
+              ? `${r.dose_amount} ${r.dose_unit}`
+              : '',
+          ]
+            .filter(Boolean)
+            .join(' · ')
         : '',
       r.duration_minutes != null ? `${r.duration_minutes} min` : '',
     ]

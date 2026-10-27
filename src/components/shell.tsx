@@ -30,7 +30,6 @@ export async function Shell({
   locale,
   section,
   children,
-  languageRoute,
   childRoute,
   routeQuery,
 }: {
@@ -120,12 +119,6 @@ export async function Shell({
           )}
           <div className="topbar-actions">
             <Link
-              className="language"
-              href={`/${locale === 'ko' ? 'en' : 'ko'}/${languageRoute ?? section}?${new URLSearchParams({ ...routeQuery, child: child.id })}`}
-            >
-              {t('language')}
-            </Link>
-            <Link
               className="avatar"
               href={`/${locale}/settings?child=${child.id}`}
               aria-label={t('settings')}
@@ -167,6 +160,17 @@ export async function Shell({
         <footer className="app-footer">PODUNG · {t('tagline')}</footer>
       </div>
       <nav className="mobile-nav" aria-label={t('services')}>
+        <TopbarChildPicker
+          key={child.id}
+          mobile
+          current={childOptions.find((option) => option.id === child.id)!}
+          options={childOptions}
+          label={t('childSelect')}
+          settings={{
+            href: `/${locale}/settings?child=${child.id}`,
+            label: t('settings'),
+          }}
+        />
         {navigation
           .filter(([key]) => key !== 'records')
           .map(([key, Icon]) => (
@@ -176,7 +180,17 @@ export async function Shell({
               href={`/${locale}/${key === 'community' ? 'community/diaries' : key}?child=${child.id}`}
             >
               <Icon size={21} />
-              <span>{t(key === 'community' ? 'growthDiary' : key)}</span>
+              <span>
+                {key === 'calendar'
+                  ? locale === 'ko'
+                    ? '일정'
+                    : 'Plan'
+                  : key === 'services'
+                    ? locale === 'ko'
+                      ? '전체'
+                      : 'More'
+                    : t(key === 'community' ? 'growthDiary' : key)}
+              </span>
             </Link>
           ))}
       </nav>

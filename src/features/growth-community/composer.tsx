@@ -1,4 +1,5 @@
 'use client';
+import { createRecordId } from '@/lib/record-id';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PenLine, X, ImagePlus, Ellipsis } from 'lucide-react';
@@ -36,7 +37,7 @@ export function DiaryComposer({
   const [photoName, setPhotoName] = useState('');
   function open() {
     setOpened(true);
-    id.current = record?.id ?? crypto.randomUUID();
+    id.current = record?.id ?? createRecordId();
     setEditing(!record);
     setConfirmDelete(false);
     form.current?.reset();

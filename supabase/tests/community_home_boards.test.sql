@@ -4,7 +4,7 @@ set search_path=public,extensions;
 select no_plan();
 insert into auth.users(id) select ('a1000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid from generate_series(1,6) n;
 insert into profiles(id,display_name,consented_at) select id,'Board tester',now() from auth.users where id::text like 'a1000000-%';
-insert into residence_countries(code,name,enabled) values('US','Test country',true);
+insert into residence_countries(code,name,enabled) values('US','Test country',true) on conflict(code) do update set name=excluded.name,enabled=true;
 insert into residence_regions(country_code,code,city_name,locality_name,community_scope) values('US','test-area','Test city','Test neighborhood','locality');
 insert into families(id,name,residence_country_code,residence_region_code,residence_city,residence_locality) values
 ('f1000000-0000-4000-8000-000000000001','역삼','KR','1168010100','서울특별시 강남구','역삼동'),

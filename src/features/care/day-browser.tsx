@@ -1,11 +1,6 @@
 'use client';
 import { useRef, useState, type ReactNode } from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  CalendarDays,
-  LoaderCircle,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import {
   dailyFeedingTotals,
@@ -181,16 +176,6 @@ export function DayBrowser({
           >
             <ChevronRight size={18} />
           </button>
-          {day !== today && (
-            <button
-              type="button"
-              aria-label={ko ? '오늘로 돌아가기' : 'Back to today'}
-              disabled={locked}
-              onClick={() => void navigate(today)}
-            >
-              <CalendarDays size={17} />
-            </button>
-          )}
           {loading && (
             <LoaderCircle
               className="quick-day-spinner"
@@ -212,8 +197,23 @@ export function DayBrowser({
             {number.format(totals.total)} ml
           </strong>
           <span>
-            ({ko ? '분유' : 'Formula'} {number.format(totals.formula)} +{' '}
-            {ko ? '이유식' : 'Solids'} {number.format(totals.solids)})
+            (
+            <span
+              className="feeding-amount-formula"
+              aria-label={`${ko ? '분유' : 'Formula'} ${number.format(totals.formula)} ml`}
+              title={ko ? '분유' : 'Formula'}
+            >
+              {number.format(totals.formula)}
+            </span>{' '}
+            +{' '}
+            <span
+              className="feeding-amount-solids"
+              aria-label={`${ko ? '이유식' : 'Solids'} ${number.format(totals.solids)} ml`}
+              title={ko ? '이유식' : 'Solids'}
+            >
+              {number.format(totals.solids)}
+            </span>
+            )
           </span>
         </div>
       </div>

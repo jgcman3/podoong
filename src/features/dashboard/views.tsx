@@ -1,3 +1,4 @@
+import residenceCountries from '@/features/family/countries.json';
 import { loadDayAgenda } from '@/features/care/day-agenda-data';
 import { TaskCheckbox } from '@/features/care/task-checkbox';
 import { CalendarWorkspace } from '@/features/care/calendar-workspace';
@@ -29,7 +30,10 @@ import type { CareContext } from '@/lib/data';
 import { services, preparationTitle, type Locale } from '@/lib/domain';
 import { RecordForm, Timer } from '@/features/care/record-form';
 import { QuickCare } from '@/features/care/quick-care';
-import { loadQuickTimeline } from '@/features/care/quick-data';
+import {
+  loadQuickTimeline,
+  loadRecentFeedingAmounts,
+} from '@/features/care/quick-data';
 import { ResidenceForm } from '@/features/family/residence-form';
 import { calendarTitle, calendarKind } from '@/features/care/calendar-entry';
 import { LastCare } from '@/features/care/last-care';
@@ -211,41 +215,48 @@ export async function Today({ context, locale }: Props) {
   const t = await getTranslations();
   const { child, timezone, today } = context;
   const now = new Date().toISOString();
-  const [feedingResult, diaperResult, sleepResult, quickEntries, agenda] =
-    await Promise.all([
-      context.db
-        .from('care_records')
-        .select('id,kind,started_at,ended_at,amount_ml,amount_g')
-        .eq('child_id', child.id)
-        .in('kind', ['breast', 'formula', 'solids'])
-        .lte('started_at', now)
-        .order('started_at', { ascending: false })
-        .order('id', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      context.db
-        .from('child_records')
-        .select('id,kind,occurred_at,ended_at')
-        .eq('child_id', child.id)
-        .eq('service', 'diaper')
-        .lte('occurred_at', now)
-        .order('occurred_at', { ascending: false })
-        .order('id', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      context.db
-        .from('child_records')
-        .select('id,kind,occurred_at,ended_at')
-        .eq('child_id', child.id)
-        .eq('service', 'sleep')
-        .lte('occurred_at', now)
-        .order('occurred_at', { ascending: false })
-        .order('id', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      loadQuickTimeline(context),
-      loadDayAgenda(context),
-    ]);
+  const [
+    feedingResult,
+    diaperResult,
+    sleepResult,
+    quickEntries,
+    agenda,
+    recentAmounts,
+  ] = await Promise.all([
+    context.db
+      .from('care_records')
+      .select('id,kind,started_at,ended_at,amount_ml,amount_g')
+      .eq('child_id', child.id)
+      .in('kind', ['breast', 'formula', 'solids'])
+      .lte('started_at', now)
+      .order('started_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    context.db
+      .from('child_records')
+      .select('id,kind,occurred_at,ended_at')
+      .eq('child_id', child.id)
+      .eq('service', 'diaper')
+      .lte('occurred_at', now)
+      .order('occurred_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    context.db
+      .from('child_records')
+      .select('id,kind,occurred_at,ended_at')
+      .eq('child_id', child.id)
+      .eq('service', 'sleep')
+      .lte('occurred_at', now)
+      .order('occurred_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    loadQuickTimeline(context),
+    loadDayAgenda(context),
+    loadRecentFeedingAmounts(context),
+  ]);
   if (feedingResult.error || diaperResult.error || sleepResult.error)
     throw new Error('Latest care unavailable');
   const activeSleep = quickEntries.find(
@@ -276,17 +287,12 @@ export async function Today({ context, locale }: Props) {
         locale={locale}
         childId={child.id}
         entries={quickEntries}
+        recentAmounts={recentAmounts}
         writable={context.writable}
         timezone={timezone}
         today={today}
         agenda={agenda}
       />
-      <div className="gentle-banner">
-        <Heart size={23} />
-        <div>
-          <p>{t('helpBody')}</p>
-        </div>
-      </div>
     </>
   );
 }
@@ -774,9 +780,16 @@ export async function Family({ context, locale }: Props) {
           <>
             <p>
               <strong>
-                {context.family.residence_city &&
-                context.family.residence_locality
-                  ? `${context.family.residence_city} ${context.family.residence_locality}`
+                {context.family.residence_country_code
+                  ? [
+                      residenceCountries.find(
+                        (c) => c.code === context.family.residence_country_code,
+                      )?.[locale] ?? context.family.residence_country_code,
+                      context.family.residence_city,
+                      context.family.residence_locality,
+                    ]
+                      .filter(Boolean)
+                      .join(' ')
                   : t('residenceEmpty')}
               </strong>
             </p>
@@ -941,6 +954,21 @@ export async function Settings({ context, locale }: Props) {
   return (
     <>
       <PageHeading title={t('settings')} subtitle={t('tagline')} />
+      <section className="panel settings-language">
+        <h2>{locale === 'ko' ? '언어' : 'Language'}</h2>
+        <div className="residence-actions">
+          {(['ko', 'en'] as const).map((language) => (
+            <Link
+              key={language}
+              className={`button ${locale === language ? 'primary' : 'secondary'}`}
+              aria-current={locale === language ? 'true' : undefined}
+              href={`/${language}/settings?child=${context.child.id}`}
+            >
+              {language === 'ko' ? '한국어' : 'English'}
+            </Link>
+          ))}
+        </div>
+      </section>
       <section className="panel settings-panel">
         <h2>{t('identities')}</h2>
         {context.user.identities?.map((identity) => (

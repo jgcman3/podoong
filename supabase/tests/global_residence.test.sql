@@ -1,0 +1,24 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set search_path=public,extensions;
+select no_plan();
+insert into auth.users(id,email) values ('00000000-0000-4000-8000-000000000001','owner@example.test');
+insert into public.profiles(id,display_name,consented_at) values ('00000000-0000-4000-8000-000000000001','Test',now());
+insert into public.families(id,name) values ('10000000-0000-4000-8000-000000000001','Test');
+insert into public.family_members values ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','owner');
+
+select is((select count(*)::int from public.residence_countries where enabled),249,'global country catalogue enabled');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select lives_ok($$select public.save_family_residence_region('10000000-0000-4000-8000-000000000001','1168010100',0,'KR')$$,'save Korean locality');
+select lives_ok($$select public.save_family_residence_country('10000000-0000-4000-8000-000000000001','US',1)$$,'switch to country only');
+select ok((select residence_country_code='US' and residence_region_code is null and residence_city is null and residence_locality is null from public.families),'switch clears previous Korean region');
+select is((select count(*)::int from public.community_board_locations() where country_code='US' and scope='topic'),1,'country-only residence gets national topics');
+select is((select count(*)::int from public.community_board_locations() where scope<>'topic'),0,'country-only residence does not get local boards');
+select throws_ok($$select public.save_family_residence_country('10000000-0000-4000-8000-000000000001','JP',1)$$,'P0001','conflict','stale save rejected');
+select throws_ok($$select public.save_family_residence_country('10000000-0000-4000-8000-000000000001','ZZ',2)$$,'22023','invalid country','invalid country rejected');
+select throws_ok($$select public.save_family_residence_country('10000000-0000-4000-8000-000000000002','US',0)$$,'42501','forbidden','other family denied');
+select lives_ok($$select public.save_family_residence_region('10000000-0000-4000-8000-000000000001','',2,'KR')$$,'clear country-only residence');
+select is((select count(*)::int from public.community_board_locations()),0,'cleared residence loses country board scope');
+select * from finish();
+rollback;

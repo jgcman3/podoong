@@ -76,39 +76,8 @@ export function PatternBrowser({
     }
     visit(patch);
   }
-  function switchMode(next: string) {
-    visit({ pattern: next, week: start, day }, true);
-  }
-
   return (
     <section className="panel insight-overlay-panel" aria-busy={pending}>
-      <div
-        className="insight-pattern-tabs"
-        role="group"
-        aria-label={ko ? '패턴 보기' : 'Pattern view'}
-      >
-        <button
-          type="button"
-          aria-pressed={daily}
-          onClick={() => switchMode('daily')}
-        >
-          {ko ? '하루 패턴' : 'Daily pattern'}
-        </button>
-        <button
-          type="button"
-          aria-pressed={!daily && !statistics}
-          onClick={() => switchMode('weekly')}
-        >
-          {ko ? '주간 패턴' : 'Weekly pattern'}
-        </button>
-        <button
-          type="button"
-          aria-pressed={statistics}
-          onClick={() => switchMode('stats')}
-        >
-          {ko ? '통계 정보' : 'Statistics'}
-        </button>
-      </div>
       {!statistics && (
         <nav
           className="insight-day-nav insight-period-nav"

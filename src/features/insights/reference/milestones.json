@@ -1,0 +1,310 @@
+[
+  {
+    "id": "cdc-v1-2-head",
+    "month": 2,
+    "group": "motor",
+    "ko": "엎드렸을 때 고개를 들어요",
+    "en": "Holds head up on tummy"
+  },
+  {
+    "id": "cdc-v1-2-sounds",
+    "month": 2,
+    "group": "language",
+    "ko": "울음 이외의 소리를 내요",
+    "en": "Makes sounds other than crying"
+  },
+  {
+    "id": "cdc-v1-2-toy",
+    "month": 2,
+    "group": "cognitive",
+    "ko": "장난감을 몇 초 동안 바라봐요",
+    "en": "Looks at a toy for several seconds"
+  },
+  {
+    "id": "cdc-v1-2-smile",
+    "month": 2,
+    "group": "social",
+    "ko": "말을 걸거나 웃으면 미소 지어요",
+    "en": "Smiles in response to talking or smiles"
+  },
+  {
+    "id": "cdc-v1-4-steady",
+    "month": 4,
+    "group": "motor",
+    "ko": "안아 주면 머리를 안정적으로 가눠요",
+    "en": "Holds head steady when held"
+  },
+  {
+    "id": "cdc-v1-4-coo",
+    "month": 4,
+    "group": "language",
+    "ko": "옹알이로 소리를 주고받아요",
+    "en": "Coos in response to talking"
+  },
+  {
+    "id": "cdc-v1-4-hands",
+    "month": 4,
+    "group": "cognitive",
+    "ko": "자기 손을 관심 있게 바라봐요",
+    "en": "Looks at own hands with interest"
+  },
+  {
+    "id": "cdc-v1-4-attention",
+    "month": 4,
+    "group": "social",
+    "ko": "관심을 끌려고 스스로 미소 지어요",
+    "en": "Smiles to get attention"
+  },
+  {
+    "id": "cdc-v1-6-roll",
+    "month": 6,
+    "group": "motor",
+    "ko": "엎드린 자세에서 바로 누운 자세로 뒤집어요",
+    "en": "Rolls from tummy to back"
+  },
+  {
+    "id": "cdc-v1-6-turns",
+    "month": 6,
+    "group": "language",
+    "ko": "번갈아 소리를 내며 반응해요",
+    "en": "Takes turns making sounds"
+  },
+  {
+    "id": "cdc-v1-6-reach",
+    "month": 6,
+    "group": "cognitive",
+    "ko": "원하는 장난감을 향해 손을 뻗어요",
+    "en": "Reaches for a wanted toy"
+  },
+  {
+    "id": "cdc-v1-6-familiar",
+    "month": 6,
+    "group": "social",
+    "ko": "익숙한 사람을 알아봐요",
+    "en": "Recognizes familiar people"
+  },
+  {
+    "id": "cdc-v1-9-sit-up",
+    "month": 9,
+    "group": "motor",
+    "ko": "스스로 앉은 자세를 취해요",
+    "en": "Gets into a sitting position"
+  },
+  {
+    "id": "cdc-v1-9-transfer",
+    "month": 9,
+    "group": "motor",
+    "ko": "물건을 한 손에서 다른 손으로 옮겨요",
+    "en": "Moves objects between hands"
+  },
+  {
+    "id": "cdc-v1-9-rake",
+    "month": 9,
+    "group": "motor",
+    "ko": "손가락으로 음식을 자기 쪽으로 모아요",
+    "en": "Rakes food closer with fingers"
+  },
+  {
+    "id": "cdc-v1-9-sit",
+    "month": 9,
+    "group": "motor",
+    "ko": "도움 없이 앉아요",
+    "en": "Sits without support"
+  },
+  {
+    "id": "cdc-v1-9-babble",
+    "month": 9,
+    "group": "language",
+    "ko": "마마마, 바바바 같은 여러 소리를 내요",
+    "en": "Makes varied repeated babbling sounds"
+  },
+  {
+    "id": "cdc-v1-9-arms",
+    "month": 9,
+    "group": "language",
+    "ko": "안아 달라고 팔을 들어요",
+    "en": "Lifts arms to be picked up"
+  },
+  {
+    "id": "cdc-v1-9-hidden",
+    "month": 9,
+    "group": "cognitive",
+    "ko": "보이지 않게 떨어진 물건을 찾아요",
+    "en": "Looks for an object dropped out of sight"
+  },
+  {
+    "id": "cdc-v1-9-name",
+    "month": 9,
+    "group": "social",
+    "ko": "이름을 부르면 바라봐요",
+    "en": "Looks when called by name"
+  },
+  {
+    "id": "cdc-v1-12-stand",
+    "month": 12,
+    "group": "motor",
+    "ko": "붙잡고 일어서요",
+    "en": "Pulls up to stand"
+  },
+  {
+    "id": "cdc-v1-12-parent",
+    "month": 12,
+    "group": "language",
+    "ko": "부모를 부르는 말을 해요",
+    "en": "Uses a special name for a parent"
+  },
+  {
+    "id": "cdc-v1-12-container",
+    "month": 12,
+    "group": "cognitive",
+    "ko": "물건을 통 안에 넣어요",
+    "en": "Puts objects into a container"
+  },
+  {
+    "id": "cdc-v1-12-clap",
+    "month": 12,
+    "group": "social",
+    "ko": "손뼉 놀이를 함께 해요",
+    "en": "Plays a clapping game together"
+  },
+  {
+    "id": "cdc-v1-18-walk",
+    "month": 18,
+    "group": "motor",
+    "ko": "붙잡지 않고 혼자 걸어요",
+    "en": "Walks independently"
+  },
+  {
+    "id": "cdc-v1-18-words",
+    "month": 18,
+    "group": "language",
+    "ko": "엄마·아빠 외에 세 가지 이상 말을 시도해요",
+    "en": "Tries at least three words besides parent names"
+  },
+  {
+    "id": "cdc-v1-18-imitate",
+    "month": 18,
+    "group": "cognitive",
+    "ko": "집안일 하는 모습을 흉내 내요",
+    "en": "Copies household chores"
+  },
+  {
+    "id": "cdc-v1-18-point",
+    "month": 18,
+    "group": "social",
+    "ko": "흥미로운 것을 손가락으로 보여줘요",
+    "en": "Points to show something interesting"
+  },
+  {
+    "id": "cdc-v1-24-kick",
+    "month": 24,
+    "group": "motor",
+    "ko": "공을 발로 차요",
+    "en": "Kicks a ball"
+  },
+  {
+    "id": "cdc-v1-24-phrase",
+    "month": 24,
+    "group": "language",
+    "ko": "두 단어를 이어 말해요",
+    "en": "Combines at least two words"
+  },
+  {
+    "id": "cdc-v1-24-switch",
+    "month": 24,
+    "group": "cognitive",
+    "ko": "장난감의 스위치나 버튼을 사용해 봐요",
+    "en": "Tries toy switches or buttons"
+  },
+  {
+    "id": "cdc-v1-24-feelings",
+    "month": 24,
+    "group": "social",
+    "ko": "다른 사람이 속상하거나 다친 것을 알아차려요",
+    "en": "Notices when others are upset or hurt"
+  },
+  {
+    "id": "cdc-v1-36-clothes",
+    "month": 36,
+    "group": "motor",
+    "ko": "옷의 일부를 스스로 입어요",
+    "en": "Puts on some clothing independently"
+  },
+  {
+    "id": "cdc-v1-36-talk",
+    "month": 36,
+    "group": "language",
+    "ko": "대화를 두 차례 이상 주고받아요",
+    "en": "Has at least two conversational exchanges"
+  },
+  {
+    "id": "cdc-v1-36-circle",
+    "month": 36,
+    "group": "cognitive",
+    "ko": "보여 주면 원을 그려요",
+    "en": "Draws a circle when shown"
+  },
+  {
+    "id": "cdc-v1-36-play",
+    "month": 36,
+    "group": "social",
+    "ko": "다른 아이를 보고 놀이에 참여해요",
+    "en": "Joins other children in play"
+  },
+  {
+    "id": "cdc-v1-48-catch",
+    "month": 48,
+    "group": "motor",
+    "ko": "큰 공을 대부분 받아요",
+    "en": "Catches a large ball most of the time"
+  },
+  {
+    "id": "cdc-v1-48-sentence",
+    "month": 48,
+    "group": "language",
+    "ko": "네 단어 이상으로 문장을 말해요",
+    "en": "Uses sentences of four or more words"
+  },
+  {
+    "id": "cdc-v1-48-colors",
+    "month": 48,
+    "group": "cognitive",
+    "ko": "몇 가지 색의 이름을 말해요",
+    "en": "Names some colors"
+  },
+  {
+    "id": "cdc-v1-48-comfort",
+    "month": 48,
+    "group": "social",
+    "ko": "슬프거나 다친 사람을 위로해요",
+    "en": "Comforts someone who is sad or hurt"
+  },
+  {
+    "id": "cdc-v1-60-chores",
+    "month": 60,
+    "group": "social",
+    "ko": "양말 짝 맞추기 같은 간단한 일을 도와요",
+    "en": "Helps with simple chores such as matching socks"
+  },
+  {
+    "id": "cdc-v1-60-story",
+    "month": 60,
+    "group": "language",
+    "ko": "두 가지 이상 사건이 있는 이야기를 해요",
+    "en": "Tells a story with at least two events"
+  },
+  {
+    "id": "cdc-v1-60-count",
+    "month": 60,
+    "group": "cognitive",
+    "ko": "10까지 세어요",
+    "en": "Counts to ten"
+  },
+  {
+    "id": "cdc-v1-60-turns",
+    "month": 60,
+    "group": "social",
+    "ko": "놀이에서 차례나 규칙을 지켜요",
+    "en": "Takes turns or follows game rules"
+  }
+]

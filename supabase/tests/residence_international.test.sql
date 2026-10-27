@@ -7,7 +7,7 @@ insert into public.profiles(id,display_name,consented_at) values ('00000000-0000
 insert into public.families(id,name) values ('10000000-0000-4000-8000-000000000001','Test');
 insert into public.family_members values ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','owner');
 -- Synthetic fixtures, not a real foreign-region catalogue. Rolled back at the end.
-insert into public.residence_countries(code,name) values ('US','Test country');
+update public.residence_countries set enabled=false where code<>'KR';
 select is((select enabled from public.residence_countries where code='US'),false,'new countries are disabled until explicitly released');
 select lives_ok($$insert into public.residence_regions(country_code,code,city_name,locality_name,level,kind,selectable) values ('US','state-01','Test state','Test state',1,'state',false)$$,'foreign region codes can contain letters');
 insert into public.residence_regions(country_code,code,city_name,locality_name,level,kind,selectable,parent_code,parent_level) values

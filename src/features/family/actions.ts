@@ -30,12 +30,19 @@ export async function saveFamilyResidence(form: FormData) {
     .maybeSingle();
   if (child.error || child.data?.family_id !== v.familyId)
     redirect(`/${locale}/family?child=${v.childId}&error=invalid`);
-  const result = await db.rpc('save_family_residence_region', {
-    p_family: v.familyId,
-    p_region_code: v.regionCode,
-    p_country_code: 'KR',
-    p_version: v.version,
-  });
+  const result =
+    !v.regionCode && v.countryCode
+      ? await db.rpc('save_family_residence_country', {
+          p_family: v.familyId,
+          p_country_code: v.countryCode,
+          p_version: v.version,
+        })
+      : await db.rpc('save_family_residence_region', {
+          p_family: v.familyId,
+          p_region_code: v.regionCode,
+          p_country_code: v.countryCode,
+          p_version: v.version,
+        });
   redirect(
     `/${locale}/family?child=${v.childId}&${result.error ? `error=${result.error.message.includes('conflict') ? 'conflict' : 'generic'}` : 'notice=saved'}`,
   );

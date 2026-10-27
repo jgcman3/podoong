@@ -194,6 +194,8 @@
   "residenceEmpty": "아직 거주지역을 등록하지 않았어요.",
   "residenceOwnerOnly": "가족 소유자가 거주지역을 변경할 수 있어요.",
   "residenceProvince": "시·도",
+  "residenceCountry": "국가 / 지역",
+  "residenceGlobalHelp": "현재는 국가까지 저장해요. 도시·동네 선택은 지역 목록이 추가되면 이용할 수 있어요.",
   "residenceKorea": "대한민국 · 한국 지역 선택",
   "residenceChoose": "선택해주세요",
   "residenceSelectHelp": "법정동 기준으로 선택합니다. 상세 주소 없이 동네까지만 저장합니다.",

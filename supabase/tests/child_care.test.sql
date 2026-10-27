@@ -41,7 +41,7 @@ select lives_ok($$select public.add_child_record_photo('40000000-0000-4000-8000-
 select ok(public.child_photo_access((select path from public.child_record_photos limit 1),true),'uploader can upload');
 select throws_ok($$select public.add_child_record_photo(gen_random_uuid(),'30000000-0000-4000-8000-000000000003','image/png',100)$$,'42501','forbidden','photos only attach to growth records');
 select throws_ok($$select public.add_child_record_photo(gen_random_uuid(),'30000000-0000-4000-8000-000000000005','image/svg+xml',100)$$,'23514',null,'unsafe image type rejected');
-select is((public.export_child_data('20000000-0000-4000-8000-000000000001')->>'format_version')::int,3,'export includes extended records');
+select is((public.export_child_data('20000000-0000-4000-8000-000000000001')->>'format_version')::int,4,'export includes extended records');
 select is(jsonb_array_length(public.export_child_data('20000000-0000-4000-8000-000000000001')->'child_records'),5,'export contains all service records');
 select ok(not ((public.export_child_data('20000000-0000-4000-8000-000000000001')->'child_records'->0) ? 'created_by'),'export removes caregiver identifiers');
 select ok(not ((public.export_child_data('20000000-0000-4000-8000-000000000001')->'child_photos'->0) ? 'path'),'export omits uploader-bearing storage paths');

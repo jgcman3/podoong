@@ -2,7 +2,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  
+
   "graphql_public": {
           Tables: {
             [_ in never]: never
@@ -127,6 +127,32 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"child_milestones": {
+                  Row: {
+                    "achieved_at": string,"child_id": string,"milestone_key": string,"recorded_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "achieved_at"?: string,"child_id": string,"milestone_key": string,"recorded_by"?: string | null
+                  }
+                  Update: {
+                    "achieved_at"?: string,"child_id"?: string,"milestone_key"?: string,"recorded_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_milestones_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "children"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "child_milestones_recorded_by_fkey"
+      columns: ["recorded_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"child_photo_cleanup": {
                   Row: {
                     "path": string
@@ -139,7 +165,7 @@ isOneToOne: true
                     "path"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"child_record_photos": {
                   Row: {
@@ -355,7 +381,7 @@ isOneToOne: true
                     "path"?: string,"queued_at"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"community_photos": {
                   Row: {
@@ -505,7 +531,7 @@ isOneToOne: true
                     "country"?: string,"effective_date"?: string | null,"key"?: string,"last_reviewed_at"?: string | null,"region"?: string,"reviewer"?: string | null,"service"?: string,"source_url"?: string | null,"status"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"content_translations": {
                   Row: {
@@ -565,7 +591,7 @@ isOneToOne: false
                     "closes_at"?: never,"created_at"?: string,"day"?: string,"hidden"?: boolean,"id"?: string,"opens_at"?: never,"options"?: NonNullable<Json>,"question_en"?: string,"question_ko"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"data_deletion_permits": {
                   Row: {
@@ -579,7 +605,7 @@ isOneToOne: false
                     "expires_at"?: string,"token"?: string,"user_id"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"data_operation_history": {
                   Row: {
@@ -613,7 +639,7 @@ isOneToOne: false
                     "attempts"?: number,"completed_at"?: string | null,"created_at"?: string,"error_code"?: string | null,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"status"?: string,"user_id"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"events": {
                   Row: {
@@ -654,6 +680,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "family_residence_country_fk"
+      columns: ["residence_country_code"]
+isOneToOne: false
+      referencedRelation: "residence_countries"
+      referencedColumns: ["code"]
+    },{
       foreignKeyName: "family_residence_region_fk"
       columns: ["residence_country_code","residence_region_code"]
 isOneToOne: false
@@ -843,7 +875,7 @@ isOneToOne: false
                     "consented_at"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string,"locale"?: string,"timezone"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"residence_countries": {
                   Row: {
@@ -857,7 +889,7 @@ isOneToOne: false
                     "code"?: string,"enabled"?: boolean,"name"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"residence_regions": {
                   Row: {
@@ -1217,6 +1249,9 @@ isOneToOne: false
 "save_event":
 { Args: { "p_child_id": string,"p_date": string,"p_id": string,"p_note": string,"p_title": string }; Returns: string
                            },
+"save_family_residence_country":
+{ Args: { "p_country_code": string,"p_family": string,"p_version": number }; Returns: undefined
+                           },
 "save_family_residence_region":
 { Args: { "p_country_code"?: string,"p_family": string,"p_region_code": string,"p_version": number }; Returns: undefined
                            },
@@ -1231,6 +1266,9 @@ isOneToOne: false
                            },
 "save_vaccination_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_version"?: number }; Returns: string
+                           },
+"set_child_milestone":
+{ Args: { "p_achieved": boolean,"p_child": string,"p_key": string }; Returns: undefined
                            },
 "share_growth_diary":
 { Args: { "p_everyone": boolean,"p_record": string,"p_same_birth_date": boolean,"p_sex": string }; Returns: undefined
@@ -1368,11 +1406,11 @@ export type CompositeTypes<
 export const Constants = {
   "graphql_public": {
           Enums: {
-            
+
           }
         },"public": {
           Enums: {
-            
+
           }
         }
 } as const

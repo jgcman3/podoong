@@ -118,7 +118,7 @@ describe('child care entry validation', () => {
 });
 
 describe('daily care validation', () => {
-  it('requires a temperature and an explicit medication name, dose and unit', () => {
+  it('requires temperature or medicine type and accepts an omitted dose', () => {
     const record = { ...base, service: 'activity' };
     expect(
       childRecordSchema.safeParse({ ...record, kind: 'temperature' }).success,
@@ -143,7 +143,20 @@ describe('daily care validation', () => {
         kind: 'medication',
         medicine: '약',
       }).success,
-    ).toBe(false);
+    ).toBe(true);
+    for (const fields of [
+      {},
+      { medicine: '약', dose: '2.5' },
+      { medicine: '약', doseUnit: 'ml' },
+    ]) {
+      expect(
+        childRecordSchema.safeParse({
+          ...record,
+          kind: 'medication',
+          ...fields,
+        }).success,
+      ).toBe(false);
+    }
     expect(
       childRecordSchema.safeParse({
         ...record,

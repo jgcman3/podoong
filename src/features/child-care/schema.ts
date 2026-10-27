@@ -92,7 +92,9 @@ export const childRecordSchema = z
     (v) =>
       v.service !== 'activity' ||
       v.kind !== 'medication' ||
-      (v.medicine.length > 0 && v.dose !== null && v.doseUnit !== ''),
+      (v.medicine.length > 0 &&
+        ((v.dose === null && v.doseUnit === '') ||
+          (v.dose !== null && v.doseUnit !== ''))),
   )
   .refine(
     (value) =>
