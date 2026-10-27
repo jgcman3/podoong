@@ -1,4 +1,5 @@
 'use client';
+import { MedicineTypeField } from './medicine-type-field';
 import { QuickFieldTitle } from './quick-field-title';
 import { useState, type CSSProperties } from 'react';
 import { Plus, Minus } from 'lucide-react';
@@ -21,18 +22,6 @@ export function ActivityFields({
     String(record?.duration_minutes ?? ''),
   );
   const [medicine, setMedicine] = useState(record?.medicine_name ?? '');
-  const medicines = ko
-    ? ['해열제', '감기약', '항생제', '알레르기약', '소화기약', '기타']
-    : [
-        'Fever medicine',
-        'Cold medicine',
-        'Antibiotic',
-        'Allergy medicine',
-        'Digestive medicine',
-        'Other',
-      ];
-  if (record?.medicine_name && !medicines.includes(record.medicine_name))
-    medicines.push(record.medicine_name);
   const preserveDose = medicine === record?.medicine_name;
   return (
     <div className="activity-fields">
@@ -94,13 +83,13 @@ export function ActivityFields({
         </div>
       )}
       {kind === 'medication' && (
-        <fieldset className="quick-vaccine-choices">
-          <legend>
-            <QuickFieldTitle>
-              {ko ? '약 종류' : 'Medicine type'}
-            </QuickFieldTitle>
-          </legend>
-          <input type="hidden" name="medicine" value={medicine} />
+        <>
+          <MedicineTypeField
+            locale={locale}
+            value={medicine}
+            defaultValue={record?.medicine_name ?? ''}
+            onChange={setMedicine}
+          />
           <input
             type="hidden"
             name="dose"
@@ -111,19 +100,7 @@ export function ActivityFields({
             name="doseUnit"
             value={preserveDose ? (record?.dose_unit ?? '') : ''}
           />
-          <div>
-            {medicines.map((name) => (
-              <button
-                type="button"
-                key={name}
-                aria-pressed={medicine === name}
-                onClick={() => setMedicine(name)}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        </>
       )}
       {['bath', 'play', 'tummy'].includes(kind) && (
         <fieldset className="quick-duration quick-activity-duration">

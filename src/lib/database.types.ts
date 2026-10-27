@@ -107,6 +107,32 @@ isOneToOne: false
       referencedColumns: ["family_id","user_id"]
     }
                   ]
+                },"child_diary_links": {
+                  Row: {
+                    "child_id": string,"created_by": string,"token": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"created_by": string,"token"?: string
+                  }
+                  Update: {
+                    "child_id"?: string,"created_by"?: string,"token"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_diary_links_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: true
+      referencedRelation: "children"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "child_diary_links_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"child_meal_plans": {
                   Row: {
                     "child_id": string,"feeding_minutes": number | null,"solids_times": (string)[],"timezone": string
@@ -227,14 +253,14 @@ isOneToOne: false
                   ]
                 },"children": {
                   Row: {
-                    "birth_date": string | null,"created_at": string,"due_date": string | null,"family_id": string,"id": string,"name": string,"sex": string | null
+                    "birth_date": string,"created_at": string,"due_date": string | null,"family_id": string,"id": string,"name": string,"sex": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "birth_date"?: string | null,"created_at"?: string,"due_date"?: string | null,"family_id": string,"id"?: string,"name": string,"sex"?: string | null
+                    "birth_date": string,"created_at"?: string,"due_date"?: string | null,"family_id": string,"id"?: string,"name": string,"sex": string
                   }
                   Update: {
-                    "birth_date"?: string | null,"created_at"?: string,"due_date"?: string | null,"family_id"?: string,"id"?: string,"name"?: string,"sex"?: string | null
+                    "birth_date"?: string,"created_at"?: string,"due_date"?: string | null,"family_id"?: string,"id"?: string,"name"?: string,"sex"?: string
                   }
                   Relationships: [
                     {
@@ -1033,14 +1059,19 @@ isOneToOne: false
 "add_child_record_photo":
 { Args: { "p_id": string,"p_record": string,"p_size": number,"p_type": string }; Returns: string
                            },
-"add_preparation_tasks":
-{ Args: { "p_child_id": string,"p_locale": string }; Returns: undefined
-                           },
 "can_read_child":
 { Args: { "cid": string }; Returns: boolean
                            },
 "can_write_child":
 { Args: { "cid": string }; Returns: boolean
+                           },
+"child_diary_link_profile":
+{ Args: { "p_token": string }; Returns: {
+              "nickname": string
+            }[]
+                           },
+"child_diary_link_records":
+{ Args: { "p_token": string }; Returns: string[]
                            },
 "child_photo_access":
 { Args: { "p_path": string,"p_upload": boolean }; Returns: boolean
@@ -1095,8 +1126,9 @@ isOneToOne: false
 "community_post_visible":
 { Args: { "p_id": string }; Returns: boolean
                            },
+"update_child_birth_date": { Args: { "p_child_id": string, "p_birth_date": string }; Returns: undefined },
 "create_family_with_child":
-{ Args: { "p_birth_date": string,"p_child_name": string,"p_due_date": string,"p_family_name": string }; Returns: string
+{ Args: { "p_birth_date": string,"p_child_name": string,"p_family_name": string,"p_sex": string }; Returns: string
                            },
 "create_invitation":
 { Args: { "p_child_id": string,"p_role": string }; Returns: string
@@ -1122,8 +1154,21 @@ isOneToOne: false
 "deliver_notifications_internal":
 { Args: { "p_user": string }; Returns: number
                            },
+"diary_link_child":
+{ Args: { "p_token": string }; Returns: string
+                           },
+"diary_link_photo":
+{ Args: { "p_photo": string,"p_token": string }; Returns: {
+              "content_type": string,"path": string
+            }[]
+                           },
 "export_child_data":
 { Args: { "p_child": string }; Returns: Json
+                           },
+"family_access_context":
+{ Args: { "p_child": string }; Returns: {
+              "caregivers": Json,"family": Json,"members": Json,"owner": boolean,"writable": boolean
+            }[]
                            },
 "finish_data_operation":
 { Args: { "p_job": string,"p_lease": string,"p_success": boolean }; Returns: undefined
@@ -1133,7 +1178,7 @@ isOneToOne: false
                            },
 "growth_diary_feed":
 { Args: { "p_age"?: number,"p_child": string,"p_page"?: number,"p_scope": string }; Returns: {
-              "age_days": number,"head_cm": number,"height_cm": number,"id": string,"nickname": string,"note": string,"photo_ids": (string)[],"sex": string,"weight_kg": number
+              "age_days": number,"head_cm": number,"height_cm": number,"id": string,"nickname": string,"note": string,"photo_ids": (string)[],"recorded_date": string,"sex": string,"weight_kg": number
             }[]
                            },
 "growth_diary_history":
@@ -1169,6 +1214,9 @@ isOneToOne: false
               "display_name": string,"role": string,"user_id": string
             }[]
                            },
+"manage_child_diary_link":
+{ Args: { "p_action": string,"p_child": string }; Returns: string
+                           },
 "moderate_growth_diary":
 { Args: { "p_hidden": boolean,"p_reason": string,"p_record": string }; Returns: undefined
                            },
@@ -1196,13 +1244,13 @@ isOneToOne: false
 "poll_results":
 { Args: { "p_id": string }; Returns: Json
                            },
-"preview_child_dates":
-{ Args: { "p_birth_date": string,"p_child_id": string,"p_due_date": string }; Returns: {
-              "current_due_date": string,"proposed_date": string,"task_id": string,"title": string
-            }[]
-                           },
 "queue_orphan_photos":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"read_child_diary_link":
+{ Args: { "p_page"?: number,"p_token": string }; Returns: {
+              "id": string,"note": string,"photo_ids": (string)[],"recorded_date": string
+            }[]
                            },
 "read_notification":
 { Args: { "p_id": string }; Returns: undefined
@@ -1281,9 +1329,6 @@ isOneToOne: false
                            },
 "transfer_family_ownership":
 { Args: { "p_confirmation": string,"p_family": string,"p_member": string }; Returns: undefined
-                           },
-"update_child_dates":
-{ Args: { "p_birth_date": string,"p_child_id": string,"p_due_date": string }; Returns: undefined
                            },
 "valid_meal_times":
 { Args: { "times": (string)[] }; Returns: boolean

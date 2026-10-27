@@ -26,6 +26,31 @@ type InstallState = {
 const InstallContext = createContext<InstallState | null>(null);
 
 export function InstallAppProvider({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const display = window.matchMedia('(display-mode: standalone)');
+    const isStandalone = () =>
+      display.matches ||
+      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    const update = () =>
+      document.documentElement.toggleAttribute(
+        'data-standalone',
+        isStandalone(),
+      );
+    // Safari gesture events supplement touch-action in installed iOS web apps.
+    const preventZoom = (event: Event) => {
+      if (isStandalone()) event.preventDefault();
+    };
+    update();
+    display.addEventListener('change', update);
+    document.addEventListener('gesturestart', preventZoom, { passive: false });
+    document.addEventListener('gesturechange', preventZoom, { passive: false });
+    return () => {
+      document.documentElement.removeAttribute('data-standalone');
+      display.removeEventListener('change', update);
+      document.removeEventListener('gesturestart', preventZoom);
+      document.removeEventListener('gesturechange', preventZoom);
+    };
+  }, []);
   const [prompt, setPrompt] = useState<InstallPrompt | null>(null);
   const [device, setDevice] = useState({
     installed: false,

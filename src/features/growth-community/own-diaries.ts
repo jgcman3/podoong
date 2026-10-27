@@ -20,6 +20,10 @@ export async function loadOwnDiaries(context: CareContext, page: number) {
       !record.growth_diary_shares?.everyone,
     version: record.version,
     occurred_at: record.occurred_at,
+    recorded_date: dateInTimeZone(
+      new Date(record.occurred_at),
+      record.record_timezone,
+    ),
     record_timezone: record.record_timezone,
     nickname: context.child.name,
     sex: context.child.sex,

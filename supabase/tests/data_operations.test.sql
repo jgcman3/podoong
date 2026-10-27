@@ -8,7 +8,7 @@ insert into auth.users(id) values('d1000000-0000-4000-8000-000000000001'),('d100
 insert into profiles(id,display_name,consented_at) values('d1000000-0000-4000-8000-000000000001','Owner',now()),('d1000000-0000-4000-8000-000000000002','Member',now());
 insert into families(id,name) values('d2000000-0000-4000-8000-000000000001','Fixture');
 insert into family_members values('d2000000-0000-4000-8000-000000000001','d1000000-0000-4000-8000-000000000001','owner'),('d2000000-0000-4000-8000-000000000001','d1000000-0000-4000-8000-000000000002','editor');
-insert into children(id,family_id,name,birth_date) values('d3000000-0000-4000-8000-000000000001','d2000000-0000-4000-8000-000000000001','Child',current_date);
+insert into children(sex,id,family_id,name,birth_date) values('female','d3000000-0000-4000-8000-000000000001','d2000000-0000-4000-8000-000000000001','Child',current_date);
 insert into care_records(id,child_id,kind,started_at,created_by,updated_by) values('d4000000-0000-4000-8000-000000000001','d3000000-0000-4000-8000-000000000001','formula',now(),'d1000000-0000-4000-8000-000000000001','d1000000-0000-4000-8000-000000000001');
 select set_config('request.jwt.claims',jsonb_build_object('sub','d1000000-0000-4000-8000-000000000001','role','authenticated','amr',jsonb_build_array(jsonb_build_object('method','oauth','timestamp',extract(epoch from now()))))::text,true);
 set local role authenticated;

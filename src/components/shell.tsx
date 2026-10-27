@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { NavigationStatus } from './navigation-status';
 import { getTranslations } from 'next-intl/server';
 import {
   Home,
@@ -13,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Nest } from './nest';
 import { TopbarChildPicker } from './topbar-child-picker';
-import { ageInDays, pregnancyWeek, type Locale } from '@/lib/domain';
+import { ageInDays, type Locale } from '@/lib/domain';
 import type { CareContext } from '@/lib/data';
 const navigation = [
   ['today', Home],
@@ -48,7 +49,7 @@ export async function Shell({
   const ageFor = (c: typeof child) =>
     c.birth_date
       ? t('days', { days: ageInDays(c.birth_date, today) })
-      : t('weeks', { weeks: pregnancyWeek(c.due_date!, today) });
+      : t('birthDateMissing');
   const age = ageFor(child);
   const childInTopbar = [
     'today',
@@ -70,7 +71,11 @@ export async function Shell({
         {t('today')}
       </a>
       <aside className="sidebar">
-        <Link className="wordmark" href={`/${locale}/today?child=${child.id}`}>
+        <Link
+          replace
+          className="wordmark"
+          href={`/${locale}/today?child=${child.id}`}
+        >
           <Nest />
           {t('brand')}
         </Link>
@@ -79,10 +84,13 @@ export async function Shell({
           {navigation.map(([key, Icon]) => (
             <Link
               key={key}
+              prefetch={true}
+              replace
               href={`/${locale}/${key === 'community' ? 'community/diaries' : key}?child=${child.id}`}
               className={`nav-link ${section === key ? 'active' : ''}`}
               aria-current={section === key ? 'page' : undefined}
             >
+              <NavigationStatus locale={locale} />
               <Icon size={20} />
               {t(key === 'community' ? 'growthDiary' : key)}
               {section === key && <span className="nav-dot" />}
@@ -143,6 +151,7 @@ export async function Shell({
                   {all.map((c) => (
                     <Link
                       key={c.id}
+                      replace
                       href={`/${locale}/${childRoute ?? section}?${new URLSearchParams({ ...routeQuery, child: c.id })}`}
                     >
                       {c.name}
@@ -158,9 +167,58 @@ export async function Shell({
         <footer className="app-footer">PODUNG · {t('tagline')}</footer>
       </div>
       <nav className="mobile-nav" aria-label={t('services')}>
+        {navigation
+          .filter(([key]) => key !== 'family')
+          .map(([key, Icon]) => (
+            <Link
+              key={key}
+              prefetch={true}
+              replace
+              className={section === key ? 'active' : ''}
+              href={`/${locale}/${key === 'community' ? 'community/diaries' : key}?child=${child.id}`}
+            >
+              <NavigationStatus locale={locale} />
+              <Icon size={21} />
+              <span>
+                {key === 'calendar'
+                  ? locale === 'ko'
+                    ? '일정'
+                    : 'Plan'
+                  : key === 'services'
+                    ? locale === 'ko'
+                      ? '전체'
+                      : 'More'
+                    : t(key === 'community' ? 'growthDiary' : key)}
+              </span>
+            </Link>
+          ))}
         <TopbarChildPicker
           key={child.id}
           mobile
+          active={section === 'family'}
+          familyActions={[
+            ...(context.owner
+              ? [
+                  {
+                    href: `/${locale}/family?child=${child.id}#add-child`,
+                    label: t('newChild'),
+                  },
+                ]
+              : []),
+            ...(context.writable
+              ? [
+                  {
+                    href: `/${locale}/family?child=${child.id}#child-info`,
+                    label:
+                      locale === 'ko' ? '아이 정보 수정' : 'Edit child details',
+                  },
+                ]
+              : []),
+            {
+              href: `/${locale}/family?child=${child.id}`,
+              label: locale === 'ko' ? '가족 관리' : 'Manage family',
+            },
+          ]}
           current={childOptions.find((option) => option.id === child.id)!}
           options={childOptions}
           label={t('childSelect')}
@@ -169,26 +227,6 @@ export async function Shell({
             label: t('settings'),
           }}
         />
-        {navigation.map(([key, Icon]) => (
-          <Link
-            key={key}
-            className={section === key ? 'active' : ''}
-            href={`/${locale}/${key === 'community' ? 'community/diaries' : key}?child=${child.id}`}
-          >
-            <Icon size={21} />
-            <span>
-              {key === 'calendar'
-                ? locale === 'ko'
-                  ? '일정'
-                  : 'Plan'
-                : key === 'services'
-                  ? locale === 'ko'
-                    ? '전체'
-                    : 'More'
-                  : t(key === 'community' ? 'growthDiary' : key)}
-            </span>
-          </Link>
-        ))}
       </nav>
     </div>
   );

@@ -14,7 +14,7 @@ import {
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import type { CareContext } from '@/lib/data';
-import { preparationTitle, type Locale } from '@/lib/domain';
+import { type Locale } from '@/lib/domain';
 import { ConfirmButton } from '@/components/confirm-button';
 import { VaccinationForm } from '@/features/vaccination/form';
 import { deleteVaccination } from '@/features/vaccination/actions';
@@ -203,10 +203,10 @@ export async function CalendarWorkspace({
         >
           {(
             [
-              ['event', CalendarDays],
               ['hospital', Hospital],
               ['vaccination', Syringe],
               ['medication', Pill],
+              ['event', CalendarDays],
               ['task', Check],
             ] as const
           ).map(([key, Icon]) => (
@@ -334,7 +334,7 @@ export async function CalendarWorkspace({
                     <SwipeRow
                       key={task.id}
                       {...rowProps}
-                      title={preparationTitle(task, locale)}
+                      title={task.title}
                       editHref={calendarHref(locale, childId, day, {
                         edit: `task:${task.id}`,
                       })}

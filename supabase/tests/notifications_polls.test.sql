@@ -11,7 +11,7 @@ insert into profiles(id,display_name,timezone,consented_at) values('c1000000-000
 insert into community_moderators values('c1000000-0000-4000-8000-000000000002');
 insert into families(id,name) values('c2000000-0000-4000-8000-000000000001','Fixture');
 insert into family_members values('c2000000-0000-4000-8000-000000000001','c1000000-0000-4000-8000-000000000001','editor');
-insert into children(id,family_id,name,birth_date) values('c3000000-0000-4000-8000-000000000001','c2000000-0000-4000-8000-000000000001','Fixture',current_date);
+insert into children(sex,id,family_id,name,birth_date) values('female','c3000000-0000-4000-8000-000000000001','c2000000-0000-4000-8000-000000000001','Fixture',current_date);
 insert into child_access values('c3000000-0000-4000-8000-000000000001','c2000000-0000-4000-8000-000000000001','c1000000-0000-4000-8000-000000000001','editor');
 insert into tasks(id,child_id,title,service,due_date,created_by) values('c4000000-0000-4000-8000-000000000001','c3000000-0000-4000-8000-000000000001','Private title','birth-preparation',(now() at time zone 'UTC')::date,'c1000000-0000-4000-8000-000000000001');
 insert into notification_preferences(user_id,quiet_start,quiet_end,delivery_hour,frequency_minutes) values('c1000000-0000-4000-8000-000000000001','00:00','00:00',0,1);

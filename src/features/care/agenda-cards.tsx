@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { preparationTitle, type Locale } from '@/lib/domain';
+import { type Locale } from '@/lib/domain';
 import { calendarKind, calendarTitle } from './calendar-entry';
 import type { CalendarEntry } from './calendar-model';
 import type { AgendaTask } from './day-agenda-model';
@@ -64,7 +64,7 @@ export function AgendaTaskCard({
     >
       {children}
       <div className="calendar-task-main">
-        <strong>{preparationTitle(task, locale)}</strong>
+        <strong>{task.title}</strong>
         {task.status === 'snoozed' && (
           <div className="calendar-row-meta">
             <span>{locale === 'ko' ? '미룸' : 'Snoozed'}</span>

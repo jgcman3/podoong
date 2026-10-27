@@ -15,13 +15,25 @@ export async function createDiary(form: FormData) {
     service: 'growth',
     kind: measured ? 'measurement' : 'observation',
   });
-  const file = form.get('photo');
-  const photo = file instanceof File && file.size > 0 ? file : null;
-  if (!parsed.success || (photo && photo.size > 5242880))
-    return { saved: false, error: 'invalid' };
-  const bytes = photo ? new Uint8Array(await photo.arrayBuffer()) : null;
-  const type = bytes ? imageType(bytes) : null;
-  if (photo && (!type || photo.type !== type))
+  const photos = form
+    .getAll('photo')
+    .filter((file): file is File => file instanceof File && file.size > 0);
+  if (
+    !parsed.success ||
+    photos.length > 5 ||
+    photos.some((photo) => photo.size > 5242880)
+  )
+    return {
+      saved: false,
+      error: photos.length > 5 ? 'photo-limit' : 'invalid',
+    };
+  const uploads = await Promise.all(
+    photos.map(async (photo) => {
+      const bytes = new Uint8Array(await photo.arrayBuffer());
+      return { photo, bytes, type: imageType(bytes) };
+    }),
+  );
+  if (uploads.some(({ photo, type }) => !type || photo.type !== type))
     return { saved: false, error: 'invalid' };
   const value = parsed.data;
   const { db } = await requireUser(locale);
@@ -39,10 +51,12 @@ export async function createDiary(form: FormData) {
   if (
     !value.note.trim() &&
     !measured &&
-    !photo &&
+    !photos.length &&
     !existing?.data?.child_record_photos.length
   )
     return { saved: false, error: 'empty' };
+  if ((existing?.data?.child_record_photos.length ?? 0) + photos.length > 5)
+    return { saved: false, error: 'photo-limit' };
   const result = await db.rpc('save_growth_diary', {
     p_id: value.id,
     p_child: value.childId,
@@ -64,26 +78,30 @@ export async function createDiary(form: FormData) {
       saved: false,
       error: result.error.code === '22023' ? 'birth' : 'generic',
     };
-  let photoFailed = false;
-  if (photo && bytes && type) {
-    const id = crypto.randomUUID();
-    const registration = await db.rpc('add_child_record_photo', {
-      p_id: id,
-      p_record: value.id,
-      p_type: type,
-      p_size: photo.size,
-    });
-    if (registration.error || !registration.data) photoFailed = true;
-    else {
-      const uploaded = await db.storage
+  const uploaded = await Promise.all(
+    uploads.map(async ({ photo, bytes, type }) => {
+      const id = crypto.randomUUID();
+      const registration = await db.rpc('add_child_record_photo', {
+        p_id: id,
+        p_record: value.id,
+        p_type: type!,
+        p_size: photo.size,
+      });
+      if (registration.error || !registration.data) return false;
+      const result = await db.storage
         .from('child-care-photos')
-        .upload(registration.data, bytes, { contentType: type, upsert: false });
-      if (uploaded.error) {
+        .upload(registration.data, bytes, {
+          contentType: type!,
+          upsert: false,
+        });
+      if (result.error) {
         await db.rpc('remove_child_record_photo', { p_id: id });
-        photoFailed = true;
+        return false;
       }
-    }
-  }
+      return true;
+    }),
+  );
+  const photoFailed = uploaded.some((success) => !success);
   revalidatePath(`/${locale}/community/diaries`);
   revalidatePath(`/${locale}/today`);
   revalidatePath(`/${locale}/insights`);

@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   ageInDays,
-  pregnancyWeek,
-  recommendedDate,
   safeReturnPath,
   dateInTimeZone,
 } from '../../src/lib/domain';
@@ -10,11 +8,6 @@ import {
 describe('calendar rules', () => {
   it('counts calendar days including leap days without timezone shifts', () => {
     expect(ageInDays('2024-02-28', '2024-03-01')).toBe(2);
-    expect(recommendedDate('2024-02-28', 2)).toBe('2024-03-01');
-  });
-  it('calculates gestational week from a 40-week due date', () => {
-    expect(pregnancyWeek('2026-10-12', '2026-10-12')).toBe(40);
-    expect(pregnancyWeek('2026-10-12', '2026-10-05')).toBe(39);
   });
   it('uses local calendar dates when displaying today', () => {
     expect(dateInTimeZone(new Date('2026-10-11T16:00:00Z'), 'Asia/Seoul')).toBe(
@@ -56,26 +49,4 @@ it('requires current-session authentication rather than account-wide sign-in', (
       now,
     ),
   ).toBe(false);
-});
-
-import { preparationTitle } from '../../src/lib/domain';
-it('translates builtin preparation titles and preserves family-written labels', () => {
-  expect(
-    preparationTitle(
-      { title: '출산 가방 목록 확인', template_key: 'bag' },
-      'en',
-    ),
-  ).toBe('Review your hospital bag checklist');
-  expect(
-    preparationTitle(
-      { title: 'My hospital checklist', template_key: 'bag' },
-      'ko',
-    ),
-  ).toBe('My hospital checklist');
-  expect(
-    preparationTitle(
-      { title: '출산 가방 목록 확인', template_key: null },
-      'en',
-    ),
-  ).toBe('출산 가방 목록 확인');
 });

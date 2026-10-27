@@ -11,9 +11,9 @@ insert into public.families(id,name) values('10000000-0000-4000-8000-00000000000
 insert into public.family_members values
 ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','owner'),
 ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','viewer');
-insert into public.children(id,family_id,name,due_date) values
-('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','Shared','2026-10-20'),
-('20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','Private','2026-10-20');
+insert into public.children(sex,id,family_id,name,birth_date) values
+('female','20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','Shared','2026-10-20'),
+('female','20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','Private','2026-10-20');
 insert into public.child_access values('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','viewer');
 
 set local role authenticated;
@@ -28,7 +28,7 @@ select is((select count(*)::int from public.children),1,'viewer sees only invite
 select ok(public.can_read_child('20000000-0000-4000-8000-000000000001'),'viewer reads assigned child');
 select ok(not public.can_read_child('20000000-0000-4000-8000-000000000002'),'viewer cannot read sibling');
 select throws_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula',now(),now(),100,'',null)$$,'42501','forbidden','viewer cannot save care');
-select throws_ok($$select public.update_child_dates('20000000-0000-4000-8000-000000000001','2026-10-21',null)$$,'42501','forbidden','viewer cannot change dates');
+select throws_ok($$select public.update_child_birth_date('20000000-0000-4000-8000-000000000001','2026-10-21')$$,'42501','forbidden','viewer cannot change dates');
 select throws_ok($$insert into public.family_members values('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003','owner')$$,'42501',null,'direct member escalation denied');
 
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
@@ -41,19 +41,11 @@ select throws_ok($$select public.save_care_record('30000000-0000-4000-8000-00000
 select throws_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T09:00Z',100,'',null)$$,'23514',null,'backwards time rejected');
 select lives_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000001','breast',now(),null,null,'',null)$$,'timer persisted');
 select throws_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000004','20000000-0000-4000-8000-000000000001','breast',now(),null,null,'',null)$$,'23505',null,'second active timer rejected');
-select lives_ok($$select public.add_preparation_tasks('20000000-0000-4000-8000-000000000001','ko')$$,'add preparation tasks');
-select lives_ok($$select public.add_preparation_tasks('20000000-0000-4000-8000-000000000001','ko')$$,'repeat templates safely');
-select is((select count(*)::int from public.tasks),3,'templates are not duplicated');
-select public.save_task(id,child_id,title,service,due_date,'done',null) from public.tasks where template_key='bag';
 select public.save_task('40000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Manual','health','2026-10-25','todo',null);
-select public.save_task(id,child_id,title,service,'2026-11-01','todo',null) from public.tasks where template_key='roles';
 select public.save_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Visit','2026-10-25','Note');
-select lives_ok($$select public.update_child_dates('20000000-0000-4000-8000-000000000001','2026-10-20','2026-10-12')$$,'birth transition succeeds');
+select lives_ok($$select public.update_child_birth_date('20000000-0000-4000-8000-000000000001','2026-10-12')$$,'birth transition succeeds');
 select is((select id::text from public.children where name='Shared'),'20000000-0000-4000-8000-000000000001','child identity preserved');
-select is((select due_date::text from public.tasks where template_key='bag'),'2026-09-22','completed task date preserved');
 select is((select due_date::text from public.tasks where title='Manual'),'2026-10-25','manual task preserved');
-select is((select due_date::text from public.tasks where template_key='roles'),'2026-11-01','user-customized recommended date preserved');
-select is((select due_date::text from public.tasks where template_key='admin'),'2026-10-13','active recommendation follows birth date');
 select is((select date::text from public.events where title='Visit'),'2026-10-25','manual event preserved');
 select throws_ok($$insert into public.care_records(id,child_id,kind,started_at,created_by,updated_by) values(gen_random_uuid(),'20000000-0000-4000-8000-000000000001','breast',now(),auth.uid(),auth.uid())$$,'42501',null,'direct unaudited insert denied');
 
@@ -72,10 +64,10 @@ select throws_ok($$select public.accept_invitation('valid')$$,'P0001','invalid_i
 select is((select count(*)::int from public.children),1,'new editor sees invited child only');
 select ok(public.can_write_child('20000000-0000-4000-8000-000000000001'),'new editor can write');
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-select public.save_task('40000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','Assigned','birth','2026-10-25','todo','00000000-0000-4000-8000-000000000003');
+select public.save_task('40000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','Assigned','general','2026-10-25','todo','00000000-0000-4000-8000-000000000003');
 select lives_ok($$select public.revoke_member('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003')$$,'owner revokes editor');
 select is((select assignee_id from public.tasks where title='Assigned'),null::uuid,'revoked caregiver assignment cleared');
-select lives_ok($$select public.save_task('40000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','Assigned','birth','2026-10-25','done',null)$$,'unassigned task can be completed after revoke');
+select lives_ok($$select public.save_task('40000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','Assigned','general','2026-10-25','done',null)$$,'unassigned task can be completed after revoke');
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 select is((select count(*)::int from public.children),0,'revoked editor immediately loses read access');
 select throws_ok($$select public.save_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','x','2026-10-12','')$$,'42501','forbidden','revoked editor loses write access');

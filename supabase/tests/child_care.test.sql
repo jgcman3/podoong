@@ -14,9 +14,9 @@ insert into public.family_members values
 ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','owner'),
 ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','viewer'),
 ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003','editor');
-insert into public.children(id,family_id,name,birth_date) values
-('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','Shared','2026-09-01'),
-('20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','Private','2026-09-01');
+insert into public.children(sex,id,family_id,name,birth_date) values
+('female','20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','Shared','2026-09-01'),
+('female','20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','Private','2026-09-01');
 insert into public.child_access values
 ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','viewer'),
 ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003','editor');
@@ -51,10 +51,11 @@ select is(public.child_record_day_count('20000000-0000-4000-8000-000000000001','
 select public.add_child_record_photo('40000000-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000005','image/png',100);
 select public.add_child_record_photo('40000000-0000-4000-8000-000000000003','30000000-0000-4000-8000-000000000005','image/png',100);
 select public.add_child_record_photo('40000000-0000-4000-8000-000000000004','30000000-0000-4000-8000-000000000005','image/png',100);
-select throws_ok($$select public.add_child_record_photo(gen_random_uuid(),'30000000-0000-4000-8000-000000000005','image/png',100)$$,'23514','photo limit','fifth photo rejected');
+select lives_ok($$select public.add_child_record_photo(gen_random_uuid(),'30000000-0000-4000-8000-000000000005','image/png',100)$$,'fifth photo accepted');
+select throws_ok($$select public.add_child_record_photo(gen_random_uuid(),'30000000-0000-4000-8000-000000000005','image/png',100)$$,'23514','photo limit','sixth photo rejected');
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 select is((select count(*)::int from public.child_records),5,'viewer reads invited child');
-select is((select count(*)::int from public.child_record_photos),4,'viewer reads family photos');
+select is((select count(*)::int from public.child_record_photos),5,'viewer reads family photos');
 select ok(public.child_photo_access((select path from public.child_record_photos limit 1),false),'viewer can download');
 select ok(not public.child_photo_access((select path from public.child_record_photos limit 1),true),'viewer cannot upload');
 select throws_ok($$select public.delete_child_record('30000000-0000-4000-8000-000000000005')$$,'42501','forbidden','viewer cannot delete');

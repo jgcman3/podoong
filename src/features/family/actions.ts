@@ -5,12 +5,13 @@ import { requireUser } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
 import { safeReturnPath } from '@/lib/domain';
 import { residenceSchema } from './residence-schema';
-const optionalDate = z
-  .union([z.literal(''), z.iso.date()])
-  .transform((v) => v || null);
-const dates = z
-  .object({ due: optionalDate, birth: optionalDate })
-  .refine((v) => v.due || v.birth);
+const birthDate = z.iso
+  .date()
+  .refine(
+    (date) =>
+      date <=
+      new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }),
+  );
 const uuid = z.uuid();
 export async function saveFamilyResidence(form: FormData) {
   const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
@@ -56,8 +57,8 @@ export async function onboard(form: FormData) {
       child: z.string().trim().min(1).max(60),
       name: z.string().trim().min(1).max(60),
       consent: z.literal('on'),
-      due: optionalDate,
-      birth: optionalDate,
+      birth: birthDate,
+      sex: z.enum(['female', 'male']),
       timezone: z.enum([
         'Asia/Seoul',
         'UTC',
@@ -66,7 +67,6 @@ export async function onboard(form: FormData) {
         'Asia/Tokyo',
       ]),
     })
-    .refine((v) => v.due || v.birth)
     .safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect(`/${locale}/onboarding?error=invalid`);
   const v = parsed.data;
@@ -86,8 +86,8 @@ export async function onboard(form: FormData) {
   const result = await db.rpc('create_family_with_child', {
     p_family_name: v.family,
     p_child_name: v.child,
-    p_due_date: v.due,
     p_birth_date: v.birth,
+    p_sex: v.sex,
   });
   if (result.error) redirect(`/${locale}/onboarding?error=generic`);
   redirect(`/${locale}/today?child=${result.data}`);
@@ -122,10 +122,9 @@ export async function addChild(form: FormData) {
     .object({
       familyId: uuid,
       name: z.string().trim().min(1).max(60),
-      due: optionalDate,
-      birth: optionalDate,
+      birth: birthDate,
+      sex: z.enum(['female', 'male']),
     })
-    .refine((v) => v.due || v.birth)
     .safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect(`/${locale}/family?error=invalid`);
   const v = parsed.data;
@@ -136,8 +135,8 @@ export async function addChild(form: FormData) {
     id: childId,
     family_id: v.familyId,
     name: v.name,
-    due_date: v.due,
     birth_date: v.birth,
+    sex: v.sex,
   });
   if (error) redirect(`/${locale}/family?error=generic`);
   redirect(`/${locale}/today?child=${childId}`);
@@ -197,33 +196,19 @@ export async function revoke(form: FormData) {
   );
 }
 
-export async function previewDates(form: FormData) {
-  const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
-  await requireUser(locale);
-  const parsed = dates.safeParse(Object.fromEntries(form));
-  const child = uuid.safeParse(form.get('childId'));
-  if (!parsed.success || !child.success)
-    redirect(`/${locale}/family?error=invalid`);
-  const query = new URLSearchParams({
-    child: child.data,
-    due: parsed.data.due ?? '',
-    birth: parsed.data.birth ?? '',
-  });
-  redirect(`/${locale}/dates?${query}`);
-}
-export async function applyDates(form: FormData) {
+export async function saveBirthDate(form: FormData) {
   const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
   const { db } = await requireUser(locale);
-  const parsed = dates.safeParse(Object.fromEntries(form));
-  const child = uuid.safeParse(form.get('childId'));
-  if (!parsed.success || !child.success)
-    redirect(`/${locale}/family?error=invalid`);
-  const { error } = await db.rpc('update_child_dates', {
-    p_child_id: child.data,
-    p_due_date: parsed.data.due,
-    p_birth_date: parsed.data.birth,
+  const parsed = z
+    .object({ childId: uuid, birth: birthDate })
+    .safeParse(Object.fromEntries(form));
+  if (!parsed.success) redirect(`/${locale}/family?error=invalid`);
+  const { childId, birth } = parsed.data;
+  const { error } = await db.rpc('update_child_birth_date', {
+    p_child_id: childId,
+    p_birth_date: birth,
   });
   redirect(
-    `/${locale}/family?child=${child.data}&${error ? 'error=generic' : 'notice=saved'}`,
+    `/${locale}/family?child=${childId}&${error ? 'error=generic' : 'notice=saved'}`,
   );
 }

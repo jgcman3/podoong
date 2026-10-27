@@ -6,10 +6,13 @@ export default defineConfig({
   workers: 1,
   use: { baseURL: 'http://127.0.0.1:3188', trace: 'retain-on-failure' },
   webServer: {
-    command: 'npx next dev --hostname 127.0.0.1 --port 3188',
+    command:
+      process.env.PODUNG_TEST_PRODUCTION === '1'
+        ? 'npx next build && npx next start --hostname 127.0.0.1 --port 3188'
+        : 'npx next dev --hostname 127.0.0.1 --port 3188',
     url: 'http://127.0.0.1:3188/ko/login',
     env: { PODUNG_E2E: '1', NEXT_PUBLIC_SITE_URL: 'http://127.0.0.1:3188' },
     reuseExistingServer: false,
-    timeout: 120000,
+    timeout: 180000,
   },
 });

@@ -1,3 +1,4 @@
+import { ChildSexField } from '@/features/family/sex-field';
 import residenceCountries from '@/features/family/countries.json';
 import { InstallAppButton } from '@/components/install-app';
 import { loadDayAgenda } from '@/features/care/day-agenda-data';
@@ -13,10 +14,7 @@ import {
   ArrowUpRight,
   CalendarDays,
   Plus,
-  Sparkles,
   Heart,
-  Backpack,
-  FileCheck,
   Users,
   Grid2X2,
   ChevronRight,
@@ -26,7 +24,7 @@ import {
 import { Nest } from '@/components/nest';
 import { ConfirmButton } from '@/components/confirm-button';
 import type { CareContext } from '@/lib/data';
-import { services, preparationTitle, type Locale } from '@/lib/domain';
+import { services, type Locale } from '@/lib/domain';
 import { QuickCare } from '@/features/care/quick-care';
 import {
   loadQuickTimeline,
@@ -37,7 +35,6 @@ import { calendarTitle, calendarKind } from '@/features/care/calendar-entry';
 import { LastCare } from '@/features/care/last-care';
 import { VaccinationList } from '@/features/vaccination/views';
 import { isChildService } from '@/features/child-care/schema';
-import { addTemplates } from '@/features/care/actions';
 import {
   TaskForm,
   EventForm,
@@ -47,7 +44,7 @@ import {
 import {
   createInvite,
   revoke,
-  previewDates,
+  saveBirthDate,
   addChild,
 } from '@/features/family/actions';
 import { SocialButtons } from '@/components/social-buttons';
@@ -56,10 +53,6 @@ import { cookies } from 'next/headers';
 import type { Row } from '@/lib/db';
 type Props = { context: CareContext; locale: Locale };
 const glyphs: Record<string, typeof Milk> = {
-  pregnancy: Sparkles,
-  birth: Backpack,
-  administration: FileCheck,
-  postpartum: Heart,
   feeding: Milk,
   sleep: Moon,
   diaper: Baby,
@@ -160,7 +153,7 @@ export async function TaskList({
             returnTo={compact ? 'today' : 'calendar'}
           />
           <div className="task-main">
-            <strong>{preparationTitle(task, locale)}</strong>
+            <strong>{task.title}</strong>
             {!compact && (
               <div className="task-meta">
                 <span>{t(`serviceNames.${task.service}`)}</span>
@@ -349,15 +342,6 @@ export async function Calendar({
           ) : (
             <Empty title={t('noTasks')} subtitle={t('noTasksSub')} />
           )}
-          <div className="starter-checklist">
-            <p>{t('templateHelp')}</p>
-            {context.writable && (
-              <form action={addTemplates}>
-                <Hidden locale={locale} childId={context.child.id} />
-                <button className="button secondary">{t('templates')}</button>
-              </form>
-            )}
-          </div>
         </section>
         <section className="panel">
           <div className="panel-heading">
@@ -538,7 +522,6 @@ export async function ServiceDetail({
     .eq('status', 'published');
   if (error) throw new Error('Content unavailable');
   const links: Record<string, string> = {
-    administration: 'https://www.gov.kr/',
     support: 'https://www.bokjiro.go.kr/',
     health: 'https://www.nhis.or.kr/',
   };
@@ -707,32 +690,26 @@ export async function Family({ context, locale }: Props) {
           </section>
         )}
         {context.writable && (
-          <section className="panel">
+          <section className="panel" id="child-info">
             <h2>{t('changeDates')}</h2>
-            <form action={previewDates} className="form-stack">
+            <form action={saveBirthDate} className="form-stack">
               <Hidden locale={locale} childId={child.id} />
-              <label>
-                {t('dueDate')}
-                <input
-                  type="date"
-                  name="due"
-                  defaultValue={child.due_date ?? ''}
-                />
-              </label>
               <label>
                 {t('birthDate')}
                 <input
                   type="date"
                   name="birth"
+                  required
+                  max={context.today}
                   defaultValue={child.birth_date ?? ''}
                 />
               </label>
-              <button className="button secondary">{t('previewDates')}</button>
+              <button className="button secondary">{t('save')}</button>
             </form>
           </section>
         )}
         {owner && (
-          <section className="panel">
+          <section className="panel" id="add-child">
             <h2>{t('newChild')}</h2>
             <form action={addChild} className="form-stack">
               <input name="familyId" type="hidden" value={child.family_id} />
@@ -741,13 +718,10 @@ export async function Family({ context, locale }: Props) {
                 {t('childName')}
                 <input name="name" required maxLength={60} />
               </label>
-              <label>
-                {t('dueDate')}
-                <input name="due" type="date" />
-              </label>
+              <ChildSexField locale={locale} />
               <label>
                 {t('birthDate')}
-                <input name="birth" type="date" />
+                <input name="birth" type="date" required max={context.today} />
               </label>
               <button className="button secondary">{t('addChild')}</button>
             </form>

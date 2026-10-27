@@ -116,7 +116,10 @@ export default async function AppPage({
             : undefined
       }
     >
-      <Flash error={q.error} notice={q.notice} />
+      <Flash
+        error={q.error}
+        notice={section === 'calendar' ? undefined : q.notice}
+      />
       {view}
     </Shell>
   );

@@ -3,13 +3,12 @@ import {
   createContext,
   useContext,
   useEffect,
-  useOptimistic,
   useRef,
   useTransition,
   type ReactNode,
 } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { toggleKind, type InsightKind } from './config';
+import { selectedKinds, toggleKind, type InsightKind } from './config';
 type Navigation = {
   selected: InsightKind[];
   pending: boolean;
@@ -20,19 +19,25 @@ const Context = createContext<Navigation | null>(null);
 export function InsightsNavigation({
   selected,
   children,
+  loadedStart,
+  loadedSpan,
 }: {
   selected: InsightKind[];
   children: ReactNode;
+  loadedStart?: string;
+  loadedSpan?: number;
 }) {
   const router = useRouter(),
     pathname = usePathname(),
     query = useSearchParams();
-  const latest = useRef(selected);
-  const [optimistic, update] = useOptimistic(selected);
+  const current = query.has('kind')
+    ? selectedKinds(query.get('kind')!)
+    : selected;
+  const latest = useRef(current);
   const [pending, transition] = useTransition();
   useEffect(() => {
-    if (!pending) latest.current = selected;
-  }, [selected, pending]);
+    if (!pending) latest.current = current;
+  }, [current, pending]);
   function visit(patch: Record<string, string | null>, replace: boolean) {
     const params = new URLSearchParams(query.toString());
     for (const [key, value] of Object.entries(patch)) {
@@ -41,23 +46,35 @@ export function InsightsNavigation({
     }
     params.set('kind', latest.current.join(','));
     const url = `${pathname}?${params}`;
+    const mode = params.get('pattern') ?? 'weekly';
+    if (
+      loadedStart &&
+      (params.get('week') ?? loadedStart) === loadedStart &&
+      ['daily', 'weekly', 'stats'].includes(mode) &&
+      (mode !== 'stats' ||
+        params.get('interval') !== 'week' ||
+        loadedSpan === 6)
+    ) {
+      window.history[replace ? 'replaceState' : 'pushState'](null, '', url);
+      return;
+    }
     if (replace) router.replace(url, { scroll: false });
     else router.push(url, { scroll: false });
   }
   return (
     <Context.Provider
       value={{
-        selected: optimistic,
+        selected: current,
         pending,
         toggle(kind) {
           const next = toggleKind(latest.current, kind);
           latest.current = next;
-          transition(() => {
-            update(next);
-            visit({}, true);
-          });
+          const params = new URLSearchParams(window.location.search);
+          params.set('kind', next.join(','));
+          // Only presentation changes: reuse this child's already loaded period.
+          window.history.replaceState(null, '', `${pathname}?${params}`);
         },
-        navigate(patch, replace = false) {
+        navigate(patch, replace = true) {
           transition(() => visit(patch, replace));
         },
       }}

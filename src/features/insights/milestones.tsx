@@ -10,7 +10,6 @@ import {
 } from './development-model';
 import checklist from './reference/milestones.json';
 import { setMilestone } from './milestone-actions';
-import { useInsightsNavigation } from './navigation';
 export function Milestones({
   child,
   birthDate,
@@ -27,8 +26,7 @@ export function Milestones({
   locale: Locale;
 }) {
   const ko = locale === 'ko',
-    router = useRouter(),
-    { navigate } = useInsightsNavigation();
+    router = useRouter();
   const [age, setAge] = useState(
     developmentStage(completedMonths(birthDate, today) ?? 0).month,
   );
@@ -98,15 +96,9 @@ export function Milestones({
       <div className="milestone-intro">
         <p>
           {ko
-            ? `대부분의 아이가 ${age}개월까지 할 수 있는 주요 발달 항목이에요. 관찰한 행동을 체크해 주세요.`
-            : `Selected skills most children can do by ${age} months. Check the behaviors you have observed.`}
+            ? `대부분의 아이가 ${age}개월까지 할 수 있는 주요 발달 항목이에요.`
+            : `Selected skills most children can do by ${age} months.`}
         </p>
-        <button
-          type="button"
-          onClick={() => navigate({ pattern: 'guide' }, true)}
-        >
-          {ko ? '성장 발달을 돕는 방법' : 'Ways to support development'}
-        </button>
       </div>
       <p className="small muted" aria-live="polite">
         {items.filter((item) => selected.has(item.id)).length} / {items.length}{' '}

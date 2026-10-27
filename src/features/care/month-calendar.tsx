@@ -48,6 +48,7 @@ export function MonthCalendar({
     >
       <header>
         <Link
+          replace
           aria-label={ko ? '이전 달' : 'Previous month'}
           href={calendarHref(locale, childId, `${shiftMonth(month, -1)}-01`)}
           scroll={false}
@@ -57,6 +58,7 @@ export function MonthCalendar({
         </Link>
         <h2>{label}</h2>
         <Link
+          replace
           aria-label={ko ? '다음 달' : 'Next month'}
           href={calendarHref(locale, childId, `${shiftMonth(month, 1)}-01`)}
           scroll={false}
@@ -94,6 +96,7 @@ export function MonthCalendar({
                 return (
                   <td key={date}>
                     <Link
+                      replace
                       className={`month-day ${date === day ? 'selected' : ''} ${date === today ? 'is-today' : ''} ${inMonth ? '' : 'other-month'}`}
                       href={calendarHref(locale, childId, date)}
                       scroll={false}

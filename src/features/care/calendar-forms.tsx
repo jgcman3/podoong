@@ -1,3 +1,4 @@
+import { MedicineTypeField } from './medicine-type-field';
 import { CalendarDateTimeField } from './calendar-date-time-field';
 import { CalendarFormActions } from './calendar-composer';
 import { Trash2 } from 'lucide-react';
@@ -6,7 +7,7 @@ import { getTranslations } from 'next-intl/server';
 import { saveTask, saveEvent, deleteCalendar } from './actions';
 import type { CareContext } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
-import { services, preparationTitle } from '@/lib/domain';
+import { services } from '@/lib/domain';
 import type { Row } from '@/lib/db';
 import type { CalendarEntry } from './calendar-model';
 import { ConfirmButton } from '@/components/confirm-button';
@@ -76,7 +77,7 @@ export async function TaskForm({
           name="title"
           required
           maxLength={200}
-          defaultValue={task ? preparationTitle(task, locale) : undefined}
+          defaultValue={task ? task.title : undefined}
         />
       </label>
       <CalendarDateTimeField
@@ -165,23 +166,27 @@ export async function EventForm({
         name="eventTimezone"
         value={event?.record_timezone ?? context.timezone}
       />
-      <label>
-        {eventKind === 'hospital'
-          ? ko
-            ? '병원 이름·방문 목적'
-            : 'Clinic / reason'
-          : eventKind === 'medication'
-            ? ko
-              ? '약 이름'
-              : 'Medicine'
-            : t('title')}
-        <input
+      {eventKind === 'medication' ? (
+        <MedicineTypeField
+          locale={locale}
           name="title"
-          required
-          maxLength={200}
-          defaultValue={event?.title}
+          defaultValue={event?.title ?? ''}
         />
-      </label>
+      ) : (
+        <label>
+          {eventKind === 'hospital'
+            ? ko
+              ? '병원·방문 이유 (선택)'
+              : 'Clinic / reason (optional)'
+            : t('title')}
+          <input
+            name="title"
+            required={eventKind !== 'hospital'}
+            maxLength={200}
+            defaultValue={event?.title}
+          />
+        </label>
+      )}
       <CalendarDateTimeField
         label={t('date')}
         name="date"

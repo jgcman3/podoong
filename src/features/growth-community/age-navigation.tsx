@@ -37,7 +37,7 @@ export function DiaryAgeNavigation({
         if (Math.abs(dx) < 50 || Math.abs(dx) <= Math.abs(dy)) return;
         swiped.current = true;
         const target = dx > 0 ? previous : next;
-        if (target) router.push(target, { scroll: false });
+        if (target) router.replace(target, { scroll: false });
       }}
       onPointerCancel={() => {
         start.current = null;
@@ -51,6 +51,7 @@ export function DiaryAgeNavigation({
     >
       {previous ? (
         <Link
+          replace
           href={previous}
           scroll={false}
           aria-label={ko ? '이전 생후 일수' : 'Previous day of age'}
@@ -68,6 +69,7 @@ export function DiaryAgeNavigation({
       <strong aria-live="polite">D+{age}</strong>
       {next ? (
         <Link
+          replace
           href={next}
           scroll={false}
           aria-label={ko ? '다음 생후 일수' : 'Next day of age'}

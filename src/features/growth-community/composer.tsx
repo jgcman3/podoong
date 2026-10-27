@@ -1,8 +1,8 @@
 'use client';
 import { createRecordId } from '@/lib/record-id';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { PenLine, X, ImagePlus, Ellipsis } from 'lucide-react';
+import { PenLine, Check, ImagePlus, Ellipsis } from 'lucide-react';
 import Image from 'next/image';
 import { createDiary, removeDiary } from './composer-action';
 
@@ -35,6 +35,7 @@ export function DiaryComposer({
   const ko = locale === 'ko';
   const dialog = useRef<HTMLDialogElement>(null);
   const form = useRef<HTMLFormElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   const id = useRef('');
   const router = useRouter();
   const [opened, setOpened] = useState(false);
@@ -44,6 +45,16 @@ export function DiaryComposer({
   const [error, setError] = useState('');
   const [warning, setWarning] = useState('');
   const [photoName, setPhotoName] = useState('');
+  const [selectedPhotoCount, setSelectedPhotoCount] = useState(0);
+  useEffect(() => {
+    if (!opened) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    heading.current?.focus({ preventScroll: true });
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [opened]);
   function open() {
     setOpened(true);
     id.current = record?.id ?? createRecordId();
@@ -52,6 +63,7 @@ export function DiaryComposer({
     form.current?.reset();
     setError('');
     setPhotoName('');
+    setSelectedPhotoCount(0);
     dialog.current?.showModal();
   }
   async function submit(data: FormData) {
@@ -78,17 +90,21 @@ export function DiaryComposer({
         onSaved?.();
       } else
         setError(
-          result.error === 'birth'
+          result.error === 'photo-limit'
             ? ko
-              ? '공개하려면 아이의 출생일과 기록 시각을 확인해 주세요. 비공개로도 저장할 수 있어요.'
-              : 'Check the birth date and record time to publish, or save privately.'
-            : result.error === 'empty'
+              ? '사진은 기존 사진을 포함해 최대 5장까지 올릴 수 있어요.'
+              : 'A diary can contain up to 5 photos, including existing photos.'
+            : result.error === 'birth'
               ? ko
-                ? '글, 사진 또는 성장 수치를 입력해 주세요.'
-                : 'Add a note, photo, or measurement.'
-              : ko
-                ? '입력값과 사진 형식을 확인하고 다시 저장해 주세요.'
-                : 'Check the fields and photo format, then try again.',
+                ? '공개하려면 아이의 출생일과 기록 시각을 확인해 주세요. 비공개로도 저장할 수 있어요.'
+                : 'Check the birth date and record time to publish, or save privately.'
+              : result.error === 'empty'
+                ? ko
+                  ? '글, 사진 또는 성장 수치를 입력해 주세요.'
+                  : 'Add a note, photo, or measurement.'
+                : ko
+                  ? '입력값과 사진 형식을 확인하고 다시 저장해 주세요.'
+                  : 'Check the fields and photo format, then try again.',
         );
     } catch {
       setError(
@@ -168,16 +184,13 @@ export function DiaryComposer({
       >
         {(!record || opened) && (
           <>
-            <header>
-              <h2>{title}</h2>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => dialog.current?.close()}
-                aria-label={ko ? '닫기' : 'Close'}
-              >
-                <X size={22} />
-              </button>
+            <header className="quick-composer-heading">
+              <span className="quick-kind-badge">
+                <PenLine size={19} aria-hidden="true" />
+              </span>
+              <h2 ref={heading} tabIndex={-1}>
+                {title}
+              </h2>
             </header>
             {record && !editing ? (
               <div className="diary-manage-preview">
@@ -204,7 +217,7 @@ export function DiaryComposer({
                   {record.photo_ids.map((photo) => (
                     <Image
                       key={photo}
-                      src={`/api/care/photos/${photo}`}
+                      src={`/api/care/photos/${photo}?size=480`}
                       alt={ko ? '일기 사진' : 'Diary photo'}
                       width={240}
                       height={240}
@@ -220,7 +233,15 @@ export function DiaryComposer({
                       : 'Delete this diary and its photos?'}
                   </p>
                 )}
-                <div className="diary-manage-actions">
+                <div className="diary-manage-actions quick-composer-footer">
+                  <button
+                    type="button"
+                    className="button secondary quick-cancel"
+                    disabled={pending}
+                    onClick={() => dialog.current?.close()}
+                  >
+                    {ko ? '취소' : 'Cancel'}
+                  </button>
                   <button
                     type="button"
                     className="button primary"
@@ -252,30 +273,60 @@ export function DiaryComposer({
             ) : (
               <form ref={form} action={submit}>
                 <fieldset disabled={pending}>
-                  <textarea
-                    name="note"
-                    defaultValue={record?.note}
-                    aria-label={ko ? '일기 내용' : 'Diary note'}
-                    placeholder={
-                      ko
-                        ? '아이의 하루를 남겨 주세요'
-                        : 'Capture your child’s day'
-                    }
-                    maxLength={2000}
-                    rows={5}
-                    autoFocus
-                  />
+                  <label className="diary-note-field">
+                    <span>{ko ? '일기 내용' : 'Diary note'}</span>
+                    <textarea
+                      name="note"
+                      defaultValue={record?.note}
+                      aria-label={ko ? '일기 내용' : 'Diary note'}
+                      placeholder={
+                        ko
+                          ? '아이의 하루를 남겨 주세요'
+                          : 'Capture your child’s day'
+                      }
+                      maxLength={2000}
+                      rows={5}
+                    />
+                  </label>
                   <label className="diary-photo-picker">
                     <ImagePlus size={20} />
                     {photoName || (ko ? '사진 추가' : 'Add photo')}
+                    <span className="diary-photo-count">
+                      {(record?.photo_ids.length ?? 0) + selectedPhotoCount}/5
+                    </span>
                     <input
                       type="file"
+                      multiple
+                      disabled={(record?.photo_ids.length ?? 0) >= 5}
                       name="photo"
                       accept="image/png,image/jpeg,image/webp"
                       aria-label={ko ? '사진 추가' : 'Add photo'}
-                      onChange={(event) =>
-                        setPhotoName(event.target.files?.[0]?.name ?? '')
-                      }
+                      onChange={(event) => {
+                        const files = Array.from(event.target.files ?? []);
+                        if (
+                          files.length + (record?.photo_ids.length ?? 0) >
+                          5
+                        ) {
+                          event.target.value = '';
+                          setPhotoName('');
+                          setSelectedPhotoCount(0);
+                          setError(
+                            ko
+                              ? '사진은 기존 사진을 포함해 최대 5장까지 올릴 수 있어요.'
+                              : 'Up to 5 photos per diary, including existing photos.',
+                          );
+                          return;
+                        }
+                        setError('');
+                        setSelectedPhotoCount(files.length);
+                        setPhotoName(
+                          files.length
+                            ? ko
+                              ? `${files.length}장 선택`
+                              : `${files.length} selected`
+                            : '',
+                        );
+                      }}
                     />
                   </label>
                   <div className="diary-compose-measures">
@@ -336,35 +387,47 @@ export function DiaryComposer({
                   </label>
                 </fieldset>
                 {error && <p role="alert">{error}</p>}
-                {record && (
+                <footer className="quick-composer-footer">
                   <button
                     type="button"
-                    className="button secondary"
+                    className="button secondary quick-cancel"
                     disabled={pending}
-                    onClick={deleteEntry}
+                    onClick={() => dialog.current?.close()}
                   >
-                    {confirmDelete
-                      ? ko
-                        ? '삭제 확인'
-                        : 'Confirm delete'
-                      : ko
-                        ? '삭제'
-                        : 'Delete'}
+                    {ko ? '취소' : 'Cancel'}
                   </button>
-                )}
-                <button
-                  type="submit"
-                  className="button primary"
-                  disabled={pending}
-                >
-                  {pending
-                    ? ko
-                      ? '저장 중…'
-                      : 'Saving…'
-                    : ko
-                      ? '저장'
-                      : 'Save'}
-                </button>
+                  {record && (
+                    <button
+                      type="button"
+                      className="button secondary"
+                      disabled={pending}
+                      onClick={deleteEntry}
+                    >
+                      {confirmDelete
+                        ? ko
+                          ? '삭제 확인'
+                          : 'Confirm delete'
+                        : ko
+                          ? '삭제'
+                          : 'Delete'}
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="button primary quick-confirm"
+                    disabled={pending}
+                    aria-busy={pending}
+                  >
+                    <Check size={18} aria-hidden="true" />
+                    {pending
+                      ? ko
+                        ? '저장 중…'
+                        : 'Saving…'
+                      : ko
+                        ? '저장'
+                        : 'Save'}
+                  </button>
+                </footer>
               </form>
             )}
           </>

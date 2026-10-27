@@ -3,7 +3,7 @@ import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFormStatus } from 'react-dom';
 import type { AgendaTask } from './day-agenda-model';
-import { preparationTitle, type Locale } from '@/lib/domain';
+import { type Locale } from '@/lib/domain';
 import { saveTask } from './actions';
 
 export function TaskCheckbox({
@@ -47,7 +47,7 @@ export function TaskCheckbox({
       <input type="hidden" name="returnTo" value={returnTo} />
       <Toggle
         done={done}
-        label={`${preparationTitle(task, locale)} ${done ? t('reopen') : t('complete')}`}
+        label={`${task.title} ${done ? t('reopen') : t('complete')}`}
         writable={writable}
       />
     </form>

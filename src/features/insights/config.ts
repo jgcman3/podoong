@@ -155,7 +155,7 @@ export function unitName(unit: string, locale: Locale) {
       : unit;
 }
 export function selectedKinds(value: string | undefined): InsightKind[] {
-  if (value === undefined) return ['formula'];
+  if (value === undefined) return ['breast', 'formula', 'solids', 'sleep'];
   const requested = value.split(',');
   return insightKinds.filter((kind) => requested.includes(kind));
 }

@@ -10,10 +10,12 @@ export const requireUser = cache(async (locale: Locale) => {
   const db = await createClient();
   const { data, error } = await db.auth.getUser();
   if (error || !data.user) redirect(`/${locale}/login`);
-  const { data: claims, error: claimsError } = await db.auth.getClaims();
+  const [{ data: claims, error: claimsError }, active] = await Promise.all([
+    db.auth.getClaims(),
+    db.rpc('account_active'),
+  ]);
   if (claimsError || claims?.claims.sub !== data.user.id)
     redirect(`/${locale}/login`);
-  const active = await db.rpc('account_active');
   let accountActive = active.data;
   if (active.error) {
     if (active.error.code !== 'PGRST202')
@@ -37,7 +39,7 @@ export const requireUser = cache(async (locale: Locale) => {
   };
 });
 
-export async function loadFamily(locale: Locale, childId?: string) {
+export const loadFamily = cache(async (locale: Locale, childId?: string) => {
   const { db, user, recentlyAuthenticated } = await requireUser(locale);
   const [
     { data: profile, error: profileError },
@@ -50,28 +52,10 @@ export async function loadFamily(locale: Locale, childId?: string) {
   if (!profile?.consented_at || !children?.length)
     redirect(`/${locale}/onboarding`);
   const child = children.find((c) => c.id === childId) ?? children[0];
-  const [
-    membersResult,
-    caregiversResult,
-    roleResult,
-    writeResult,
-    familyResult,
-  ] = await Promise.all([
-    db.from('family_members').select('*').eq('family_id', child.family_id),
-    db.rpc('list_caregivers', { p_child_id: child.id }),
-    db.rpc('is_family_owner', { fid: child.family_id }),
-    db.rpc('can_write_child', { cid: child.id }),
-    db.from('families').select('*').eq('id', child.family_id).single(),
-  ]);
-  if (
-    [
-      membersResult,
-      caregiversResult,
-      roleResult,
-      writeResult,
-      familyResult,
-    ].some((r) => r.error)
-  )
+  const { data: access, error: accessError } = await db
+    .rpc('family_access_context', { p_child: child.id })
+    .single();
+  if (accessError || !access?.family)
     throw new Error('Permissions unavailable');
   const timezone = profile.timezone;
   return {
@@ -81,15 +65,19 @@ export async function loadFamily(locale: Locale, childId?: string) {
     profile,
     children,
     child,
-    family: familyResult.data!,
-    members: membersResult.data ?? [],
-    caregivers: caregiversResult.data ?? [],
-    owner: Boolean(roleResult.data),
-    writable: Boolean(writeResult.data),
+    family: access.family as Row<'families'>,
+    members: access.members as Row<'family_members'>[],
+    caregivers: access.caregivers as {
+      user_id: string;
+      display_name: string;
+      role: string;
+    }[],
+    owner: access.owner,
+    writable: access.writable,
     timezone,
     today: dateInTimeZone(new Date(), timezone),
   };
-}
+});
 
 export async function loadCare(
   locale: Locale,

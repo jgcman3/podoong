@@ -63,7 +63,7 @@ export async function saveEvent(form: FormData) {
     .object({
       id: uuid,
       childId: uuid,
-      title: z.string().trim().min(1).max(200),
+      title: z.string().trim().max(200),
       date: z.iso.date(),
       note: z.string().max(2000),
       eventKind: z
@@ -77,13 +77,17 @@ export async function saveEvent(form: FormData) {
         .default(''),
       eventTimezone: z.string().max(100).default(''),
     })
+    .refine(
+      (value) => value.eventKind === 'hospital' || value.title.length > 0,
+      { path: ['title'], message: 'Required' },
+    )
     .safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect(`/${locale}/calendar?error=invalid`);
   const v = parsed.data;
   const { error } = await db.rpc('save_calendar_event', {
     p_id: v.id,
     p_child_id: v.childId,
-    p_title: v.title,
+    p_title: v.title || (locale === 'ko' ? '병원' : 'Doctor'),
     p_date: v.date,
     p_note: v.note,
     p_event_kind: v.eventKind,
@@ -105,19 +109,6 @@ export async function deleteCalendar(form: FormData) {
   const { error } = await db.rpc('delete_calendar_item', {
     p_id: id.data,
     p_kind: kind.data,
-  });
-  redirect(
-    `${calendarReturn(locale, child.data, form.get('calendarDay'))}&${statusQuery(error)}`,
-  );
-}
-export async function addTemplates(form: FormData) {
-  const locale = localeOf(form);
-  const { db } = await requireUser(locale);
-  const child = uuid.safeParse(form.get('childId'));
-  if (!child.success) redirect(`/${locale}/calendar?error=invalid`);
-  const { error } = await db.rpc('add_preparation_tasks', {
-    p_child_id: child.data,
-    p_locale: locale,
   });
   redirect(
     `${calendarReturn(locale, child.data, form.get('calendarDay'))}&${statusQuery(error)}`,

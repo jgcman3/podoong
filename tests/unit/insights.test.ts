@@ -54,7 +54,12 @@ describe('weekly insights from recorded data', () => {
     expect(resolveWeek('2026-01-01', '2026-01-03')).toBe('2025-12-28');
   });
   it('toggles independent activities and preserves an explicit empty selection', () => {
-    expect(selectedKinds(undefined)).toEqual(['formula']);
+    expect(selectedKinds(undefined)).toEqual([
+      'breast',
+      'formula',
+      'solids',
+      'sleep',
+    ]);
     expect(selectedKinds('sleep,formula,sleep,unknown')).toEqual([
       'formula',
       'sleep',

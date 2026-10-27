@@ -2,7 +2,6 @@ import { GrowthCurve } from './growth-curve';
 import { Milestones } from './milestones';
 import reference from './reference/who-lms.json';
 import { loadGrowthPoints } from './growth-data';
-import { GrowthReport } from './report';
 import { InsightTabs } from './tabs';
 import { DevelopmentGuide } from './development-guide';
 import type { CareContext } from '@/lib/data';
@@ -10,11 +9,8 @@ import type { Locale } from '@/lib/domain';
 import { selectedKinds } from './config';
 import { resolveWeek } from './model';
 import { loadInsights } from './data';
-import { PatternBrowser } from './pattern-browser';
-import { KindPicker } from './kind-picker';
+import { RecordInsights } from './record-insights';
 import { InsightsNavigation } from './navigation';
-import { Statistics } from './statistics';
-import { buildStatistics } from './statistics-model';
 export async function Insights({
   context,
   locale,
@@ -35,15 +31,6 @@ export async function Insights({
   const selected = selectedKinds(rawKind),
     start = resolveWeek(rawWeek, context.today),
     interval = rawInterval === 'week' ? 'week' : 'day';
-  if (pattern === 'report')
-    return (
-      <InsightsNavigation selected={selected}>
-        <div className="insights-page">
-          <InsightTabs mode={pattern} locale={locale} />
-          <GrowthReport context={context} locale={locale} />
-        </div>
-      </InsightsNavigation>
-    );
   if (pattern === 'curve' || pattern === 'milestones') {
     let content;
     if (pattern === 'curve') {
@@ -108,38 +95,24 @@ export async function Insights({
     pattern === 'stats' && interval === 'week' ? 6 : 1,
   );
   return (
-    <InsightsNavigation selected={selected}>
+    <InsightsNavigation
+      selected={selected}
+      loadedStart={start}
+      loadedSpan={weeks.length}
+    >
       <div className="insights-page">
         <InsightTabs mode={pattern} locale={locale} />
-        <KindPicker locale={locale} />
-        {selected.length ? (
-          <PatternBrowser
-            categories={selected.map((kind) => ({
-              kind,
-              days: week.categories[kind].days.map(
-                ({ date, segments, untimed }) => ({ date, segments, untimed }),
-              ),
-            }))}
-            locale={locale}
-            start={start}
-            today={context.today}
-            birthDate={context.child.birth_date}
-            mode={pattern}
-            selectedDay={day}
-          >
-            <Statistics
-              charts={buildStatistics(weeks, selected, interval)}
-              locale={locale}
-              interval={interval}
-            />
-          </PatternBrowser>
-        ) : (
-          <p className="insight-empty">
-            {locale === 'ko'
-              ? '확인할 기능을 선택해 주세요.'
-              : 'Select activities to compare.'}
-          </p>
-        )}
+        <RecordInsights
+          week={week}
+          weeks={weeks}
+          locale={locale}
+          start={start}
+          today={context.today}
+          birthDate={context.child.birth_date}
+          mode={pattern}
+          selectedDay={day}
+          interval={interval}
+        />
       </div>
     </InsightsNavigation>
   );

@@ -1,3 +1,4 @@
+import { ChildSexField } from '@/features/family/sex-field';
 import { getTranslations } from 'next-intl/server';
 import { requireUser } from '@/lib/data';
 import { onboard, consentForInvite } from '@/features/family/actions';
@@ -55,14 +56,11 @@ export default async function Onboarding({
                 {t('childName')}
                 <input name="child" required maxLength={60} />
               </label>
+              <ChildSexField locale={locale} />
               <div className="form-row">
                 <label>
-                  {t('dueDate')}
-                  <input name="due" type="date" />
-                </label>
-                <label>
                   {t('birthDate')}
-                  <input name="birth" type="date" />
+                  <input name="birth" type="date" required />
                 </label>
               </div>
               <label>

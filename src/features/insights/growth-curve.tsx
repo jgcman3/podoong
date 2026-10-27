@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { Mars, Venus } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import {
   percentileRank,
@@ -26,7 +27,6 @@ export function GrowthCurve({
   child: string;
 }) {
   const ko = locale === 'ko';
-  const [metric, setMetric] = useState<GrowthMetric>('weight');
   const [comparison, setComparison] = useState<'female' | 'male' | null>(
     sex === 'male' || sex === 'female' ? sex : null,
   );
@@ -37,6 +37,106 @@ export function GrowthCurve({
         ? 730
         : 365,
   );
+  if (!birthDate)
+    return (
+      <section className="panel">
+        <p>
+          {ko
+            ? '출생일을 등록하면 성장곡선을 볼 수 있어요.'
+            : 'Add a birth date to view growth curves.'}
+        </p>
+        <Link href={`/${locale}/family?child=${child}`}>
+          {ko ? '아이 정보' : 'Child details'}
+        </Link>
+      </section>
+    );
+  return (
+    <section
+      className="growth-curve-panel"
+      aria-label={ko ? '성장곡선' : 'Growth curves'}
+    >
+      <div className="growth-options">
+        <fieldset className="growth-option-group">
+          <legend>{ko ? '비교 기준' : 'Reference'}</legend>
+          <div className="growth-option-buttons">
+            {(['female', 'male'] as const).map((value) => {
+              const Icon = value === 'female' ? Venus : Mars;
+              return (
+                <button
+                  type="button"
+                  key={value}
+                  aria-pressed={comparison === value}
+                  onClick={() => setComparison(value)}
+                >
+                  <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
+                  {value === 'female'
+                    ? ko
+                      ? '여아'
+                      : 'Girls'
+                    : ko
+                      ? '남아'
+                      : 'Boys'}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+        <fieldset className="growth-option-group">
+          <legend>{ko ? '기간' : 'Range'}</legend>
+          <div className="growth-option-buttons">
+            {([365, 730, 1826] as const).map((value, index) => (
+              <button
+                type="button"
+                key={value}
+                aria-pressed={span === value}
+                onClick={() => setSpan(value)}
+              >
+                {`0–${[1, 2, 5][index]}${ko ? '세' : 'y'}`}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+      {!comparison && (
+        <p className="small muted">
+          {ko
+            ? '성별을 선택하면 공식 기준 곡선과 비교할 수 있어요.'
+            : 'Select a reference sex to show the standard curves.'}
+        </p>
+      )}
+      <div className="growth-chart-grid">
+        {(['weight', 'height', 'head'] as const).map((metric) => (
+          <GrowthMetricChart
+            key={metric}
+            points={points}
+            reference={reference}
+            comparison={comparison}
+            span={span}
+            metric={metric}
+            locale={locale}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function GrowthMetricChart({
+  points,
+  reference,
+  comparison,
+  span,
+  metric,
+  locale,
+}: {
+  points: GrowthPoint[];
+  reference: References;
+  comparison: 'female' | 'male' | null;
+  span: number;
+  metric: GrowthMetric;
+  locale: Locale;
+}) {
+  const ko = locale === 'ko';
   const [selected, setSelected] = useState<string | null>(null);
   const data = points.filter((p) => p[metric] !== null && p.day <= span),
     chosen = data.find((p) => p.id === selected) ?? data.at(-1);
@@ -93,84 +193,9 @@ export function GrowthCurve({
           ? '>99.9'
           : value.toFixed(1);
   }
-  if (!birthDate)
-    return (
-      <section className="panel">
-        <p>
-          {ko
-            ? '출생일을 등록하면 성장곡선을 볼 수 있어요.'
-            : 'Add a birth date to view growth curves.'}
-        </p>
-        <Link href={`/${locale}/family?child=${child}`}>
-          {ko ? '아이 정보' : 'Child details'}
-        </Link>
-      </section>
-    );
   return (
-    <section
-      className="panel growth-curve-panel"
-      aria-label={ko ? '성장곡선' : 'Growth curves'}
-    >
-      <div
-        className="growth-metric-tabs"
-        role="group"
-        aria-label={ko ? '성장 지표' : 'Growth measure'}
-      >
-        {(['weight', 'height', 'head'] as const).map((key) => (
-          <button
-            type="button"
-            key={key}
-            aria-pressed={metric === key}
-            onClick={() => {
-              setMetric(key);
-              setSelected(null);
-            }}
-          >
-            {labels[key]}
-          </button>
-        ))}
-      </div>
-      <div className="growth-options">
-        <label>
-          {ko ? '비교 기준' : 'Reference'}
-          <select
-            aria-label={ko ? '비교 성별' : 'Reference sex'}
-            value={comparison ?? ''}
-            onChange={(e) =>
-              setComparison(
-                e.target.value === 'female'
-                  ? 'female'
-                  : e.target.value === 'male'
-                    ? 'male'
-                    : null,
-              )
-            }
-          >
-            <option value="">{ko ? '성별 선택' : 'Select sex'}</option>
-            <option value="male">{ko ? '남아' : 'Boys'}</option>
-            <option value="female">{ko ? '여아' : 'Girls'}</option>
-          </select>
-        </label>
-        <label>
-          {ko ? '기간' : 'Range'}
-          <select
-            aria-label={ko ? '성장곡선 기간' : 'Growth range'}
-            value={span}
-            onChange={(e) => setSpan(Number(e.target.value))}
-          >
-            <option value={365}>{ko ? '0–1세' : '0–1 year'}</option>
-            <option value={730}>{ko ? '0–2세' : '0–2 years'}</option>
-            <option value={1826}>{ko ? '0–5세' : '0–5 years'}</option>
-          </select>
-        </label>
-      </div>
-      {!comparison && (
-        <p className="small muted">
-          {ko
-            ? '성별을 선택하면 공식 기준 곡선과 비교할 수 있어요.'
-            : 'Select a reference sex to show the standard curves.'}
-        </p>
-      )}
+    <section className="panel growth-metric-chart" aria-label={labels[metric]}>
+      <h2>{labels[metric]}</h2>
       <div className="growth-selected" aria-live="polite">
         {chosen ? (
           <>

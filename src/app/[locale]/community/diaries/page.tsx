@@ -1,9 +1,11 @@
+import { DiaryShare } from '@/features/growth-community/diary-share';
 import { DiaryComposer } from '@/features/growth-community/composer';
 import Link from 'next/link';
-import Image from 'next/image';
+import { DiaryBody } from '@/features/growth-community/diary-body';
 import { notFound } from 'next/navigation';
 import {
   BookOpen,
+  PenLine,
   Venus,
   Mars,
   CircleHelp,
@@ -81,18 +83,21 @@ export default async function Diaries({
           aria-label={ko ? '성장일기 종류' : 'Growth diary feeds'}
         >
           <Link
+            replace
             href={href('mine')}
             aria-current={scope === 'mine' ? 'page' : undefined}
           >
             {ko ? '우리 아이 성장일기' : 'Our child’s diary'}
           </Link>
           <Link
+            replace
             href={href('birth')}
             aria-current={scope === 'birth' ? 'page' : undefined}
           >
             {ko ? '출생일별 성장일기' : 'Same-birthday diaries'}
           </Link>
           <Link
+            replace
             href={href('all')}
             aria-current={scope === 'all' ? 'page' : undefined}
           >
@@ -107,9 +112,33 @@ export default async function Diaries({
             locale={locale}
           />
         )}
+        {scope === 'mine' && context.writable && (
+          <div className="diary-own-actions">
+            <DiaryShare
+              key={`share-${context.child.id}`}
+              child={context.child.id}
+              ko={locale === 'ko'}
+            />
+            <DiaryComposer
+              key={context.child.id}
+              child={context.child.id}
+              locale={locale}
+              triggerClassName="diary-write-button"
+              trigger={
+                <>
+                  <PenLine size={17} aria-hidden="true" />
+                  <span>{ko ? '일기 쓰기' : 'Write diary'}</span>
+                </>
+              }
+            />
+          </div>
+        )}
         <div className="public-diary-list">
           {(data ?? []).slice(0, 20).map((entry) => (
-            <article className="public-diary-card" key={entry.id}>
+            <article
+              className={`public-diary-card ${scope === 'mine' ? 'diary-own-card' : ''}`}
+              key={entry.id}
+            >
               <header>
                 {scope !== 'mine' && (
                   <>
@@ -175,11 +204,13 @@ export default async function Diaries({
                   />
                 )}
               </header>
-              <div
-                className={`public-diary-body ${entry.photo_ids.length ? 'with-photos' : ''}`}
-              >
-                <div>
-                  {scope !== 'all' && (
+              <DiaryBody
+                note={entry.note}
+                date={entry.recorded_date}
+                photos={entry.photo_ids.map(photoUrl)}
+                locale={locale}
+                measurements={
+                  scope !== 'all' ? (
                     <dl className="diary-measurements">
                       {[
                         {
@@ -211,39 +242,9 @@ export default async function Diaries({
                         </div>
                       ))}
                     </dl>
-                  )}
-                  {entry.note && <p className="record-note">{entry.note}</p>}
-                </div>
-                {entry.photo_ids.length > 0 && (
-                  <div className="public-diary-photos">
-                    {entry.photo_ids.map((id, index) => (
-                      <a
-                        key={id}
-                        href={photoUrl(id)}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={
-                          ko
-                            ? `성장일기 사진 ${index + 1} 크게 보기`
-                            : `Open diary photo ${index + 1}`
-                        }
-                      >
-                        <Image
-                          src={photoUrl(id)}
-                          alt={
-                            ko
-                              ? `성장일기 사진 ${index + 1}`
-                              : `Diary photo ${index + 1}`
-                          }
-                          width={400}
-                          height={400}
-                          unoptimized
-                        />
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
+                  ) : undefined
+                }
+              />
             </article>
           ))}
         </div>
@@ -270,22 +271,19 @@ export default async function Diaries({
             )}
           </section>
         )}
-        {scope === 'mine' && context.writable && (
-          <DiaryComposer
-            key={context.child.id}
-            child={context.child.id}
-            locale={locale}
-          />
-        )}
         <nav
           className="pagination"
           aria-label={ko ? '성장일기 페이지' : 'Diary pages'}
         >
           {page > 0 && (
-            <Link href={href(scope, page - 1)}>{ko ? '이전' : 'Previous'}</Link>
+            <Link replace href={href(scope, page - 1)}>
+              {ko ? '이전' : 'Previous'}
+            </Link>
           )}
           {data && data.length > 20 && (
-            <Link href={href(scope, page + 1)}>{ko ? '다음' : 'Next'}</Link>
+            <Link replace href={href(scope, page + 1)}>
+              {ko ? '다음' : 'Next'}
+            </Link>
           )}
         </nav>
       </section>

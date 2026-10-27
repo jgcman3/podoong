@@ -16,10 +16,10 @@ insert into public.families(id,name) values
 insert into public.family_members values
 ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','owner'),
 ('10000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000002','owner');
-insert into public.children(id,family_id,name,birth_date) values
-('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','Private name','2026-01-01'),
-('20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000002','Same birthday','2026-01-01'),
-('20000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000002','Different year','2025-01-01');
+insert into public.children(sex,id,family_id,name,birth_date) values
+('female','20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','Private name','2026-01-01'),
+('female','20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000002','Same birthday','2026-01-01'),
+('female','20000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000002','Different year','2025-01-01');
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select public.save_child_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','growth','{"kind":"measurement","occurred_at":"2026-01-02T16:00:00Z","timezone":"Asia/Seoul","weight_kg":4.1,"height_cm":51,"head_cm":35,"note":"Shared diary"}',null);

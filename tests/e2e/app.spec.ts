@@ -8,6 +8,7 @@ import {
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { readFileSync } from 'node:fs';
+import sharp from 'sharp';
 async function expectPhoneFunctionDock(page: Page, rail: Locator) {
   await expect(rail).toBeVisible();
   await expect
@@ -158,7 +159,7 @@ async function childCareFamily(context: BrowserContext) {
     .from('family_members')
     .insert({ family_id: family.id, user_id: owner, role: 'owner' });
   const child = crypto.randomUUID();
-  await admin.from('children').insert({
+  await admin.from('children').insert({sex: 'female',
     id: child,
     family_id: family.id,
     name: '돌봄 아이',
@@ -235,7 +236,7 @@ test('family residence persists across children and sessions, respects family ro
     residence_region_code: '1168010100',
   });
   const sibling = crypto.randomUUID();
-  await admin.from('children').insert({
+  await admin.from('children').insert({sex: 'female',
     id: sibling,
     family_id: family,
     name: '둘째',
@@ -254,7 +255,7 @@ test('family residence persists across children and sessions, respects family ro
   await admin
     .from('family_members')
     .insert({ family_id: otherFamily, user_id: owner, role: 'owner' });
-  await admin.from('children').insert({
+  await admin.from('children').insert({sex: 'female',
     id: otherChild,
     family_id: otherFamily,
     name: 'Other child',
@@ -402,7 +403,7 @@ test('calendar loads the whole selected month and Today groups all care shortcut
           id: crypto.randomUUID(),
           child_id: child,
           title: '날짜 없는 준비',
-          service: 'birth',
+          service: 'general',
           created_by: owner,
         },
       ])
@@ -730,7 +731,7 @@ test('family owner can add another child and read both children after saving', a
     user_id: userId,
     role: 'owner',
   });
-  await admin.from('children').insert({
+  await admin.from('children').insert({sex: 'female',
     family_id: family.id,
     name: '첫째',
     birth_date: '2026-09-01',
@@ -739,8 +740,11 @@ test('family owner can add another child and read both children after saving', a
   const form = page
     .locator('form')
     .filter({ has: page.locator('input[name="name"]') });
-  await form.getByLabel('아이 이름 또는 태명').fill('둘째');
-  await form.getByLabel('출산 예정일').fill('2027-03-01');
+  await form.getByLabel('아이 이름 또는 닉네임').fill('둘째');
+  await expect(form.getByLabel('성별', { exact: true })).toHaveValue('');
+  await form.getByLabel('성별', { exact: true }).selectOption('male');
+  await expect(form.getByText('출산 예정일')).toHaveCount(0);
+  await form.getByLabel('아이 태어난 날').fill('2026-10-01');
   await Promise.all([
     page.waitForURL(/\/ko\/today\?child=/, { timeout: 30000 }),
     form.getByRole('button', { name: '아이 추가', exact: true }).click(),
@@ -796,7 +800,7 @@ test('family owner can add another child and read both children after saving', a
       '.topbar-child-picker:visible summary, .bottom-child-picker:visible summary',
     )
     .click();
-  await page.locator('[data-last-care="sleep"]').click();
+  await page.locator('.family-menu-scrim:visible').click();
   await expect(
     page.locator(
       '.topbar-child-options:visible, .bottom-child-options:visible',
@@ -866,23 +870,21 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   await expect(page).toHaveURL(/onboarding/);
   await page.getByLabel('보호자 이름').fill('테스트 보호자');
   await page.getByLabel('가족 이름').fill('테스트 둥지');
-  await page.getByLabel('아이 이름 또는 태명').fill('포근이');
-  await page.getByLabel('출산 예정일').fill('2026-11-10');
+  await page.getByLabel('아이 이름 또는 닉네임').fill('포근이');
+  await expect(page.getByLabel('성별', { exact: true })).toHaveAttribute('required', '');
+  await page.getByLabel('성별', { exact: true }).selectOption('female');
+  await expect(page.getByText('출산 예정일')).toHaveCount(0);
+  await page.getByLabel('아이 태어난 날').fill('2026-10-01');
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: '우리 가족 시작하기' }).click();
   await expect(page).toHaveURL(/\/ko\/today/);
-  await expect(page.getByText('포근이', { exact: true })).toBeVisible();
-  await page
-    .getByRole('link', { name: '우리 가족', exact: true })
-    .first()
-    .click();
-  await page.getByLabel('아이 생일').first().fill('2026-10-12');
-  await page.getByRole('button', { name: '변경 내용 확인' }).click();
-  await expect(
-    page.getByRole('heading', { name: '일정 변경 확인' }),
-  ).toBeVisible();
-  await page.getByRole('button', { name: '확인하고 날짜 변경' }).click();
-  await expect(page.getByText('생후', { exact: false }).first()).toBeVisible();
+  await expect(page.locator('.topbar-child-info strong')).toHaveText('포근이');
+  const registeredChild = new URL(page.url()).searchParams.get('child')!;
+  expect((await admin.from('children').select('sex').eq('id', registeredChild).single()).data?.sex).toBe('female');
+  await page.goto(`/ko/family?child=${registeredChild}`);
+  await page.getByLabel('아이 태어난 날').first().fill('2026-10-12');
+  await page.locator('form').filter({ has: page.locator('input[name="birth"][value="2026-10-01"]') }).getByRole('button', { name: '저장하기' }).click();
+  await expect(page.locator('.topbar-child-info')).toContainText('생후');
 });
 
 test('responsive dashboard and bilingual service catalog remain within the viewport', async ({
@@ -907,7 +909,7 @@ test('responsive dashboard and bilingual service catalog remain within the viewp
     .insert({ family_id: family!.id, user_id: id, role: 'owner' });
   const { data: child, error: childError } = await admin
     .from('children')
-    .insert({ family_id: family!.id, name: '도담이', birth_date: '2026-09-01' })
+    .insert({sex: 'female', family_id: family!.id, name: '도담이', birth_date: '2026-09-01' })
     .select('id')
     .single();
   if (childError || !child) throw new Error('Fixture child creation failed');
@@ -947,7 +949,7 @@ test('responsive dashboard and bilingual service catalog remain within the viewp
   ]) {
     await page.goto(`/ko/${section}?child=${child.id}`);
     await expect(page.locator('.feature-nav')).toHaveCount(0);
-    await expect(page.locator('.mobile-nav a')).toHaveCount(6);
+    await expect(page.locator('.mobile-nav > a')).toHaveCount(6);
     await expect(
       page
         .locator('.mobile-nav')
@@ -1560,7 +1562,7 @@ test('data export includes every record; ownership transfer and account deletion
     ).toBeNull();
     expect(
       (
-        await admin.from('children').insert({
+        await admin.from('children').insert({sex: 'female',
           id: childId,
           family_id: familyId,
           name: 'Export fixture',
@@ -1595,7 +1597,7 @@ test('data export includes every record; ownership transfer and account deletion
       ).status(),
     ).toBe(403);
     const disposable = crypto.randomUUID();
-    await admin.from('children').insert({
+    await admin.from('children').insert({sex: 'female',
       id: disposable,
       family_id: familyId,
       name: 'Delete fixture',
@@ -2337,36 +2339,37 @@ test('calendar quick actions save hospital, vaccine, medication and tasks into o
   const actions = page.locator('.calendar-quick-actions');
   await expect(actions).not.toHaveCSS('position', 'fixed');
   await expect(actions.locator('a')).toHaveText([
-    '일정',
     '병원',
     '예방접종',
     '투약',
+    '일정',
     '할 일',
   ]);
   await actions.getByRole('link', { name: '병원', exact: true }).click();
   const dialog = page.locator('.calendar-composer');
   await expect(dialog).toBeVisible();
   expect(await dialog.evaluate((node) => node.matches(':modal'))).toBe(false);
+  await dialog.evaluate((node) => Promise.all(node.getAnimations().map((animation) => animation.finished)));
   const calendarBox = await page.locator('.calendar-workspace').boundingBox();
   const editorBox = await dialog.boundingBox();
   expect(editorBox!.x).toBeGreaterThan(calendarBox!.x + calendarBox!.width);
   expect(Math.abs(editorBox!.y - calendarBox!.y)).toBeLessThan(2);
   await dialog
-    .getByLabel('병원 이름·방문 목적', { exact: true })
+    .getByLabel('병원·방문 이유 (선택)', { exact: true })
     .fill('창 크기 변경 중 입력');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect
     .poll(() => dialog.evaluate((node) => node.matches(':modal')))
     .toBe(true);
   await expect(
-    dialog.getByLabel('병원 이름·방문 목적', { exact: true }),
+    dialog.getByLabel('병원·방문 이유 (선택)', { exact: true }),
   ).toHaveValue('창 크기 변경 중 입력');
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect
     .poll(() => dialog.evaluate((node) => node.matches(':modal')))
     .toBe(false);
   await expect(
-    dialog.getByLabel('병원 이름·방문 목적', { exact: true }),
+    dialog.getByLabel('병원·방문 이유 (선택)', { exact: true }),
   ).toHaveValue('창 크기 변경 중 입력');
   await page.screenshot({
     path: 'test-results/calendar-inline-desktop.png',
@@ -2377,7 +2380,7 @@ test('calendar quick actions save hospital, vaccine, medication and tasks into o
   await expect(dialog).toHaveCount(0);
   await actions.getByRole('link', { name: '병원', exact: true }).click();
   await dialog
-    .getByLabel('병원 이름·방문 목적', { exact: true })
+    .getByLabel('병원·방문 이유 (선택)', { exact: true })
     .fill('소아과 정기 검진');
   await dialog.getByLabel('날짜', { exact: true }).fill('2026-11-05');
   await dialog.getByLabel('시간 (선택)', { exact: true }).fill('09:30');
@@ -2389,7 +2392,7 @@ test('calendar quick actions save hospital, vaccine, medication and tasks into o
     page.locator('.calendar-event').filter({ hasText: '소아과 정기 검진' }),
   ).toContainText('09:30');
   await actions.getByRole('link', { name: '투약', exact: true }).click();
-  await dialog.getByLabel('약 이름', { exact: true }).fill('처방약 복용');
+  await dialog.getByRole('button', { name: '항생제', exact: true }).click();
   await dialog.getByLabel('날짜', { exact: true }).fill('2026-11-05');
   await dialog.getByLabel('시간 (선택)', { exact: true }).fill('12:00');
   await dialog.getByText('상세 설정', { exact: true }).click();
@@ -2462,7 +2465,7 @@ test('calendar quick actions save hospital, vaccine, medication and tasks into o
     .boundingBox();
   expect(cancelBox!.x).toBeLessThan(saveBox!.x);
   expect(Math.abs(cancelBox!.y - saveBox!.y)).toBeLessThan(3);
-  const titleBox = await dialog.locator('input[name=title]').boundingBox();
+  const titleBox = await dialog.locator('.quick-vaccine-choices').boundingBox();
   for (const control of await dialog.locator('.quick-time-control').all()) {
     const box = await control.boundingBox();
     expect(Math.abs(box!.x - titleBox!.x)).toBeLessThan(2);
@@ -3631,7 +3634,7 @@ test('insights supports rolling seven days, multiple activity patterns and child
   await page.goto(`${base}&kind=formula&pattern=stats`);
   const kinds = page.locator('.insight-kind-rail'),
     feeding = page.locator('[data-statistic="feeding"]');
-  await expect(page.locator('.mobile-nav a')).toHaveCount(6);
+  await expect(page.locator('.mobile-nav > a')).toHaveCount(6);
   await expect(kinds.getByRole('button')).toHaveCount(14);
   await expect(
     kinds.getByRole('button', { name: '성장', exact: true }),
@@ -3888,7 +3891,7 @@ test('insights supports rolling seven days, multiple activity patterns and child
   await page.goto(base + '&kind=formula,sleep&pattern=stats&interval=week');
   const second = await admin
     .from('children')
-    .insert({
+    .insert({sex: 'female',
       family_id: family,
       name: '빈 기록 아이',
       birth_date: '2026-09-01',
@@ -3973,7 +3976,7 @@ test('growth community shares only opted-in diaries with audience-specific field
   try {
     const reader = await childCareFamily(readerContext);
     const other = crypto.randomUUID();
-    await admin.from('children').insert({
+    await admin.from('children').insert({sex: 'female',
       id: other,
       family_id: reader.family,
       name: '다른 생일',
@@ -4033,7 +4036,7 @@ test('growth community shares only opted-in diaries with audience-specific field
     );
     await expect(
       page.locator('.public-diary-card .public-diary-body img'),
-    ).toHaveAttribute('src', `/api/care/photos/${photo.data!.id}`);
+    ).toHaveAttribute('src', `/api/care/photos/${photo.data!.id}?size=480`);
     await page.goto(`/ko/community/diaries?child=${own.child}`);
     await page
       .getByRole('button', { name: '일기 관리', exact: true })
@@ -4366,7 +4369,21 @@ test('own diary uses a bottom sheet with optional growth measurements', async ({
   const sheet = page.getByRole('dialog', { name: '일기 쓰기' });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByRole('combobox')).toHaveCount(0);
-  await page.screenshot({ path: '/tmp/podung-diary-composer.png' });
+  await expect(sheet.locator('header button')).toHaveCount(0);
+  await expect(sheet.locator('h2')).toBeFocused();
+  const [cancelBox, saveBox] = await sheet.evaluate((node) =>
+    ['.quick-cancel', '.quick-confirm'].map((selector) => {
+      const rect = node.querySelector(selector)!.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width };
+    }),
+  );
+  expect(cancelBox.x + cancelBox.width).toBeLessThan(saveBox.x);
+  expect(Math.abs(cancelBox.y - saveBox.y)).toBeLessThan(2);
+  await sheet.getByRole('button', { name: '취소', exact: true }).click();
+  await expect(sheet).not.toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).not.toBe('hidden');
+  await page.getByRole('button', { name: '일기 쓰기', exact: true }).click();
+  await page.screenshot({ path: '/tmp/podung-diary-composer.png', animations: 'disabled' });
   await expect(
     sheet.getByRole('checkbox', { name: '비공개', exact: true }),
   ).not.toBeChecked();
@@ -4542,7 +4559,7 @@ test('development guide hides the activity dock and preserves pattern selections
     `/ko/insights?child=${own.child}&kind=formula,sleep&pattern=guide`,
   );
   await expect(
-    page.getByRole('button', { name: '육아 가이드', exact: true }),
+    page.getByRole('button', { name: '가이드', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
   await expect(
@@ -4558,11 +4575,10 @@ test('development guide hides the activity dock and preserves pattern selections
     path: '/tmp/podung-development-mobile.png',
     fullPage: true,
   });
-  await page.getByRole('button', { name: '기록 분석', exact: true }).click();
-  await page.getByRole('button', { name: '주간 패턴', exact: true }).click();
+  await page.getByRole('button', { name: '주간패턴', exact: true }).click();
   await expect(page.locator('.insight-kind-rail')).toBeVisible();
   expect(new URL(page.url()).searchParams.get('kind')).toBe('formula,sleep');
-  await page.getByRole('button', { name: '육아 가이드', exact: true }).click();
+  await page.getByRole('button', { name: '가이드', exact: true }).click();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
   await page.screenshot({
@@ -4574,13 +4590,10 @@ test('development guide hides the activity dock and preserves pattern selections
     page.getByRole('heading', { name: 'Development', exact: true }),
   ).toBeVisible();
   await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
-  await page
-    .getByRole('button', { name: 'Record analysis', exact: true })
-    .click();
-  await page.getByRole('button', { name: 'Statistics', exact: true }).click();
+  await page.getByRole('button', { name: 'Stats', exact: true }).click();
   await expect(page.getByText('Select activities to compare.')).toBeVisible();
   await expect(
-    page.getByRole('button', { name: 'Care guide', exact: true }),
+    page.getByRole('button', { name: 'Guide', exact: true }),
   ).toBeVisible();
 });
 
@@ -4614,15 +4627,22 @@ test('growth curves use private measurements and milestone checks persist by chi
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/ko/insights?child=${own.child}&pattern=curve`);
   await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
-  await expect(page.locator('.growth-selected')).toContainText('8.3 kg');
-  await expect(page.locator('.growth-selected')).toContainText('D+193');
-  await expect(page.locator('.growth-reference')).toHaveCount(7);
-  await expect(page.locator('.growth-selected')).toContainText('백분위');
-  await page.getByRole('button', { name: '키', exact: true }).click();
-  await expect(page.locator('.growth-selected')).toContainText('67 cm');
-  await page.getByRole('button', { name: '머리둘레', exact: true }).click();
-  await expect(page.locator('.growth-selected')).toContainText('42 cm');
-  await page.getByRole('button', { name: '몸무게', exact: true }).click();
+  await expect(page.locator('.growth-metric-chart')).toHaveCount(3);
+  await expect(page.locator('.growth-selected').nth(0)).toContainText('8.3 kg');
+  await expect(page.locator('.growth-selected').nth(0)).toContainText('D+193');
+  await expect(page.locator('.growth-reference')).toHaveCount(21);
+  await expect(page.locator('.growth-selected').nth(0)).toContainText('백분위');
+  await expect(page.locator('.growth-selected').nth(1)).toContainText('67 cm');
+  await expect(page.locator('.growth-selected').nth(2)).toContainText('42 cm');
+  await expect(page.getByRole('button', { name: '몸무게', exact: true })).toHaveCount(0);
+  const referenceOptions = page.getByRole('group', { name: '비교 기준', exact: true });
+  await expect(referenceOptions.getByRole('button', { name: '여아' })).toHaveAttribute('aria-pressed', 'true');
+  await referenceOptions.getByRole('button', { name: '남아' }).click();
+  await expect(referenceOptions.getByRole('button', { name: '남아' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('group', { name: '기간', exact: true }).getByRole('button', { name: '0–2세' }).click();
+  for (const chart of await page.locator('.growth-svg').all()) await expect(chart).toContainText('730');
+  await referenceOptions.getByRole('button', { name: '여아' }).click();
+  await page.getByRole('button', { name: '0–1세', exact: true }).click();
   await page.screenshot({
     path: '/tmp/podung-growth-curve-mobile.png',
     fullPage: true,
@@ -4633,6 +4653,9 @@ test('growth curves use private measurements and milestone checks persist by chi
     name: '도움 없이 앉아요',
     exact: true,
   });
+  const rowHeight = await checkbox.locator('..').evaluate((el) => el.getBoundingClientRect().height);
+  expect(rowHeight).toBeGreaterThanOrEqual(44);
+  expect(rowHeight).toBeLessThanOrEqual(48);
   await expect(checkbox).not.toBeChecked();
   await checkbox.check();
   await expect(checkbox).toBeChecked();
@@ -4678,102 +4701,6 @@ test('growth curves use private measurements and milestone checks persist by chi
   expect(graphWarnings).toEqual([]);
 });
 
-test('growth report compares completed weeks and groups insight navigation', async ({
-  page,
-  context,
-}) => {
-  const own = await childCareFamily(context);
-  const today = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
-  const day = (offset: number) =>
-    new Date(Date.parse(`${today}T00:00:00Z`) + offset * 86400000)
-      .toISOString()
-      .slice(0, 10);
-  const saved = await admin.from('care_records').insert(
-    [-10, -9, -8, -3, -2, -1, 0].map((offset) => ({
-      id: crypto.randomUUID(),
-      child_id: own.child,
-      kind: 'formula',
-      started_at: `${day(offset)}T01:00:00Z`,
-      ended_at: `${day(offset)}T01:10:00Z`,
-      amount_ml: offset === 0 ? 999 : offset < -7 ? 100 : 120,
-      record_timezone: 'Asia/Seoul',
-      created_by: own.owner,
-      updated_by: own.owner,
-    })),
-  );
-  expect(saved.error).toBeNull();
-  await admin.from('children').update({ sex: 'female' }).eq('id', own.child);
-  const measured = await admin.from('child_records').insert(
-    [-15, -2].map((offset, index) => ({
-      id: crypto.randomUUID(),
-      child_id: own.child,
-      service: 'growth',
-      kind: 'measurement',
-      occurred_at: `${day(offset)}T01:00:00Z`,
-      record_timezone: 'Asia/Seoul',
-      weight_kg: index ? 8.3 : 7.8,
-      created_by: own.owner,
-    })),
-  );
-  expect(measured.error).toBeNull();
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/ko/insights?child=${own.child}&pattern=report`);
-  await expect(
-    page.getByRole('heading', { name: '성장 분석 보고서', exact: true }),
-  ).toBeVisible();
-  await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
-  await expect(page.locator('.report-measurements')).toContainText('8.3 kg');
-  await expect(
-    page.getByRole('img', { name: '기록된 몸무게 변화' }),
-  ).toBeVisible();
-  const formula = page.getByRole('row').filter({
-    has: page.getByRole('rowheader', { name: '분유', exact: true }),
-  });
-  await expect(formula).toContainText('100 ml');
-  await expect(formula).toContainText('120 ml');
-  await expect(formula).toContainText('+20.0%');
-  await expect(formula).not.toContainText('999');
-  const sleep = page.getByRole('row').filter({
-    has: page.getByRole('rowheader', { name: '수면', exact: true }),
-  });
-  await expect(sleep).toContainText('미기록');
-  await expect(sleep).not.toContainText('0시간');
-  await page.screenshot({
-    path: '/tmp/podung-report-mobile.png',
-    fullPage: true,
-  });
-  await page.getByRole('button', { name: '성장·발달', exact: true }).click();
-  await expect(
-    page.getByRole('button', { name: '성장곡선', exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: '통계 정보', exact: true }),
-  ).toHaveCount(0);
-  await page.getByRole('button', { name: '기록 분석', exact: true }).click();
-  await expect(
-    page.getByRole('button', { name: '성장 보고서', exact: true }),
-  ).toHaveCount(0);
-  await page.getByRole('button', { name: '성장·발달', exact: true }).click();
-  await expect(
-    page.getByRole('button', { name: '성장 보고서', exact: true }),
-  ).toHaveAttribute('aria-pressed', 'true');
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.screenshot({
-    path: '/tmp/podung-report-desktop.png',
-    fullPage: true,
-  });
-  await page.goto(`/en/insights?child=${own.child}&pattern=report`);
-  await expect(
-    page.getByRole('heading', { name: 'Growth report', exact: true }),
-  ).toBeVisible();
-});
-
 test('compact mobile navigation switches children and opens language settings', async ({
   page,
   context,
@@ -4781,7 +4708,7 @@ test('compact mobile navigation switches children and opens language settings', 
   const { child, family } = await childCareFamily(context);
   const second = await admin
     .from('children')
-    .insert({ family_id: family, name: '둘째', birth_date: '2026-09-01' })
+    .insert({sex: 'female', family_id: family, name: '둘째', birth_date: '2026-09-01' })
     .select('id')
     .single();
   expect(second.error).toBeNull();
@@ -4790,6 +4717,9 @@ test('compact mobile navigation switches children and opens language settings', 
     await page.goto(`/ko/today?child=${child}`);
     await expect(page.locator('.topbar')).toBeHidden();
     const picker = page.locator('.bottom-child-picker');
+    await expect(page.locator('.mobile-nav > a')).toHaveCount(5);
+    await expect(page.locator('.mobile-nav > :last-child')).toHaveClass(/bottom-child-picker/);
+    await expect(page.locator('.mobile-nav > a')).toHaveText(['오늘', '일정', '인사이트', '성장 일기', '전체']);
     await picker.locator('summary').click();
     await expect(picker.locator('nav')).toBeVisible();
     await picker.getByRole('link', { name: /둘째/ }).click();
@@ -4816,6 +4746,14 @@ test('compact mobile navigation switches children and opens language settings', 
     }
     await page.screenshot({ path: `test-results/compact-mobile-${width}.png` });
   }
+  await page.locator('.bottom-child-picker summary').click();
+  await page.locator('.bottom-child-picker').getByRole('link', { name: '가족 관리', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/ko/family\\?child=${child}`));
+  await expect(page.locator('.bottom-child-picker')).toHaveClass(/active/);
+  await page.locator('.bottom-child-picker summary').click();
+  await page.locator('.bottom-child-picker').getByRole('link', { name: '아이 정보 수정', exact: true }).click();
+  await expect(page).toHaveURL(/#child-info$/);
+  await expect(page.locator('#child-info')).toBeInViewport();
   await page.locator('.bottom-child-picker summary').click();
   await page
     .locator('.bottom-child-picker')
@@ -5351,4 +5289,564 @@ test('mobile patterns keep compact dates and enlarge daily and weekly graphs', a
     'viewBox',
     '0 0 544 490',
   );
+});
+
+test('insight presentation changes reuse loaded records', async ({
+  page,
+  context,
+}, testInfo) => {
+  const own = await childCareFamily(context);
+  const sibling = await admin
+    .from('children')
+    .insert({sex: 'female',
+      family_id: own.family,
+      name: '다른 아이',
+      birth_date: '2026-01-02',
+    })
+    .select('id')
+    .single();
+  expect(sibling.error).toBeNull();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(
+    `/ko/insights?child=${own.child}&week=2026-10-12&kind=formula&pattern=weekly`,
+  );
+  const rail = page.getByRole('group', { name: '기능별 분석', exact: true });
+  await expect(rail).toBeVisible();
+  const requests: string[] = [];
+  page.on('request', (request) => {
+    if (
+      request.headers().rsc === '1' &&
+      new URL(request.url()).pathname.endsWith('/insights') &&
+      new URL(request.url()).searchParams.has('week')
+    )
+      requests.push(request.url());
+  });
+  const started = Date.now();
+  await rail.getByRole('button', { name: '이유식', exact: true }).click();
+  await expect(
+    rail.getByRole('button', { name: '이유식', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  const filterMs = Date.now() - started;
+  await page.getByRole('button', { name: '하루 패턴', exact: true }).click();
+  await expect(page.locator('.insight-daily-pattern')).toBeVisible();
+  await page.getByRole('button', { name: '이전 하루', exact: true }).click();
+  await expect(page).toHaveURL(/day=2026-10-17/);
+  await page.goBack();
+  await expect(page).not.toHaveURL(/day=2026-10-17/);
+  await expect(rail.locator('[aria-pressed="true"]')).toHaveCount(2);
+  await page.getByRole('button', { name: '통계 정보', exact: true }).click();
+  await expect(page.locator('[data-statistic="feeding"]')).toBeVisible();
+  expect(requests).toHaveLength(0);
+  await page.getByRole('button', { name: '주간 패턴', exact: true }).click();
+  await page.getByRole('button', { name: '이전 7일', exact: true }).click();
+  await expect(page).toHaveURL(/week=2026-10-05/);
+  await expect(rail.locator('[aria-pressed="true"]')).toHaveCount(2);
+  expect(requests.length).toBeGreaterThan(0);
+  await testInfo.attach('interaction-metrics', {
+    body: JSON.stringify({
+      filterMs,
+      presentationServerRequests: 0,
+      periodServerRequests: requests.length,
+    }),
+    contentType: 'application/json',
+  });
+  await page.locator('.bottom-child-picker summary').click();
+  await page
+    .locator('.bottom-child-options')
+    .getByRole('link')
+    .filter({ hasText: '다른 아이' })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`child=${sibling.data!.id}`));
+  await expect(rail.locator('[aria-pressed="true"]')).toHaveCount(2);
+  expect(new URL(page.url()).searchParams.get('kind')).toBe('formula,solids');
+  expect(new URL(page.url()).searchParams.get('week')).toBe('2026-10-05');
+  await page.reload();
+  await expect(rail.locator('[aria-pressed="true"]')).toHaveCount(2);
+});
+
+test('menu navigation responds before server data arrives', async ({
+  page,
+  context,
+}) => {
+  const own = await childCareFamily(context);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/today?child=${own.child}`);
+  // Hold the route response so feedback is verified independently of network speed.
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/ko/calendar?**', async (route) => {
+    if (route.request().headers().rsc === '1') await hold;
+    await route.continue();
+  });
+  try {
+    await page
+      .locator('.mobile-nav')
+      .getByRole('link', { name: '일정', exact: true })
+      .click();
+    await expect(page.locator('.mobile-nav .navigation-pending')).toBeVisible();
+  } finally {
+    release();
+  }
+  await expect(page).toHaveURL(/\/ko\/calendar/);
+  await expect(page.locator('.navigation-pending')).toHaveCount(0);
+});
+
+test('mobile diaries have a compact header, top composer and five authorized thumbnails', async ({
+  page,
+  context,
+  browser,
+}) => {
+  test.setTimeout(90000);
+  const own = await childCareFamily(context);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/community/diaries?child=${own.child}`);
+  await page.getByRole('button', { name: '일기 쓰기', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: '일기 쓰기', exact: true });
+  const png = await sharp({
+    create: { width: 1800, height: 1200, channels: 3, background: '#f4c8a8' },
+  })
+    .png()
+    .toBuffer();
+  const portrait = await sharp({ create: { width: 600, height: 900, channels: 3, background: '#e9eadc' } }).png().toBuffer();
+  const small = await sharp({ create: { width: 160, height: 100, channels: 3, background: '#eadcdd' } }).png().toBuffer();
+  const files = Array.from({ length: 5 }, (_, i) => ({
+    name: `photo-${i}.png`,
+    mimeType: 'image/png',
+    buffer: i === 1 ? portrait : i === 2 ? small : png,
+  }));
+  const input = sheet.getByLabel('사진 추가', { exact: true });
+  await input.setInputFiles([...files, files[0]]);
+  await expect(sheet.getByRole('alert')).toContainText('최대 5장');
+  await input.setInputFiles(files);
+  await expect(sheet.locator('.diary-photo-count')).toHaveText('5/5');
+  await sheet
+    .getByRole('textbox', { name: '일기 내용' })
+    .fill(
+      '사진 다섯 장의 하루. ' +
+        '아이가 웃고 놀며 즐겁게 보낸 하루를 기억해요. '.repeat(12),
+    );
+  await sheet
+    .getByRole('spinbutton', { name: '몸무게', exact: true })
+    .fill('7.25');
+  await sheet.getByRole('spinbutton', { name: '키', exact: true }).fill('68.5');
+  await sheet
+    .getByRole('spinbutton', { name: '머리둘레', exact: true })
+    .fill('42.25');
+  await sheet.getByRole('button', { name: '저장', exact: true }).click();
+  await expect(sheet).toBeHidden();
+  const card = page
+    .locator('.public-diary-card')
+    .filter({ hasText: '사진 다섯 장의 하루' });
+  await expect(card.locator('.public-diary-body img')).toHaveCount(5);
+  const photos = await admin
+    .from('child_record_photos')
+    .select('id,path')
+    .eq('child_id', own.child);
+  expect(photos.data).toHaveLength(5);
+  for (const photo of photos.data ?? []) createdChildPhotos.push(photo.path);
+  const write = (await page
+    .getByRole('button', { name: '일기 쓰기', exact: true })
+    .boundingBox())!;
+  const cardBox = (await card.boundingBox())!;
+  expect(write.y + write.height).toBeLessThanOrEqual(cardBox.y);
+  expect(
+    (await card.locator(':scope > header').boundingBox())!.height,
+  ).toBeLessThanOrEqual(49);
+  expect(
+    (await card
+      .getByRole('button', { name: '일기 관리', exact: true })
+      .boundingBox())!.height,
+  ).toBeGreaterThanOrEqual(44);
+  const story = card.locator('.diary-story');
+  expect((await story.boundingBox())!.height).toBeLessThanOrEqual(260);
+  const metricTops = await card
+    .locator('.diary-measurements dd')
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getBoundingClientRect().top),
+    );
+  expect(new Set(metricTops).size).toBe(1);
+  await card.getByRole('button', { name: '더보기', exact: true }).click();
+  await expect(
+    card.getByRole('button', { name: '접기', exact: true }),
+  ).toHaveAttribute('aria-expanded', 'true');
+  expect((await story.boundingBox())!.height).toBeLessThanOrEqual(260);
+  await card.getByRole('button', { name: '접기', exact: true }).click();
+  const carousel = card.locator('.diary-photo-carousel');
+  const box = (await carousel.boundingBox())!;
+  const touch = await context.newCDPSession(page);
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: box.x + box.width * 0.85, y: box.y + 65 }],
+  });
+  for (let step = 1; step <= 8; step++)
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [
+        { x: box.x + box.width * (0.85 - (0.7 * step) / 8), y: box.y + 65 },
+      ],
+    });
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchEnd',
+    touchPoints: [],
+  });
+  await expect(card.locator('.diary-photo-position')).not.toHaveText('1 / 5');
+  await touch.detach();
+  expect(context.pages()).toHaveLength(1);
+  await card.getByRole('button', { name: '일기 보기', exact: true }).click();
+  const detail = page.getByRole('dialog', { name: '성장일기', exact: true });
+  await expect(detail).toBeVisible();
+  await expect(detail.locator('time')).toBeVisible();
+  await expect(detail.locator('time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}$/);
+  await expect(detail.locator('.diary-back-label')).toBeHidden();
+  const detailPhoto = detail.locator('img').first();
+  await expect(detailPhoto).toHaveAttribute('src', /size=1600$/);
+  const fullPhoto = await page.request.get((await detailPhoto.getAttribute('src'))!);
+  expect(fullPhoto.status()).toBe(200);
+  expect([160, 600, 1600]).toContain((await sharp(await fullPhoto.body()).metadata()).width);
+  expect(fullPhoto.headers().etag).toContain('1600-webp');
+  await detail.getByRole('button', { name: '돌아가기' }).click();
+  await page.getByRole('button', { name: '일기 공유', exact: true }).click();
+  const sharing = page.getByRole('dialog', { name: '일기 공유', exact: true });
+  await sharing.getByRole('button', { name: '공유 링크 만들기', exact: true }).click();
+  const linkInput = sharing.getByRole('textbox', { name: '공유 링크', exact: true });
+  await expect(linkInput).toHaveValue(/\/ko\/share\/diary\/[a-f0-9]{64}$/);
+  const firstLink = await linkInput.inputValue();
+  const olderDiary = crypto.randomUUID();
+  const extraRecord = await admin.from('child_records').insert({
+    id: olderDiary, child_id: own.child, service: 'growth', kind: 'observation',
+    occurred_at: new Date(Date.now() - 86400000).toISOString(), record_timezone: 'Asia/Seoul',
+    note: '작은 손으로 내 손가락을 꼭 잡았다. 오늘도 함께 자라는 우리.',
+    title: '', created_by: own.owner,
+  });
+  expect(extraRecord.error).toBeNull();
+  const extraShare = await admin.from('growth_diary_shares').insert({ record_id: olderDiary, everyone: true, published_by: own.owner });
+  expect(extraShare.error).toBeNull();
+  const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const guest = await guestContext.newPage();
+    const response = await guest.goto(firstLink);
+    expect(response?.status()).toBe(200);
+    await expect(guest.locator('.shared-diary-note').first()).toContainText('사진 다섯 장의 하루.');
+    await expect(guest.getByRole('link', { name: '포둥 시작하기', exact: true })).toBeVisible();
+    await expect(guest.getByRole('img', { name: '아기 사진 1', exact: true })).toBeVisible();
+    const publicPhoto = await guest.getByRole('img', { name: '아기 사진 1', exact: true }).getAttribute('src');
+    const image = await guest.request.get(new URL(publicPhoto!, firstLink).href);
+    expect(image.status()).toBe(200);
+    expect(image.headers()['cache-control']).toContain('no-store');
+    expect([160, 600, 1600]).toContain((await sharp(await image.body()).metadata()).width);
+    const firstSharedImage = guest.getByRole('img', { name: '아기 사진 1', exact: true });
+    await expect(firstSharedImage).toHaveAttribute('draggable', 'false');
+    expect(await firstSharedImage.evaluate(node => {
+      const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+      node.dispatchEvent(event);
+      return event.defaultPrevented;
+    })).toBe(true);
+    expect(await firstSharedImage.evaluate(node => {
+      const event = new Event('dragstart', { bubbles: true, cancelable: true });
+      node.dispatchEvent(event);
+      return event.defaultPrevented;
+    })).toBe(true);
+    expect(await guest.evaluate(() => {
+      const event = new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true });
+      document.dispatchEvent(event);
+      return event.defaultPrevented;
+    })).toBe(true);
+    const sharedGallery = guest.locator('.shared-diary-gallery');
+    const naturalWidths: number[] = [];
+    for (let index = 0; index < 5; index++) {
+      await sharedGallery.evaluate((node, i) => node.scrollTo({ left: node.clientWidth * i, behavior: 'instant' }), index);
+      const photo = sharedGallery.locator('img').nth(index);
+      const natural = await photo.evaluate(async image => {
+        const img = image as HTMLImageElement;
+        await img.decode();
+        return { width: img.naturalWidth, height: img.naturalHeight };
+      });
+      naturalWidths.push(natural.width);
+      await expect.poll(async () => {
+        const box = (await photo.boundingBox())!;
+        return Math.abs(box.height / box.width - natural.height / natural.width);
+      }).toBeLessThan(.01);
+      await expect.poll(async () => Math.abs((await sharedGallery.boundingBox())!.height - (await photo.boundingBox())!.height)).toBeLessThan(2);
+      if (natural.width === 160) expect((await photo.boundingBox())!.width).toBe(160);
+    }
+    expect(naturalWidths).toContain(160);
+    expect(naturalWidths).toContain(600);
+    expect(naturalWidths).toContain(1600);
+    await sharedGallery.evaluate(node => node.scrollTo({ left: 0, behavior: 'instant' }));
+    const bannerBox = (await guest.locator('.shared-diary-invite-compact').boundingBox())!;
+    expect(bannerBox.y + bannerBox.height).toBeLessThan((await guest.locator('.shared-diary-card').first().boundingBox())!.y);
+
+    expect((await guest.request.get(`/api/care/photos/${photos.data![0].id}`)).status()).toBe(401);
+    await guest.evaluate(() => document.fonts.ready);
+    const sharedAppearance = () => guest.evaluate(() => {
+      const selectors = ['.shared-diary-scene', '.shared-diary-brand', '.diary-hero-icon', '.shared-diary-title'];
+      return selectors.map(selector => {
+        const node = document.querySelector(selector)!;
+        const style = getComputedStyle(node);
+        return { font: style.fontFamily, size: style.fontSize, color: style.color, background: style.backgroundColor, padding: style.padding, radius: style.borderRadius, icon: node.querySelector('svg')?.outerHTML };
+      });
+    });
+    const normalAppearance = await sharedAppearance();
+    const entries = guest.locator('.shared-diary-card');
+    await expect(entries).toHaveCount(2);
+    const firstEntry = (await entries.nth(0).boundingBox())!;
+    const secondEntry = (await entries.nth(1).boundingBox())!;
+    expect(secondEntry.y - firstEntry.y - firstEntry.height).toBeGreaterThanOrEqual(48);
+    await guest.screenshot({ path: 'test-results/shared-diary-mobile.png', fullPage: true });
+    await guest.setViewportSize({ width: 1280, height: 900 });
+    await guest.screenshot({ path: 'test-results/shared-diary-desktop.png', fullPage: true });
+    await guest.setViewportSize({ width: 390, height: 844 });
+    await sharing.getByRole('button', { name: '공유 링크 끄기', exact: true }).click();
+    await expect(linkInput).toHaveCount(0);
+    expect((await guest.request.get(new URL(publicPhoto!, firstLink).href)).status()).toBe(404);
+    await guest.goto(firstLink);
+    await expect(guest.getByRole('heading', { name: '공유가 종료되었거나 없는 일기예요' })).toBeVisible();
+    await expect(guest.getByRole('link', { name: '포둥 시작하기', exact: true })).toBeVisible();
+    await guest.evaluate(() => document.fonts.ready);
+    expect(await sharedAppearance()).toEqual(normalAppearance);
+    await guest.reload();
+    await guest.evaluate(() => document.fonts.ready);
+    expect(await sharedAppearance()).toEqual(normalAppearance);
+    await guest.screenshot({ path: 'test-results/shared-diary-closed-mobile.png', fullPage: true });
+    await guest.getByRole('link', { name: 'Switch to English', exact: true }).click();
+    await expect(guest.getByRole('heading', { name: 'This diary link is no longer available' })).toBeVisible();
+    await guest.getByRole('link', { name: '한국어로 보기', exact: true }).click();
+    await expect(guest.getByRole('heading', { name: '공유가 종료되었거나 없는 일기예요' })).toBeVisible();
+
+    await sharing.getByRole('button', { name: '공유 링크 만들기', exact: true }).click();
+    await expect(linkInput).toBeVisible();
+    expect(await linkInput.inputValue()).not.toBe(firstLink);
+    await guest.goto(await linkInput.inputValue());
+    await expect(guest.locator('.shared-diary-note').first()).toContainText('사진 다섯 장의 하루.');
+    await expect(guest.getByText('함께 돌보는, 포근한 둥지', { exact: true })).toBeVisible();
+    await guest.getByRole('link', { name: 'Switch to English', exact: true }).click();
+    await expect(guest.locator('.shared-diary-title')).toContainText('growth diary');
+    await expect(guest.getByRole('link', { name: 'Get started with Podung', exact: true })).toHaveAttribute('href', '/en/login');
+    await expect(guest.locator('.shared-diary-note').first()).toContainText('사진 다섯 장의 하루.');
+  } finally { await guestContext.close(); }
+  await page.evaluate(() => Object.defineProperty(navigator, 'share', { configurable: true, value: async (data: ShareData) => sessionStorage.setItem('diary-link-shared', JSON.stringify(data)) }));
+  await sharing.getByRole('button', { name: '닫기', exact: true }).click();
+  await page.getByRole('button', { name: '일기 공유', exact: true }).click();
+  await expect(linkInput).toBeVisible();
+  await sharing.getByRole('button', { name: '앱으로 공유', exact: true }).click();
+  expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem('diary-link-shared')!).url)).toBe(await linkInput.inputValue());
+  await sharing.getByRole('button', { name: '닫기', exact: true }).click();
+  await card.getByRole('button', { name: '일기 보기', exact: true }).click();
+  await expect(detail.locator('.diary-detail-copy p')).toContainText('사진 다섯 장의 하루.');
+  const detailGallery = detail.getByRole('region', { name: '일기 사진' });
+  await detailGallery.evaluate((node) => { node.scrollLeft = 0; });
+  await expect(detail.locator('header > span')).toHaveText('1 / 5');
+  await detailGallery.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(detail.locator('header > span')).toHaveText('2 / 5');
+  const detailBounds = (await detailGallery.boundingBox())!;
+  const detailTouch = await context.newCDPSession(page);
+  await detailTouch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: detailBounds.x + detailBounds.width * .85, y: detailBounds.y + 100 }] });
+  for (let step = 1; step <= 8; step++) {
+    await detailTouch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: detailBounds.x + detailBounds.width * (.85 - .7 * step / 8), y: detailBounds.y + 100 }] });
+  }
+  await detailTouch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(detail.locator('header > span')).not.toHaveText('2 / 5');
+  await detailTouch.detach();
+  await expect.poll(() => detail.locator('img').nth(2).evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await page.screenshot({ path: 'test-results/diary-detail-mobile.png' });
+  await detail.getByRole('button', { name: '돌아가기' }).click();
+  await expect(detail).toHaveCount(0);
+  await expect(card).toBeVisible();
+  await card.getByRole('button', { name: '일기 보기', exact: true }).click();
+  await expect(detail).toBeVisible();
+  await page.goBack();
+  await expect(detail).toHaveCount(0);
+  await expect(card).toBeVisible();
+  const url = `/api/community/diary-photos/${photos.data![0].id}?size=480`;
+  const thumbnail = await page.request.get(url);
+  expect(thumbnail.status()).toBe(200);
+  expect(thumbnail.headers()['content-type']).toBe('image/webp');
+  expect((await thumbnail.body()).length).toBeLessThan(png.length);
+  expect(
+    (await sharp(await thumbnail.body()).metadata()).width,
+  ).toBeLessThanOrEqual(480);
+  const etag = thumbnail.headers().etag;
+  expect(
+    (
+      await page.request.get(url, { headers: { 'If-None-Match': etag } })
+    ).status(),
+  ).toBe(304);
+  const original = await page.request.get(
+    `/api/care/photos/${photos.data![0].id}`,
+  );
+  expect([160, 600, 1800]).toContain((await sharp(await original.body()).metadata()).width);
+  await page.screenshot({
+    path: 'test-results/diary-five-photos-mobile.png',
+    fullPage: true,
+  });
+  const age = (await card.locator('.diary-entry-age').innerText()).replace(
+    'D+',
+    '',
+  );
+  const geometry = async () => {
+    const selectors = [
+      ':scope > header',
+      '.diary-story',
+      '.diary-photo-carousel',
+    ];
+    return Promise.all(
+      selectors.map(async (selector) => {
+        const bounds = (await card.locator(selector).boundingBox())!;
+        return { width: bounds.width, height: bounds.height };
+      }),
+    );
+  };
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    const expected = await geometry();
+    for (const scope of ['birth', 'all', 'mine']) {
+      await page.goto(
+        `/ko/community/diaries?child=${own.child}&scope=${scope}&age=${age}`,
+      );
+      await expect(card).toBeVisible();
+      const actual = await geometry();
+      actual.forEach((box, i) => {
+        expect(Math.abs(box.width - expected[i].width)).toBeLessThan(1);
+        expect(Math.abs(box.height - expected[i].height), `scope=${scope} width=${width} part=${i} actual=${box.height} expected=${expected[i].height}`).toBeLessThan(1);
+      });
+      if (scope !== 'mine') {
+        if (scope === 'all') await expect(card.locator('.diary-measurements')).toHaveCount(0);
+        await card.getByRole('button', { name: '일기 보기', exact: true }).click();
+        await expect(detail.getByRole('button', { name: '일기 공유', exact: true })).toHaveCount(0);
+        await detail.getByRole('button', { name: '돌아가기', exact: true }).click();
+        await expect(detail).toHaveCount(0);
+      }
+    }
+  }
+  await card.getByRole('button', { name: '일기 관리', exact: true }).click();
+  const manager = page.getByRole('dialog', { name: '일기 관리', exact: true });
+  await manager.getByRole('button', { name: '편집', exact: true }).click();
+  await expect(manager.getByLabel('사진 추가', { exact: true })).toBeDisabled();
+  await manager.getByRole('checkbox', { name: '비공개', exact: true }).check();
+  await manager.getByRole('button', { name: '저장', exact: true }).click();
+  await expect(manager).toBeHidden();
+  expect(
+    (
+      await page.request.get(url, { headers: { 'If-None-Match': etag } })
+    ).status(),
+  ).toBe(404);
+});
+
+
+test('menu, calendar and diary filters replace browser history', async ({ page, context }) => {
+  const own = await childCareFamily(context);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/today?child=${own.child}`);
+  const initial = await page.evaluate(() => history.length);
+  const expectSameHistory = async () => expect(await page.evaluate(() => history.length)).toBe(initial);
+  await page.locator('.mobile-nav a').filter({ hasText: '일정' }).click();
+  await expect(page.locator('.month-calendar')).toBeVisible();
+  await expectSameHistory();
+  await page.getByRole('link', { name: '이전 달', exact: true }).click();
+  await expect(page).toHaveURL(/day=/);
+  await page.locator('.month-day:not(.other-month)').nth(5).click();
+  await expectSameHistory();
+  await page.locator('.mobile-nav a').filter({ hasText: '인사이트' }).click();
+  await expect(page.locator('.insight-navigation')).toBeVisible();
+  await page.getByRole('button', { name: '하루 패턴', exact: true }).click();
+  await expect(page).toHaveURL(/pattern=daily/);
+  await expectSameHistory();
+  await page.locator('.mobile-nav a').filter({ hasText: '성장 일기' }).click();
+  await expect(page.locator('.diary-tabs')).toBeVisible();
+  await page.getByRole('link', { name: '출생일별 성장일기', exact: true }).click();
+  await expect(page).toHaveURL(/scope=birth/);
+  await page.getByRole('link', { name: '이전 생후 일수', exact: true }).click();
+  await expectSameHistory();
+  await page.getByRole('link', { name: '전체 성장일기', exact: true }).click();
+  await expect(page).toHaveURL(/scope=all/);
+  await expectSameHistory();
+});
+
+test('zoom gesture guard only applies to installed web apps', async ({ page }) => {
+  await page.goto('/ko/login');
+  await expect(page.locator('html')).not.toHaveAttribute('data-standalone');
+  expect(await page.evaluate(() => document.dispatchEvent(new Event('gesturestart', { cancelable: true })))).toBe(true);
+  await page.addInitScript(() => Object.defineProperty(navigator, 'standalone', { configurable: true, value: true }));
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-standalone', '');
+  expect(await page.evaluate(() => getComputedStyle(document.body).touchAction)).toBe('pan-x pan-y');
+  expect(await page.evaluate(() => document.dispatchEvent(new Event('gesturestart', { cancelable: true })))).toBe(false);
+  expect(await page.evaluate(() => document.dispatchEvent(new Event('gesturechange', { cancelable: true })))).toBe(false);
+});
+
+
+test('calendar hospital reason is optional and medicine selection survives editing', async ({ page, context }) => {
+  const { child } = await childCareFamily(context);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/calendar?child=${child}&create=hospital`);
+  const dialog = page.locator('.calendar-composer');
+  await expect(dialog.getByLabel('병원·방문 이유 (선택)', { exact: true })).not.toHaveAttribute('required');
+  await dialog.getByRole('button', { name: '저장하기', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const hospital = await admin.from('events').select('title').eq('child_id', child).single();
+  expect(hospital.data?.title).toBe('병원');
+  await page.locator('.calendar-quick-actions').getByRole('link', { name: '투약', exact: true }).click();
+  await expect(dialog.locator('.quick-vaccine-choices button')).toHaveText(['해열제', '감기약', '항생제', '알레르기약', '소화기약', '기타']);
+  await dialog.getByRole('button', { name: '해열제', exact: true }).click();
+  await dialog.getByRole('button', { name: '저장하기', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const medication = await admin.from('events').select('id,title').eq('child_id', child).eq('title', '해열제').single();
+  expect(medication.error).toBeNull();
+  await page.goto(`/ko/calendar?child=${child}&edit=event:${medication.data!.id}`);
+  await expect(dialog.getByRole('button', { name: '해열제', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+
+test('shared diary loads older public entries as the visitor scrolls', async ({ context, browser }) => {
+  const own = await childCareFamily(context);
+  const records = Array.from({ length: 22 }, (_, i) => ({
+    id: crypto.randomUUID(), child_id: own.child, service: 'growth', kind: 'observation',
+    occurred_at: new Date(Date.now() - (i + 1) * 86400000).toISOString(), record_timezone: 'Asia/Seoul',
+    note: `Progressive diary ${i + 1}`, title: '', created_by: own.owner,
+  }));
+  expect((await admin.from('child_records').insert(records)).error).toBeNull();
+  expect((await admin.from('growth_diary_shares').insert(records.map((r, i) => ({ record_id: r.id, everyone: i < 21, published_by: own.owner })))).error).toBeNull();
+  const ownerPage = await context.newPage();
+  await ownerPage.goto(`/en/community/diaries?child=${own.child}`);
+  await ownerPage.getByRole('button', { name: 'Share diary', exact: true }).click();
+  const dialog = ownerPage.getByRole('dialog', { name: 'Share diary', exact: true });
+  await dialog.getByRole('button', { name: 'Create share link', exact: true }).click();
+  const input = dialog.getByRole('textbox', { name: 'Share link', exact: true });
+  await expect(input).toHaveValue(/\/en\/share\/diary\/[a-f0-9]{64}$/);
+  const guest = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const page = await guest.newPage();
+    await page.goto(await input.inputValue());
+    await expect(page.locator('.shared-diary-card')).toHaveCount(20);
+    await page.locator('.shared-diary-load').scrollIntoViewIfNeeded();
+    await expect(page.locator('.shared-diary-card')).toHaveCount(21);
+    await expect(page.locator('.shared-diary-card').last()).toContainText('Progressive diary 21');
+    await expect(page.getByText('Progressive diary 22', { exact: true })).toHaveCount(0);
+    await expect(page.locator('.shared-diary-load')).toHaveCount(0);
+  } finally { await guest.close(); await ownerPage.close(); }
+});
+
+
+test('postbirth service catalog removes retired services and requires birth dates', async ({ page, context }) => {
+  const own = await childCareFamily(context);
+  await page.goto(`/ko/services?child=${own.child}`);
+  for (const title of ['임신 관리', '출산 준비', '출생 후 행정', '산후 회복과 돌봄', '초등학교 입학 준비']) {
+    await expect(page.getByText(title, { exact: true })).toHaveCount(0);
+  }
+  for (const service of ['pregnancy', 'birth', 'administration', 'postpartum', 'school']) {
+    const response = await page.goto(`/ko/services/${service}?child=${own.child}`);
+    expect(response?.status()).toBe(404);
+  }
+  await page.goto(`/ko/family?child=${own.child}`);
+  await expect(page.getByText('출산 예정일', { exact: true })).toHaveCount(0);
+  for (const field of await page.getByLabel('아이 태어난 날', { exact: true }).all()) {
+    await expect(field).toHaveAttribute('required', '');
+  }
+  await page.goto(`/en/family?child=${own.child}`);
+  await expect(page.getByText('Due date', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Child’s date of birth', { exact: true }).first()).toBeVisible();
 });
