@@ -1258,6 +1258,9 @@ isOneToOne: false
 "save_feeding_record":
 { Args: { "p_amount_g": number,"p_amount_ml": number,"p_child_id": string,"p_ended_at": string,"p_food_name": string,"p_id": string,"p_kind": string,"p_note": string,"p_started_at": string,"p_timezone": string,"p_version"?: number }; Returns: string
                            },
+"save_growth_diary":
+{ Args: { "p_child": string,"p_data": Json,"p_id": string,"p_private"?: boolean,"p_version"?: number }; Returns: string
+                           },
 "save_notification_preferences":
 { Args: { "p_event": boolean,"p_feeding": boolean,"p_frequency": number,"p_hour": number,"p_interval": number,"p_quiet_end": string,"p_quiet_start": string,"p_snooze_minutes"?: number,"p_task": boolean }; Returns: undefined
                            },

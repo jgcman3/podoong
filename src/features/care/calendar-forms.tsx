@@ -1,3 +1,5 @@
+import { CalendarDateTimeField } from './calendar-date-time-field';
+import { CalendarFormActions } from './calendar-composer';
 import { Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
@@ -77,14 +79,13 @@ export async function TaskForm({
           defaultValue={task ? preparationTitle(task, locale) : undefined}
         />
       </label>
-      <label>
-        {t('date')}
-        <input
-          name="date"
-          type="date"
-          defaultValue={task?.due_date ?? defaultDate ?? ''}
-        />
-      </label>
+      <CalendarDateTimeField
+        label={t('date')}
+        name="date"
+        type="date"
+        locale={locale}
+        defaultValue={task?.due_date ?? defaultDate ?? ''}
+      />
       <MoreFields simple={Boolean(calendarDay) && !task} locale={locale}>
         <label>
           {t('service')}
@@ -124,7 +125,11 @@ export async function TaskForm({
           </label>
         </div>
       </MoreFields>
-      <button className="button primary">{t('save')}</button>
+      {calendarDay ? (
+        <CalendarFormActions locale={locale} />
+      ) : (
+        <button className="button primary">{t('save')}</button>
+      )}
     </form>
   );
 }
@@ -177,23 +182,21 @@ export async function EventForm({
           defaultValue={event?.title}
         />
       </label>
-      <label>
-        {t('date')}
-        <input
-          name="date"
-          type="date"
-          required
-          defaultValue={event?.date ?? defaultDate ?? context.today}
-        />
-      </label>
-      <label>
-        {ko ? '시간 (선택)' : 'Time (optional)'}
-        <input
-          type="time"
-          name="eventTime"
-          defaultValue={event?.event_time?.slice(0, 5) ?? ''}
-        />
-      </label>
+      <CalendarDateTimeField
+        label={t('date')}
+        name="date"
+        type="date"
+        locale={locale}
+        required
+        defaultValue={event?.date ?? defaultDate ?? context.today}
+      />
+      <CalendarDateTimeField
+        label={ko ? '시간 (선택)' : 'Time (optional)'}
+        name="eventTime"
+        type="time"
+        locale={locale}
+        defaultValue={event?.event_time?.slice(0, 5) ?? ''}
+      />
       <MoreFields simple={Boolean(calendarDay)} locale={locale}>
         <label>
           {eventKind === 'medication'
@@ -204,7 +207,11 @@ export async function EventForm({
           <textarea name="note" maxLength={2000} defaultValue={event?.note} />
         </label>
       </MoreFields>
-      <button className="button primary">{t('save')}</button>
+      {calendarDay ? (
+        <CalendarFormActions locale={locale} />
+      ) : (
+        <button className="button primary">{t('save')}</button>
+      )}
     </form>
   );
 }

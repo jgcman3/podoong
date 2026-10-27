@@ -118,9 +118,11 @@ export function PatternTable({
   );
 }
 export function WeeklyPattern({
+  expanded = false,
   categories,
   locale,
 }: {
+  expanded?: boolean;
   categories: PatternCategory[];
   locale: Locale;
 }) {
@@ -128,11 +130,11 @@ export function WeeklyPattern({
     left = 42,
     top = 24,
     dayWidth = 70,
-    height = 432;
+    height = expanded ? 600 : 432;
   return (
     <svg
       className="insight-overlay-chart insight-weekly-pattern"
-      viewBox="0 0 544 490"
+      viewBox={`0 0 544 ${height + 58}`}
       role="img"
       aria-label={
         locale === 'ko'

@@ -3,7 +3,6 @@ import { getTranslations } from 'next-intl/server';
 import {
   Home,
   BookOpen,
-  Milk,
   CalendarDays,
   ChartNoAxesColumn,
   Grid2X2,
@@ -18,7 +17,6 @@ import { ageInDays, pregnancyWeek, type Locale } from '@/lib/domain';
 import type { CareContext } from '@/lib/data';
 const navigation = [
   ['today', Home],
-  ['records', Milk],
   ['calendar', CalendarDays],
   ['insights', ChartNoAxesColumn],
   ['community', BookOpen],
@@ -171,28 +169,26 @@ export async function Shell({
             label: t('settings'),
           }}
         />
-        {navigation
-          .filter(([key]) => key !== 'records')
-          .map(([key, Icon]) => (
-            <Link
-              key={key}
-              className={section === key ? 'active' : ''}
-              href={`/${locale}/${key === 'community' ? 'community/diaries' : key}?child=${child.id}`}
-            >
-              <Icon size={21} />
-              <span>
-                {key === 'calendar'
+        {navigation.map(([key, Icon]) => (
+          <Link
+            key={key}
+            className={section === key ? 'active' : ''}
+            href={`/${locale}/${key === 'community' ? 'community/diaries' : key}?child=${child.id}`}
+          >
+            <Icon size={21} />
+            <span>
+              {key === 'calendar'
+                ? locale === 'ko'
+                  ? '일정'
+                  : 'Plan'
+                : key === 'services'
                   ? locale === 'ko'
-                    ? '일정'
-                    : 'Plan'
-                  : key === 'services'
-                    ? locale === 'ko'
-                      ? '전체'
-                      : 'More'
-                    : t(key === 'community' ? 'growthDiary' : key)}
-              </span>
-            </Link>
-          ))}
+                    ? '전체'
+                    : 'More'
+                  : t(key === 'community' ? 'growthDiary' : key)}
+            </span>
+          </Link>
+        ))}
       </nav>
     </div>
   );

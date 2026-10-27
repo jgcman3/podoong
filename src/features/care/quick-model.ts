@@ -27,6 +27,11 @@ export type QuickEntry = {
   unit: 'ml' | 'g' | null;
   title: string;
   running: boolean;
+  childRecord?: Row<'child_records'>;
+  feedingRecord?: Row<'care_records'>;
+  vaccinationRecord?: Row<'vaccination_records'>;
+  photoIds?: string[];
+  isPrivate?: boolean;
   recordDate?: string;
   customName?: string;
   dose?: number | null;
@@ -39,6 +44,7 @@ export function quickTimeline(
   const feeds: QuickEntry[] = feeding.map((r) => ({
     id: r.id,
     source: 'feeding',
+    feedingRecord: r,
     service: 'feeding',
     kind: r.kind,
     startedAt: r.started_at,
@@ -52,6 +58,7 @@ export function quickTimeline(
   const other: QuickEntry[] = child.map((r) => ({
     id: r.id,
     source: 'child',
+    childRecord: r,
     service: r.service,
     kind: r.kind,
     startedAt: r.occurred_at,
@@ -83,6 +90,7 @@ export function quickTimeline(
     .map((r) => ({
       id: r.id,
       source: 'vaccination',
+      vaccinationRecord: r,
       service: 'vaccination',
       kind: r.vaccine,
       startedAt: r.created_at,

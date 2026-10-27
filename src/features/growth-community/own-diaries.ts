@@ -5,7 +5,7 @@ export async function loadOwnDiaries(context: CareContext, page: number) {
   const { data, error } = await context.db
     .from('child_records')
     .select(
-      'id,version,occurred_at,record_timezone,note,weight_kg,height_cm,head_cm,child_record_photos(id)',
+      'id,version,occurred_at,record_timezone,note,weight_kg,height_cm,head_cm,child_record_photos(id),growth_diary_shares(same_birth_date,everyone)',
     )
     .eq('child_id', context.child.id)
     .eq('service', 'growth')
@@ -15,6 +15,9 @@ export async function loadOwnDiaries(context: CareContext, page: number) {
   if (error) throw new Error('Child diaries unavailable');
   return data.map((record) => ({
     id: record.id,
+    is_private:
+      !record.growth_diary_shares?.same_birth_date &&
+      !record.growth_diary_shares?.everyone,
     version: record.version,
     occurred_at: record.occurred_at,
     record_timezone: record.record_timezone,

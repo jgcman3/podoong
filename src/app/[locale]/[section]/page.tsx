@@ -1,11 +1,10 @@
 import { Insights } from '@/features/insights/view';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { loadCare } from '@/lib/data';
 import { Shell } from '@/components/shell';
 import { Flash } from '@/components/flash';
 import {
   Today,
-  Records,
   Calendar,
   Family,
   Services,
@@ -34,10 +33,13 @@ export default async function AppPage({
 }) {
   const { locale, section } = await params;
   const q = await searchParams;
+  if (section === 'records')
+    redirect(
+      `/${locale}/today${q.child ? `?child=${encodeURIComponent(q.child)}` : ''}`,
+    );
   if (
     ![
       'today',
-      'records',
       'calendar',
       'insights',
       'family',
@@ -49,11 +51,7 @@ export default async function AppPage({
   const context = await loadCare(
     locale,
     q.child,
-    section === 'today'
-      ? ['records']
-      : section === 'records'
-        ? ['records']
-        : [],
+    section === 'today' ? ['records'] : [],
     { page: q.page, todayOnly: section === 'today' },
   );
   if (section === 'insights' && q.child && context.child.id !== q.child)
@@ -63,9 +61,6 @@ export default async function AppPage({
   switch (section) {
     case 'today':
       view = <Today {...props} />;
-      break;
-    case 'records':
-      view = <Records {...props} edit={q.edit} kind={q.kind} />;
       break;
     case 'calendar':
       view = (

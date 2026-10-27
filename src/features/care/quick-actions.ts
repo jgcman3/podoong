@@ -9,6 +9,49 @@ export type QuickSaveState = {
   error?: string;
   id?: string;
 };
+export async function deleteQuickCare(input: {
+  locale: string;
+  childId: string;
+  id: string;
+  source: string;
+}): Promise<QuickSaveState> {
+  const parsed = z
+    .object({
+      locale: z.enum(['ko', 'en']),
+      childId: z.uuid(),
+      id: z.uuid(),
+      source: z.enum(['feeding', 'child', 'vaccination']),
+    })
+    .safeParse(input);
+  if (!parsed.success) return { status: 'error', error: 'invalid' };
+  const v = parsed.data;
+  const { db } = await requireUser(v.locale);
+  const table =
+    v.source === 'feeding'
+      ? 'care_records'
+      : v.source === 'child'
+        ? 'child_records'
+        : 'vaccination_records';
+  const record = await db
+    .from(table)
+    .select('id')
+    .eq('id', v.id)
+    .eq('child_id', v.childId)
+    .maybeSingle();
+  if (record.error || !record.data)
+    return { status: 'error', error: 'generic' };
+  const rpc =
+    v.source === 'feeding'
+      ? 'delete_care_record'
+      : v.source === 'child'
+        ? 'delete_child_record'
+        : 'delete_vaccination_record';
+  const result = await db.rpc(rpc, { p_id: v.id });
+  if (result.error) return { status: 'error', error: 'generic' };
+  for (const path of ['today', 'calendar', 'insights'])
+    revalidatePath(`/${v.locale}/${path}`);
+  return { status: 'saved' };
+}
 const contextSchema = z.object({
   locale: z.enum(['ko', 'en']),
   source: z.enum(['feeding', 'sleep', 'diaper', 'activity']),
@@ -30,6 +73,7 @@ export async function saveQuickCare(
   const v = context.data;
   if (
     input.useCurrentTime === 'true' &&
+    v.version === null &&
     (v.mode === 'start' || v.source === 'diaper' || v.source === 'activity')
   ) {
     const instant = new Date().toISOString();
@@ -96,8 +140,7 @@ export async function saveQuickCare(
     if (
       !parsed.success ||
       (v.mode === 'record' && !parsed.data.endedAt) ||
-      (v.mode === 'start' && parsed.data.endedAt) ||
-      v.version !== null
+      (v.mode === 'start' && (parsed.data.endedAt || v.version !== null))
     )
       return { status: 'error', error: 'invalid' };
     const r = parsed.data;
@@ -107,22 +150,24 @@ export async function saveQuickCare(
       p_kind: r.kind,
       p_started_at: r.startedAt,
       p_ended_at: r.endedAt,
-      p_amount_ml: r.amount,
-      p_amount_g: null,
-      p_food_name: '',
+      p_amount_ml:
+        r.kind === 'solids' && input.amountUnit === 'g' ? null : r.amount,
+      p_amount_g:
+        r.kind === 'solids' && input.amountUnit === 'g' ? r.amount : null,
+      p_food_name: r.foodName,
       p_timezone: r.timezone,
       p_note: r.note,
-      p_version: null,
+      p_version: v.version,
     });
     error = result.error;
   } else {
     const parsed = childRecordSchema.safeParse({ ...input, service: v.source });
     if (
       !parsed.success ||
-      v.version !== null ||
       (v.source === 'sleep' &&
         ((v.mode === 'record' && !parsed.data.endedAt) ||
-          (v.mode === 'start' && parsed.data.endedAt))) ||
+          (v.mode === 'start' &&
+            (parsed.data.endedAt || v.version !== null)))) ||
       ((v.source === 'diaper' || v.source === 'activity') &&
         v.mode !== 'record')
     )
@@ -132,7 +177,7 @@ export async function saveQuickCare(
       p_id: r.id,
       p_child: r.childId,
       p_service: r.service,
-      p_version: null,
+      p_version: v.version,
       p_data: {
         kind: r.kind,
         temperature_c:
@@ -176,7 +221,7 @@ export async function saveQuickCare(
               : 'generic',
     };
   revalidatePath(`/${v.locale}/today`);
-  revalidatePath(`/${v.locale}/records`);
+  revalidatePath(`/${v.locale}/insights`);
   if (v.source !== 'feeding')
     revalidatePath(`/${v.locale}/services/${v.source}`);
   return { status: 'saved', id: v.id };

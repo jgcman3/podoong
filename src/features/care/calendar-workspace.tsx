@@ -81,6 +81,7 @@ export async function CalendarWorkspace({
     context.writable && create && Object.hasOwn(labels, create)
       ? (create as Kind)
       : undefined;
+  let composerKind: Kind = selected ?? 'event';
   let form: ReactNode = null,
     title = '';
   if (context.writable && edit) {
@@ -92,6 +93,7 @@ export async function CalendarWorkspace({
       notFound();
     title = ko ? '수정' : 'Edit';
     if (source === 'task') {
+      composerKind = 'task';
       const result = await context.db
         .from('tasks')
         .select('*')
@@ -109,6 +111,7 @@ export async function CalendarWorkspace({
         />
       );
     } else if (source === 'vaccination') {
+      composerKind = 'vaccination';
       const result = await context.db
         .from('vaccination_records')
         .select('*')
@@ -138,6 +141,12 @@ export async function CalendarWorkspace({
         .maybeSingle();
       if (result.error) throw new Error('Event unavailable');
       if (!result.data) notFound();
+      composerKind =
+        result.data.event_kind === 'hospital'
+          ? 'hospital'
+          : result.data.event_kind === 'medication'
+            ? 'medication'
+            : 'event';
       form = (
         <EventForm
           context={context}
@@ -215,150 +224,161 @@ export async function CalendarWorkspace({
           ))}
         </nav>
       )}
-      {form && (
-        <CalendarComposer
-          key={`${childId}:${edit ?? selected}`}
-          title={title}
-          back={back}
-          closeLabel={ko ? '닫기' : 'Close'}
-        >
-          {form}
-        </CalendarComposer>
-      )}
-      <section
-        className="panel calendar-workspace"
-        aria-label={ko ? '날짜별 일정과 할 일' : 'Schedules and tasks by date'}
+      <div
+        className={`quick-care-layout calendar-workspace-layout ${form ? 'has-editor' : ''}`}
       >
-        <MonthCalendar
-          locale={locale}
-          childId={childId}
-          today={context.today}
-          month={month}
-          day={day}
-          entries={entries}
-          tasks={tasks}
-        />
         <section
-          className="calendar-day-agenda"
+          className="panel calendar-workspace"
           aria-label={
-            ko
-              ? '선택한 날짜의 일정과 할 일'
-              : 'Schedules and tasks for selected date'
+            ko ? '날짜별 일정과 할 일' : 'Schedules and tasks by date'
           }
         >
-          <div className="calendar-day-lists">
-            <section
-              className="panel selected-day-events"
-              aria-labelledby="calendar-events-title"
-            >
-              <h3 id="calendar-events-title" className="calendar-agenda-title">
-                <CalendarDays size={15} aria-hidden="true" />
-                {ko ? '일정' : 'Events'}
-              </h3>
-              {selectedEntries.length ? (
-                selectedEntries.map((entry) => {
-                  const name = calendarTitle(entry, locale);
-                  return (
-                    <SwipeRow
-                      key={`${entry.source}:${entry.id}`}
-                      {...rowProps}
-                      title={name}
-                      editHref={calendarHref(locale, childId, day, {
-                        edit: `${entry.source}:${entry.id}`,
-                      })}
-                      deleteAction={
-                        entry.source === 'vaccination' ? (
-                          <form action={deleteVaccination}>
-                            <Hidden
+          <MonthCalendar
+            locale={locale}
+            childId={childId}
+            today={context.today}
+            month={month}
+            day={day}
+            entries={entries}
+            tasks={tasks}
+          />
+          <section
+            className="calendar-day-agenda"
+            aria-label={
+              ko
+                ? '선택한 날짜의 일정과 할 일'
+                : 'Schedules and tasks for selected date'
+            }
+          >
+            <div className="calendar-day-lists">
+              <section
+                className="panel selected-day-events"
+                aria-labelledby="calendar-events-title"
+              >
+                <h3
+                  id="calendar-events-title"
+                  className="calendar-agenda-title"
+                >
+                  <CalendarDays size={15} aria-hidden="true" />
+                  {ko ? '일정' : 'Events'}
+                </h3>
+                {selectedEntries.length ? (
+                  selectedEntries.map((entry) => {
+                    const name = calendarTitle(entry, locale);
+                    return (
+                      <SwipeRow
+                        key={`${entry.source}:${entry.id}`}
+                        {...rowProps}
+                        title={name}
+                        editHref={calendarHref(locale, childId, day, {
+                          edit: `${entry.source}:${entry.id}`,
+                        })}
+                        deleteAction={
+                          entry.source === 'vaccination' ? (
+                            <form action={deleteVaccination}>
+                              <Hidden
+                                locale={locale}
+                                childId={childId}
+                                id={entry.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="returnTo"
+                                value="calendar"
+                              />
+                              <input
+                                type="hidden"
+                                name="calendarDay"
+                                value={day}
+                              />
+                              <ConfirmButton
+                                label={t('delete')}
+                                message={t('deleteConfirm')}
+                                icon={<Trash2 size={19} aria-hidden="true" />}
+                              />
+                            </form>
+                          ) : (
+                            <DeleteCalendar
                               locale={locale}
                               childId={childId}
                               id={entry.id}
+                              kind="event"
+                              iconOnly
+                              calendarDay={day}
                             />
-                            <input
-                              type="hidden"
-                              name="returnTo"
-                              value="calendar"
-                            />
-                            <input
-                              type="hidden"
-                              name="calendarDay"
-                              value={day}
-                            />
-                            <ConfirmButton
-                              label={t('delete')}
-                              message={t('deleteConfirm')}
-                              icon={<Trash2 size={19} aria-hidden="true" />}
-                            />
-                          </form>
-                        ) : (
-                          <DeleteCalendar
-                            locale={locale}
-                            childId={childId}
-                            id={entry.id}
-                            kind="event"
-                            iconOnly
-                            calendarDay={day}
-                          />
-                        )
+                          )
+                        }
+                      >
+                        <AgendaEventCard
+                          entry={entry}
+                          locale={locale}
+                          childId={childId}
+                        />
+                      </SwipeRow>
+                    );
+                  })
+                ) : (
+                  <p className="muted calendar-empty">{t('noEvents')}</p>
+                )}
+              </section>
+              <section
+                className="panel calendar-tasks"
+                aria-labelledby="calendar-tasks-title"
+              >
+                <h3 id="calendar-tasks-title" className="calendar-agenda-title">
+                  <Check size={15} aria-hidden="true" />
+                  {ko ? '할 일' : 'Tasks'}
+                </h3>
+                {selectedTasks.length ? (
+                  selectedTasks.map((task) => (
+                    <SwipeRow
+                      key={task.id}
+                      {...rowProps}
+                      title={preparationTitle(task, locale)}
+                      editHref={calendarHref(locale, childId, day, {
+                        edit: `task:${task.id}`,
+                      })}
+                      deleteAction={
+                        <DeleteCalendar
+                          locale={locale}
+                          childId={childId}
+                          id={task.id}
+                          kind="task"
+                          iconOnly
+                          calendarDay={day}
+                        />
                       }
                     >
-                      <AgendaEventCard
-                        entry={entry}
-                        locale={locale}
-                        childId={childId}
-                      />
+                      <AgendaTaskCard task={task} locale={locale}>
+                        <TaskCheckbox
+                          task={task}
+                          locale={locale}
+                          childId={childId}
+                          writable={context.writable}
+                        />
+                      </AgendaTaskCard>
                     </SwipeRow>
-                  );
-                })
-              ) : (
-                <p className="muted calendar-empty">{t('noEvents')}</p>
-              )}
-            </section>
-            <section
-              className="panel calendar-tasks"
-              aria-labelledby="calendar-tasks-title"
-            >
-              <h3 id="calendar-tasks-title" className="calendar-agenda-title">
-                <Check size={15} aria-hidden="true" />
-                {ko ? '할 일' : 'Tasks'}
-              </h3>
-              {selectedTasks.length ? (
-                selectedTasks.map((task) => (
-                  <SwipeRow
-                    key={task.id}
-                    {...rowProps}
-                    title={preparationTitle(task, locale)}
-                    editHref={calendarHref(locale, childId, day, {
-                      edit: `task:${task.id}`,
-                    })}
-                    deleteAction={
-                      <DeleteCalendar
-                        locale={locale}
-                        childId={childId}
-                        id={task.id}
-                        kind="task"
-                        iconOnly
-                        calendarDay={day}
-                      />
-                    }
-                  >
-                    <AgendaTaskCard task={task} locale={locale}>
-                      <TaskCheckbox
-                        task={task}
-                        locale={locale}
-                        childId={childId}
-                        writable={context.writable}
-                      />
-                    </AgendaTaskCard>
-                  </SwipeRow>
-                ))
-              ) : (
-                <p className="muted calendar-empty">{t('noTasks')}</p>
-              )}
-            </section>
-          </div>
+                  ))
+                ) : (
+                  <p className="muted calendar-empty">{t('noTasks')}</p>
+                )}
+              </section>
+            </div>
+          </section>
         </section>
-      </section>
+        {form && (
+          <div className="quick-editor-host">
+            <CalendarComposer
+              key={`${childId}:${edit ?? selected}`}
+              title={title}
+              back={back}
+              kind={composerKind}
+            >
+              {form}
+            </CalendarComposer>
+          </div>
+        )}
+      </div>
     </>
   );
 }

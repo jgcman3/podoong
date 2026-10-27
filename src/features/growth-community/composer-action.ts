@@ -43,10 +43,10 @@ export async function createDiary(form: FormData) {
     !existing?.data?.child_record_photos.length
   )
     return { saved: false, error: 'empty' };
-  const result = await db.rpc('save_child_record', {
+  const result = await db.rpc('save_growth_diary', {
     p_id: value.id,
     p_child: value.childId,
-    p_service: 'growth',
+    p_private: form.get('private') === 'on',
     p_version: value.version,
     p_data: {
       kind: value.kind,
@@ -59,7 +59,11 @@ export async function createDiary(form: FormData) {
       head_cm: value.head,
     },
   });
-  if (result.error) return { saved: false, error: 'generic' };
+  if (result.error)
+    return {
+      saved: false,
+      error: result.error.code === '22023' ? 'birth' : 'generic',
+    };
   let photoFailed = false;
   if (photo && bytes && type) {
     const id = crypto.randomUUID();
@@ -81,6 +85,8 @@ export async function createDiary(form: FormData) {
     }
   }
   revalidatePath(`/${locale}/community/diaries`);
+  revalidatePath(`/${locale}/today`);
+  revalidatePath(`/${locale}/insights`);
   return { saved: true, error: photoFailed ? 'photo' : '' };
 }
 
@@ -102,5 +108,7 @@ export async function removeDiary(form: FormData) {
   const result = await db.rpc('delete_child_record', { p_id: parsed.data.id });
   if (result.error) return false;
   revalidatePath(`/${locale}/community/diaries`);
+  revalidatePath(`/${locale}/today`);
+  revalidatePath(`/${locale}/insights`);
   return true;
 }

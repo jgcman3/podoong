@@ -20,10 +20,15 @@ export default async function ServicePage({
 }) {
   const { locale, service } = await params;
   const q = await searchParams;
-  if (service === 'food') {
-    const query = new URLSearchParams({ kind: 'solids' });
-    if (q.child) query.set('child', q.child);
-    redirect(`/${locale}/records?${query}`);
+  if (
+    ['food', 'feeding', 'sleep', 'diaper', 'activity', 'growth'].includes(
+      service,
+    )
+  ) {
+    const target = service === 'growth' ? 'community/diaries' : 'today';
+    redirect(
+      `/${locale}/${target}${q.child ? `?child=${encodeURIComponent(q.child)}` : ''}`,
+    );
   }
   if (service === 'community' || service === 'polls')
     redirect(`/${locale}/${service}`);

@@ -5,8 +5,6 @@ import { z } from 'zod';
 import { calendarReturn } from './calendar-return';
 import { requireUser } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
-import { isFood } from './feeding-record';
-import { feedingRecordSchema } from './feeding-schema';
 const optionalDate = z
   .union([z.literal(''), z.iso.date()])
   .transform((v) => v || null);
@@ -17,39 +15,6 @@ function statusQuery(error: { message: string; code?: string } | null) {
 }
 function localeOf(form: FormData): Locale {
   return form.get('locale') === 'en' ? 'en' : 'ko';
-}
-export async function saveRecord(form: FormData) {
-  const locale = localeOf(form);
-  const { db } = await requireUser(locale);
-  const parsed = feedingRecordSchema.safeParse(Object.fromEntries(form));
-  if (!parsed.success) redirect(`/${locale}/records?error=invalid`);
-  const v = parsed.data;
-  const legacyGrams =
-    isFood(v.kind) && v.version !== null && form.get('amountUnit') === 'g';
-  const { error } = await db.rpc('save_feeding_record', {
-    p_id: v.id,
-    p_child_id: v.childId,
-    p_kind: v.kind,
-    p_started_at: v.startedAt,
-    p_ended_at: v.endedAt,
-    p_amount_ml: legacyGrams ? null : v.amount,
-    p_amount_g: legacyGrams ? v.amount : null,
-    p_food_name: isFood(v.kind) ? v.foodName : '',
-    p_timezone: v.timezone,
-    p_note: v.note,
-    p_version: v.version,
-  });
-  redirect(`/${locale}/records?child=${v.childId}&${statusQuery(error)}`);
-}
-export async function deleteRecord(form: FormData) {
-  const locale = localeOf(form);
-  const { db } = await requireUser(locale);
-  const id = uuid.safeParse(form.get('id'));
-  const child = uuid.safeParse(form.get('childId'));
-  if (!id.success || !child.success)
-    redirect(`/${locale}/records?error=invalid`);
-  const { error } = await db.rpc('delete_care_record', { p_id: id.data });
-  redirect(`/${locale}/records?child=${child.data}&${statusQuery(error)}`);
 }
 export async function saveTask(form: FormData) {
   const locale = localeOf(form);

@@ -5,7 +5,10 @@ import type { PatternCategory } from './model';
 import { patternTime } from './pattern';
 const position = (minute: number, radius: number) => {
   const angle = (minute / 1440) * Math.PI * 2 - Math.PI / 2;
-  return [190 + Math.cos(angle) * radius, 190 + Math.sin(angle) * radius];
+  // Keep SVG coordinates identical across server and browser math engines.
+  return [190 + Math.cos(angle) * radius, 190 + Math.sin(angle) * radius].map(
+    (value) => Math.round(value * 10000) / 10000,
+  );
 };
 function arc(start: number, end: number) {
   const outerStart = position(start, 140),
@@ -16,11 +19,13 @@ function arc(start: number, end: number) {
   return `M ${outerStart.join(' ')} A 140 140 0 ${large} 1 ${outerEnd.join(' ')} L ${innerEnd.join(' ')} A 70 70 0 ${large} 0 ${innerStart.join(' ')} Z`;
 }
 export function DailyPattern({
+  expanded = false,
   categories,
   locale,
   day,
   birthDate,
 }: {
+  expanded?: boolean;
   categories: PatternCategory[];
   locale: Locale;
   day: string;
@@ -34,7 +39,7 @@ export function DailyPattern({
   return (
     <svg
       className="insight-daily-pattern"
-      viewBox="0 0 380 380"
+      viewBox={expanded ? '8 8 364 364' : '0 0 380 380'}
       role="img"
       aria-label={
         locale === 'ko'

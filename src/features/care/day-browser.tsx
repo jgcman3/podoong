@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import {
@@ -21,6 +21,7 @@ export function DayBrowser({
   agenda,
   writable,
   children,
+  revision = 0,
 }: {
   locale: Locale;
   childId: string;
@@ -30,6 +31,7 @@ export function DayBrowser({
   disabled: boolean;
   agenda: DayAgendaData;
   writable: boolean;
+  revision?: number;
   children: (entries: QuickEntry[], day: string) => ReactNode;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
@@ -54,6 +56,27 @@ export function DayBrowser({
   const history = (selected === null ? entries : pastEntries).filter(
     (entry) => !entry.running,
   );
+  useEffect(() => {
+    if (!selected) return;
+    let cancelled = false;
+    void loadQuickDay({ locale, childId, day: selected })
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.ok) {
+          setFailed(selected);
+          return;
+        }
+        setPastEntries(result.entries);
+        setPastAgenda(result.agenda);
+        setPastWritable(result.writable);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(selected);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [revision, selected, locale, childId]);
   const totals = dailyFeedingTotals(history, day, timezone);
   const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
   const label = new Intl.DateTimeFormat(locale, {
@@ -105,7 +128,7 @@ export function DayBrowser({
           !event.isPrimary ||
           event.button !== 0 ||
           (event.target as HTMLElement).closest(
-            'button,input,select,textarea,summary,dialog',
+            'button:not(.quick-timeline-entry),input,select,textarea,summary,dialog',
           )
         )
           return;

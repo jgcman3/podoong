@@ -1,6 +1,6 @@
 'use client';
 import { createRecordId } from '@/lib/record-id';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { PenLine, X, ImagePlus, Ellipsis } from 'lucide-react';
 import Image from 'next/image';
@@ -10,9 +10,17 @@ export function DiaryComposer({
   child,
   locale,
   record,
+  trigger,
+  triggerClassName,
+  disabled,
+  onSaved,
 }: {
   child: string;
   locale: 'ko' | 'en';
+  trigger?: ReactNode;
+  triggerClassName?: string;
+  disabled?: boolean;
+  onSaved?: () => void;
   record?: {
     id: string;
     version: number;
@@ -21,6 +29,7 @@ export function DiaryComposer({
     height_cm: number | null;
     head_cm: number | null;
     photo_ids: string[];
+    is_private: boolean;
   };
 }) {
   const ko = locale === 'ko';
@@ -38,7 +47,7 @@ export function DiaryComposer({
   function open() {
     setOpened(true);
     id.current = record?.id ?? createRecordId();
-    setEditing(!record);
+    setEditing(Boolean(trigger) || !record);
     setConfirmDelete(false);
     form.current?.reset();
     setError('');
@@ -66,15 +75,20 @@ export function DiaryComposer({
         );
         dialog.current?.close();
         router.refresh();
+        onSaved?.();
       } else
         setError(
-          result.error === 'empty'
+          result.error === 'birth'
             ? ko
-              ? '글, 사진 또는 성장 수치를 입력해 주세요.'
-              : 'Add a note, photo, or measurement.'
-            : ko
-              ? '입력값과 사진 형식을 확인하고 다시 저장해 주세요.'
-              : 'Check the fields and photo format, then try again.',
+              ? '공개하려면 아이의 출생일과 기록 시각을 확인해 주세요. 비공개로도 저장할 수 있어요.'
+              : 'Check the birth date and record time to publish, or save privately.'
+            : result.error === 'empty'
+              ? ko
+                ? '글, 사진 또는 성장 수치를 입력해 주세요.'
+                : 'Add a note, photo, or measurement.'
+              : ko
+                ? '입력값과 사진 형식을 확인하고 다시 저장해 주세요.'
+                : 'Check the fields and photo format, then try again.',
         );
     } catch {
       setError(
@@ -102,6 +116,7 @@ export function DiaryComposer({
       if (!(await removeDiary(data))) throw new Error('delete');
       dialog.current?.close();
       router.refresh();
+      onSaved?.();
     } catch {
       setError(
         ko
@@ -120,15 +135,27 @@ export function DiaryComposer({
       ? '일기 쓰기'
       : 'Write a diary';
   return (
-    <div className={record ? 'diary-manage-entry' : 'diary-compose-entry'}>
+    <div
+      className={
+        trigger
+          ? 'quick-diary-entry'
+          : record
+            ? 'diary-manage-entry'
+            : 'diary-compose-entry'
+      }
+    >
       {warning && <p role="status">{warning}</p>}
       <button
         type="button"
-        className={record ? 'diary-manage-icon' : 'diary-compose-add'}
+        className={
+          triggerClassName ??
+          (record ? 'diary-manage-icon' : 'diary-compose-add')
+        }
+        disabled={disabled}
         onClick={open}
         aria-label={title}
       >
-        {record ? <Ellipsis size={22} /> : <PenLine size={24} />}
+        {trigger ?? (record ? <Ellipsis size={22} /> : <PenLine size={24} />)}
       </button>
       <dialog
         ref={dialog}
@@ -299,8 +326,32 @@ export function DiaryComposer({
                       </label>
                     ))}
                   </div>
+                  <label className="diary-privacy-option">
+                    <input
+                      type="checkbox"
+                      name="private"
+                      defaultChecked={record?.is_private ?? false}
+                    />
+                    {ko ? '비공개' : 'Private'}
+                  </label>
                 </fieldset>
                 {error && <p role="alert">{error}</p>}
+                {record && (
+                  <button
+                    type="button"
+                    className="button secondary"
+                    disabled={pending}
+                    onClick={deleteEntry}
+                  >
+                    {confirmDelete
+                      ? ko
+                        ? '삭제 확인'
+                        : 'Confirm delete'
+                      : ko
+                        ? '삭제'
+                        : 'Delete'}
+                  </button>
+                )}
                 <button
                   type="submit"
                   className="button primary"

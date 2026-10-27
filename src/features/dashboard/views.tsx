@@ -1,4 +1,5 @@
 import residenceCountries from '@/features/family/countries.json';
+import { InstallAppButton } from '@/components/install-app';
 import { loadDayAgenda } from '@/features/care/day-agenda-data';
 import { TaskCheckbox } from '@/features/care/task-checkbox';
 import { CalendarWorkspace } from '@/features/care/calendar-workspace';
@@ -6,11 +7,9 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import {
   Milk,
-  Utensils,
   Moon,
   Baby,
   Ruler,
-  Clock,
   ArrowUpRight,
   CalendarDays,
   Plus,
@@ -28,7 +27,6 @@ import { Nest } from '@/components/nest';
 import { ConfirmButton } from '@/components/confirm-button';
 import type { CareContext } from '@/lib/data';
 import { services, preparationTitle, type Locale } from '@/lib/domain';
-import { RecordForm, Timer } from '@/features/care/record-form';
 import { QuickCare } from '@/features/care/quick-care';
 import {
   loadQuickTimeline,
@@ -37,12 +35,9 @@ import {
 import { ResidenceForm } from '@/features/family/residence-form';
 import { calendarTitle, calendarKind } from '@/features/care/calendar-entry';
 import { LastCare } from '@/features/care/last-care';
-import { MealPlanEditor } from '@/features/care/meal-plan-editor';
-import { ChildRecordList } from '@/features/child-care/views';
 import { VaccinationList } from '@/features/vaccination/views';
 import { isChildService } from '@/features/child-care/schema';
-import { isFood, isFeedingKind } from '@/features/care/feeding-record';
-import { addTemplates, deleteRecord } from '@/features/care/actions';
+import { addTemplates } from '@/features/care/actions';
 import {
   TaskForm,
   EventForm,
@@ -296,148 +291,6 @@ export async function Today({ context, locale }: Props) {
     </>
   );
 }
-export async function Records({
-  context,
-  locale,
-  edit,
-  kind,
-}: {
-  context: CareContext;
-  locale: Locale;
-  edit?: string;
-  kind?: string;
-}) {
-  const t = await getTranslations();
-  const selected = context.records.find((r) => r.id === edit);
-  const mealResult = await context.db
-    .from('child_meal_plans')
-    .select('*')
-    .eq('child_id', context.child.id)
-    .maybeSingle();
-  if (mealResult.error && mealResult.error.code !== 'PGRST205')
-    throw new Error('Meal plan unavailable');
-  const mealPlan = mealResult.data
-    ? {
-        feedingMinutes: mealResult.data.feeding_minutes,
-        solids: mealResult.data.solids_times,
-      }
-    : null;
-  return (
-    <>
-      <PageHeading title={t('records')} subtitle={t('quickRecordSub')} />
-      {!context.writable && <div className="flash">{t('readonly')}</div>}
-      <div className="two-column">
-        <section className="panel">
-          <div className="panel-heading">
-            <h2>
-              <Milk size={19} />
-              {selected ? t('edit') : t('quickRecord')}
-            </h2>
-          </div>
-          {context.writable && (
-            <RecordForm
-              key={selected?.id ?? crypto.randomUUID()}
-              locale={locale}
-              childId={context.child.id}
-              record={selected}
-              defaultKind={isFeedingKind(kind) ? kind : 'breast'}
-              now={new Date().toISOString()}
-            />
-          )}
-          {context.writable && (
-            <MealPlanEditor
-              key={`${context.child.id}:${JSON.stringify(mealPlan)}`}
-              locale={locale}
-              childId={context.child.id}
-              plan={mealPlan}
-              timezone={mealResult.data?.timezone ?? context.timezone}
-              available={!mealResult.error}
-            />
-          )}
-        </section>
-        <section className="panel">
-          <div className="panel-heading">
-            <h2>
-              <Clock size={19} />
-              {t('history')}
-            </h2>
-          </div>
-          {context.records.length ? (
-            <div className="record-list">
-              {context.records.map((r) => (
-                <article key={r.id} className="record-row">
-                  <div className="record-icon">
-                    {isFood(r.kind) ? (
-                      <Utensils size={20} />
-                    ) : (
-                      <Milk size={20} />
-                    )}
-                  </div>
-                  <div className="record-info">
-                    <strong>{t(r.kind)}</strong>
-                    <span>
-                      {formatTime(r.started_at, locale, context.timezone)}
-                    </span>
-                    {r.ended_at ? (
-                      <span className="record-amount">
-                        {r.amount_ml !== null
-                          ? `${r.amount_ml} ml · `
-                          : r.amount_g !== null
-                            ? `${r.amount_g} g · `
-                            : ''}
-                        {Math.round(
-                          (Date.parse(r.ended_at) - Date.parse(r.started_at)) /
-                            60000,
-                        )}{' '}
-                        min
-                      </span>
-                    ) : (
-                      <Timer start={r.started_at} />
-                    )}
-                    {r.food_name && <p>{r.food_name}</p>}
-                    <p>{r.note}</p>
-                    <span className="small muted">
-                      {t('author')}:{' '}
-                      {r.created_by === context.user.id
-                        ? context.profile.display_name
-                        : (context.caregivers.find(
-                            (m) => m.user_id === r.created_by,
-                          )?.display_name ?? t('formerMember'))}
-                    </span>
-                  </div>
-                  {context.writable && (
-                    <div className="record-actions">
-                      <Link
-                        href={`/${locale}/records?child=${context.child.id}&page=${context.page}&edit=${r.id}`}
-                        className="text-link"
-                      >
-                        {r.ended_at ? t('edit') : t('stopTimer')}
-                      </Link>
-                      <form action={deleteRecord}>
-                        <Hidden
-                          locale={locale}
-                          childId={context.child.id}
-                          id={r.id}
-                        />
-                        <ConfirmButton
-                          label={t('delete')}
-                          message={t('deleteConfirm')}
-                        />
-                      </form>
-                    </div>
-                  )}
-                </article>
-              ))}
-            </div>
-          ) : (
-            <Empty title={t('empty')} subtitle={t('emptySub')} />
-          )}
-        </section>
-      </div>
-      <Pagination context={context} locale={locale} path="records" />
-    </>
-  );
-}
 export async function Calendar({
   context,
   locale,
@@ -580,6 +433,7 @@ export async function Services({ context, locale }: Props) {
     <>
       <PageHeading title={t('services')} subtitle={t('servicesSub')} />
       <div className="services-grid">
+        <InstallAppButton locale={locale} card />
         {services
           .filter(
             ([key]) =>
@@ -664,17 +518,6 @@ export async function ServiceDetail({
         tab={tab}
       />
     );
-  if (isChildService(service))
-    return (
-      <ChildRecordList
-        context={context}
-        locale={locale}
-        service={service}
-        page={page}
-      />
-    );
-  if (service === 'feeding')
-    return <Records context={context} locale={locale} />;
   if (item?.[2] === 'planned')
     return (
       <>
@@ -954,6 +797,9 @@ export async function Settings({ context, locale }: Props) {
   return (
     <>
       <PageHeading title={t('settings')} subtitle={t('tagline')} />
+      <section className="panel settings-install">
+        <InstallAppButton locale={locale} />
+      </section>
       <section className="panel settings-language">
         <h2>{locale === 'ko' ? '언어' : 'Language'}</h2>
         <div className="residence-actions">

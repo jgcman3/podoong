@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useInsightsNavigation } from './navigation';
 import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
@@ -12,6 +12,12 @@ import {
   WeeklyPattern,
 } from './pattern';
 import { DailyPattern } from './daily-pattern';
+const mobileQuery = '(max-width: 760px)';
+function subscribeMobile(change: () => void) {
+  const query = window.matchMedia(mobileQuery);
+  query.addEventListener('change', change);
+  return () => query.removeEventListener('change', change);
+}
 export function PatternBrowser({
   categories,
   locale,
@@ -31,6 +37,11 @@ export function PatternBrowser({
   selectedDay?: string;
   children: ReactNode;
 }) {
+  const mobile = useSyncExternalStore(
+    subscribeMobile,
+    () => window.matchMedia(mobileQuery).matches,
+    () => false,
+  );
   const { pending, navigate: visit } = useInsightsNavigation();
   const [offset, setOffset] = useState(0);
   const drag = useRef<{
@@ -77,7 +88,10 @@ export function PatternBrowser({
     visit(patch);
   }
   return (
-    <section className="panel insight-overlay-panel" aria-busy={pending}>
+    <section
+      className={`panel insight-overlay-panel ${statistics ? '' : 'insight-pattern-panel'}`}
+      aria-busy={pending}
+    >
       {!statistics && (
         <nav
           className="insight-day-nav insight-period-nav"
@@ -220,13 +234,18 @@ export function PatternBrowser({
             >
               {daily ? (
                 <DailyPattern
+                  expanded={mobile}
                   categories={categories}
                   locale={locale}
                   day={day}
                   birthDate={birthDate}
                 />
               ) : (
-                <WeeklyPattern categories={categories} locale={locale} />
+                <WeeklyPattern
+                  categories={categories}
+                  locale={locale}
+                  expanded={mobile}
+                />
               )}
             </div>
             {pending && (

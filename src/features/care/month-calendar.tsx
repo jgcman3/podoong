@@ -64,14 +64,6 @@ export function MonthCalendar({
         >
           <ChevronRight size={20} />
         </Link>
-        <Link
-          className="month-today"
-          href={calendarHref(locale, childId, today)}
-          scroll={false}
-          prefetch={false}
-        >
-          {ko ? '오늘' : 'Today'}
-        </Link>
       </header>
       <table>
         <thead>

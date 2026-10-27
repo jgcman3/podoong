@@ -1,4 +1,7 @@
 'use client';
+import { VaccinePicker } from './picker';
+import { CalendarDateTimeField } from '@/features/care/calendar-date-time-field';
+import { CalendarFormActions } from '@/features/care/calendar-composer';
 import { createRecordId } from '@/lib/record-id';
 import { useState, useSyncExternalStore } from 'react';
 import { useFormStatus } from 'react-dom';
@@ -133,24 +136,32 @@ export function VaccinationForm({
         name="timezone"
         value={record?.record_timezone ?? timezone}
       />
-      <label>
-        {t.vaccine}
-        <select
-          required
-          name="vaccine"
-          value={vaccine}
-          onChange={(e) => setVaccine(e.target.value)}
-        >
-          {returnTo === 'calendar' && (
-            <option value="">{locale === 'ko' ? '선택' : 'Select'}</option>
-          )}
-          {vaccines.map((v, i) => (
-            <option key={v} value={v}>
-              {names[locale][i]}
-            </option>
-          ))}
-        </select>
-      </label>
+      {returnTo === 'calendar' ? (
+        <>
+          <input type="hidden" name="vaccine" value={vaccine} />
+          <VaccinePicker
+            locale={locale}
+            value={vaccine}
+            onChange={setVaccine}
+          />
+        </>
+      ) : (
+        <label>
+          {t.vaccine}
+          <select
+            required
+            name="vaccine"
+            value={vaccine}
+            onChange={(e) => setVaccine(e.target.value)}
+          >
+            {vaccines.map((v, i) => (
+              <option key={v} value={v}>
+                {names[locale][i]}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {vaccine === 'other' && (
         <label>
           {t.custom}
@@ -162,17 +173,16 @@ export function VaccinationForm({
           />
         </label>
       )}
-      <label>
-        {t.scheduled}
-        <input
-          type="date"
-          name="scheduled"
-          required={status === 'planned'}
-          defaultValue={
-            record?.scheduled_date ?? (record ? '' : (defaultDate ?? today))
-          }
-        />
-      </label>
+      <CalendarDateTimeField
+        label={t.scheduled}
+        name="scheduled"
+        type="date"
+        locale={locale}
+        required={status === 'planned'}
+        defaultValue={
+          record?.scheduled_date ?? (record ? '' : (defaultDate ?? today))
+        }
+      />
       {returnTo === 'calendar' ? (
         <details
           className="calendar-more-fields"
@@ -184,17 +194,19 @@ export function VaccinationForm({
       ) : (
         optionalFields
       )}
-      <Submit label={t.save} />
-      <Link
-        className="text-link"
-        href={
-          returnTo === 'calendar'
-            ? `/${locale}/calendar?child=${childId}&day=${calendarDay ?? today}&month=${(calendarDay ?? today).slice(0, 7)}`
-            : `/${locale}/services/vaccination?child=${childId}`
-        }
-      >
-        {t.cancel}
-      </Link>
+      {returnTo === 'calendar' ? (
+        <CalendarFormActions locale={locale} disabled={!vaccine} />
+      ) : (
+        <>
+          <Submit label={t.save} />
+          <Link
+            className="text-link"
+            href={`/${locale}/services/vaccination?child=${childId}`}
+          >
+            {t.cancel}
+          </Link>
+        </>
+      )}
     </form>
   );
 }

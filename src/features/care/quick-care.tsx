@@ -1,6 +1,10 @@
 'use client';
 import { QuickFieldTitle } from './quick-field-title';
-import { BreastIcon } from '@/components/breast-icon';
+import { ActivityRail } from './activity-rail';
+import {
+  careIcons as icons,
+  careLabels as shortLabels,
+} from './activity-config';
 import { createRecordId } from '@/lib/record-id';
 import {
   useState,
@@ -9,24 +13,13 @@ import {
   useActionState,
   useSyncExternalStore,
 } from 'react';
-import Link from 'next/link';
+import { DiaryComposer } from '@/features/growth-community/composer';
+import { QuickDelete } from './quick-delete';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
-  Bath,
-  Hospital,
-  Syringe,
-  Thermometer,
-  Pill,
-  Apple,
-  Shapes,
-  Smile,
-  Toilet,
-  Milk,
-  Utensils,
-  Moon,
   Baby,
-  Ruler,
+  Moon,
   Heart,
   Check,
   Play,
@@ -38,7 +31,7 @@ import {
 import type { Locale } from '@/lib/domain';
 import { dateInTimeZone } from '@/lib/domain';
 import { kindLabel } from '@/features/child-care/copy';
-import { Timer } from './record-form';
+import { Timer } from './timer';
 import { endFromDuration } from './feeding-record';
 import { saveQuickCare, type QuickSaveState } from './quick-actions';
 import {
@@ -55,87 +48,11 @@ import { DayBrowser } from './day-browser';
 import { ActivityFields } from './activity-fields';
 import { activityKinds } from '@/features/child-care/schema';
 import { quickCopy } from './quick-copy';
-const icons = {
-  breast: BreastIcon,
-  formula: Milk,
-  solids: Utensils,
-  sleep: Moon,
-  diaper: Baby,
-  growth: Ruler,
-  stool: Toilet,
-  bath: Bath,
-  hospital: Hospital,
-  vaccination: Syringe,
-  temperature: Thermometer,
-  medication: Pill,
-  snack: Apple,
-  play: Shapes,
-  tummy: Smile,
-};
-const kinds = [
-  'breast',
-  'formula',
-  'solids',
-  'diaper',
-  'stool',
-  'sleep',
-  'bath',
-  'hospital',
-  'vaccination',
-  'temperature',
-  'medication',
-  'snack',
-  'play',
-  'tummy',
-] as const;
-const shortLabels = (locale: Locale) =>
-  locale === 'ko'
-    ? {
-        breast: '모유',
-        formula: '분유',
-        solids: '이유식',
-        diaper: '기저귀',
-        stool: '배변',
-        sleep: '수면',
-        bath: '목욕',
-        hospital: '병원',
-        vaccination: '예방접종',
-        temperature: '체온',
-        medication: '투약',
-        snack: '간식',
-        play: '놀이',
-        tummy: '터미타임',
-        growth: '성장',
-      }
-    : {
-        breast: 'Breast',
-        formula: 'Formula',
-        solids: 'Solids',
-        diaper: 'Diaper',
-        stool: 'Poop',
-        sleep: 'Sleep',
-        bath: 'Bath',
-        hospital: 'Doctor',
-        vaccination: 'Vaccine',
-        temperature: 'Temp',
-        medication: 'Medicine',
-        snack: 'Snack',
-        play: 'Play',
-        tummy: 'Tummy time',
-        growth: 'Growth',
-      };
 const mobileQuery = '(max-width: 900px)';
 function subscribeMobile(change: () => void) {
   const query = window.matchMedia(mobileQuery);
   query.addEventListener('change', change);
   return () => query.removeEventListener('change', change);
-}
-function entryHref(entry: QuickEntry, locale: Locale, childId: string) {
-  if (entry.source === 'vaccination')
-    return `/${locale}/vaccination/${entry.id}?child=${childId}`;
-  return entry.source === 'feeding'
-    ? `/${locale}/records?child=${childId}&edit=${entry.id}`
-    : `/${locale}/care/${entry.service}/${entry.id}?child=${childId}`;
 }
 export function QuickCare({
   locale,
@@ -171,11 +88,6 @@ export function QuickCare({
     () => false,
   );
   const labels = shortLabels(locale);
-  const rail = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; scroll: number; moved: boolean } | null>(
-    null,
-  );
-
   const visible = todayEntries(entries, today, timezone);
   const active = visible.filter((e) => e.running);
   useEffect(() => {
@@ -241,88 +153,14 @@ export function QuickCare({
       className="quick-care"
       aria-label={locale === 'ko' ? '육아 기록' : 'Care records'}
     >
-      <div
-        className="quick-grid quick-orbit mobile-function-rail"
-        ref={rail}
-        role="group"
-        aria-label={locale === 'ko' ? '빠른 기록 선택' : 'Choose a care record'}
-        onPointerDown={(event) => {
-          if (event.pointerType !== 'mouse' || event.button !== 0) return;
-          drag.current = {
-            x: event.clientX,
-            scroll: rail.current!.scrollLeft,
-            moved: false,
-          };
-        }}
-        onPointerMove={(event) => {
-          const d = drag.current;
-          if (!d || !rail.current) return;
-          const distance = event.clientX - d.x;
-          if (Math.abs(distance) > 6) {
-            d.moved = true;
-            rail.current.setPointerCapture(event.pointerId);
-          }
-          if (d.moved) rail.current.scrollLeft = d.scroll - distance;
-        }}
-        onPointerUp={() => {
-          if (drag.current?.moved)
-            window.setTimeout(() => {
-              drag.current = null;
-            }, 0);
-          else drag.current = null;
-        }}
-        onPointerLeave={() => {
-          if (drag.current && !drag.current.moved) drag.current = null;
-        }}
-        onPointerCancel={() => {
-          drag.current = null;
-        }}
-        onClickCapture={(event) => {
-          if (drag.current?.moved) {
-            event.preventDefault();
-            event.stopPropagation();
-          }
-        }}
-      >
-        {kinds.map((kind) => {
-          const Icon = icons[kind];
-          return writable ? (
-            <button
-              type="button"
-              key={kind}
-              className={`quick-orbit-item quick-color-${kind} ${selection?.kind === kind ? 'is-current' : ''}`}
-              aria-label={labels[kind]}
-              onClick={() => open(kind)}
-              disabled={busy}
-              aria-haspopup={mobile ? 'dialog' : undefined}
-              aria-expanded={selection?.kind === kind}
-            >
-              <span className="quick-orbit-icon">
-                <Icon size={27} />
-              </span>
-              <strong>{labels[kind]}</strong>
-            </button>
-          ) : (
-            <Link
-              key={kind}
-              className={`quick-orbit-item quick-color-${kind}`}
-              draggable={false}
-              href={
-                kind === 'vaccination'
-                  ? `/${locale}/services/vaccination?child=${childId}`
-                  : kind === 'sleep' || kind === 'diaper' || kind === 'stool'
-                    ? `/${locale}/services/${kind === 'stool' ? 'diaper' : kind}?child=${childId}`
-                    : `/${locale}/${activityKinds.includes(kind as (typeof activityKinds)[number]) ? 'services/activity' : 'records'}?child=${childId}`
-              }
-            >
-              <span className="quick-orbit-icon">
-                <Icon size={27} />
-              </span>
-              <strong>{labels[kind]}</strong>
-            </Link>
-          );
-        })}
-      </div>
+      <ActivityRail
+        locale={locale}
+        label={locale === 'ko' ? '빠른 기록 선택' : 'Choose a care record'}
+        selected={selection ? [selection.kind] : []}
+        onSelect={(kind) => open(kind)}
+        disabled={!writable || busy}
+        popup={mobile}
+      />
       <div className={`quick-care-layout ${selection ? 'has-editor' : ''}`}>
         <div className="quick-timeline-panel">
           {active.length > 0 && (
@@ -361,7 +199,7 @@ export function QuickCare({
             </div>
           )}
           <DayBrowser
-            key={historyRevision}
+            revision={historyRevision}
             locale={locale}
             childId={childId}
             today={today}
@@ -428,22 +266,66 @@ export function QuickCare({
                             )}
                           </div>
                           <span className="quick-timeline-dot" />
-                          <Link
-                            className={`quick-timeline-entry quick-entry-${e.service} quick-color-${iconKey}`}
-                            draggable={false}
-                            href={entryHref(e, locale, childId)}
-                          >
-                            <span
-                              className={`quick-entry-icon quick-color-${iconKey}`}
+                          {e.service === 'growth' && e.childRecord ? (
+                            <DiaryComposer
+                              locale={locale}
+                              child={childId}
+                              record={{
+                                ...e.childRecord,
+                                photo_ids: e.photoIds ?? [],
+                                is_private: e.isPrivate ?? true,
+                              }}
+                              trigger={
+                                <>
+                                  <span className="quick-entry-icon">
+                                    <Icon size={21} />
+                                  </span>
+                                  <span>
+                                    <strong>{name}</strong>
+                                    {summary && <small>{summary}</small>}
+                                  </span>
+                                  <ChevronRight size={15} />
+                                </>
+                              }
+                              triggerClassName={`quick-timeline-entry quick-entry-${e.service} quick-color-${iconKey}`}
+                              disabled={!writable}
+                              onSaved={completed}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={!writable || busy}
+                              onClick={() =>
+                                open(
+                                  (e.source === 'vaccination'
+                                    ? 'vaccination'
+                                    : e.service === 'feeding' ||
+                                        e.service === 'activity'
+                                      ? e.kind
+                                      : e.service === 'diaper'
+                                        ? e.kind === 'dirty' ||
+                                          e.kind === 'mixed'
+                                          ? 'stool'
+                                          : 'diaper'
+                                        : 'sleep') as QuickKind,
+                                  e,
+                                )
+                              }
+                              className={`quick-timeline-entry quick-entry-${e.service} quick-color-${iconKey}`}
+                              draggable={false}
                             >
-                              <Icon size={21} />
-                            </span>
-                            <span>
-                              <strong>{name}</strong>
-                              {summary && <small>{summary}</small>}
-                            </span>
-                            <ChevronRight size={15} />
-                          </Link>
+                              <span
+                                className={`quick-entry-icon quick-color-${iconKey}`}
+                              >
+                                <Icon size={21} />
+                              </span>
+                              <span>
+                                <strong>{name}</strong>
+                                {summary && <small>{summary}</small>}
+                              </span>
+                              <ChevronRight size={15} />
+                            </button>
+                          )}
                         </li>
                       );
                     })}
@@ -471,7 +353,8 @@ export function QuickCare({
             >
               {selection?.kind === 'vaccination' ? (
                 <QuickVaccination
-                  key={`${childId}:vaccination`}
+                  key={`${childId}:vaccination:${selection.active?.id ?? 'new'}`}
+                  record={selection.active?.vaccinationRecord}
                   locale={locale}
                   childId={childId}
                   today={today}
@@ -535,20 +418,26 @@ function QuickEditor({
   );
   const diaper = kind === 'diaper' || kind === 'stool';
   const [mode, setMode] = useState<'start' | 'record' | 'stop'>(
-    active
+    active?.running
       ? 'stop'
-      : kind === 'breast' || kind === 'sleep'
-        ? 'start'
-        : 'record',
+      : active
+        ? 'record'
+        : kind === 'breast' || kind === 'sleep'
+          ? 'start'
+          : 'record',
   );
   const [id] = useState(() => active?.id ?? createRecordId());
   const [start, setStart] = useState(() =>
     localDateInput(active?.startedAt ?? new Date().toISOString()),
   );
-  const [timeEdited, setTimeEdited] = useState(false);
-  const [duration, setDuration] = useState('');
+  const [timeEdited, setTimeEdited] = useState(Boolean(active));
+  const [duration, setDuration] = useState(
+    active?.endedAt ? String(durationMinutes(active)) : '',
+  );
   const [amount, setAmount] = useState(
-    String(initialAmount ?? (kind === 'solids' ? 50 : 80)),
+    active
+      ? String(active.amount ?? '')
+      : String(initialAmount ?? (kind === 'solids' ? 50 : 80)),
   );
   const [recordKind, setRecordKind] = useState(
     active?.kind ??
@@ -564,7 +453,9 @@ function QuickEditor({
     saveQuickCare,
     { status: 'idle' },
   );
-  useEffect(() => onPending(pending), [pending, onPending]);
+  const [deleting, setDeleting] = useState(false);
+  const busy = pending || deleting;
+  useEffect(() => onPending(busy), [busy, onPending]);
   const notified = useRef(false);
   useEffect(() => {
     if (state.status === 'saved' && !notified.current) {
@@ -572,12 +463,16 @@ function QuickEditor({
       completed();
     }
   }, [state, completed]);
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timezone =
+    active?.feedingRecord?.record_timezone ??
+    active?.childRecord?.record_timezone ??
+    Intl.DateTimeFormat().resolvedOptions().timeZone;
   const startIso =
-    active?.startedAt ??
-    (start && Number.isFinite(new Date(start).getTime())
-      ? new Date(start).toISOString()
-      : '');
+    active && (mode === 'stop' || start === localDateInput(active.startedAt))
+      ? active.startedAt
+      : start && Number.isFinite(new Date(start).getTime())
+        ? new Date(start).toISOString()
+        : '';
   const endedAt =
     mode === 'record' && (feed || kind === 'sleep')
       ? endFromDuration(startIso, duration)
@@ -631,6 +526,7 @@ function QuickEditor({
       />
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="childId" value={childId} />
+      <input type="hidden" name="amountUnit" value={active?.unit ?? 'ml'} />
       <input type="hidden" name="version" value={active?.version ?? ''} />
       <input type="hidden" name="timezone" value={timezone} />
       <input type="hidden" name="kind" value={recordKind} />
@@ -642,13 +538,27 @@ function QuickEditor({
         name="amount"
         value={kind === 'breast' || mode === 'start' ? '' : amount}
       />
-      <input type="hidden" name="foodName" value="" />
+      <input
+        type="hidden"
+        name="foodName"
+        value={active?.feedingRecord?.food_name ?? ''}
+      />
+      <input
+        type="hidden"
+        name="color"
+        value={active?.childRecord?.stool_color ?? ''}
+      />
+      <input
+        type="hidden"
+        name="texture"
+        value={active?.childRecord?.stool_texture ?? ''}
+      />
       {state.status === 'error' && (
         <p className="flash error" role="alert">
           {c.errors[state.error as keyof typeof c.errors] ?? c.errors.generic}
         </p>
       )}
-      <fieldset className="quick-fields" disabled={pending}>
+      <fieldset className="quick-fields" disabled={busy}>
         {mode === 'stop' ? (
           <div className="quick-stop-view">
             <span className="quick-live-dot" />
@@ -658,7 +568,7 @@ function QuickEditor({
           </div>
         ) : (
           <>
-            {(kind === 'breast' || kind === 'sleep') && (
+            {!active && (kind === 'breast' || kind === 'sleep') && (
               <div className="quick-mode" role="group" aria-label={title}>
                 {(['start', 'record'] as const).map((value) => (
                   <button
@@ -725,10 +635,16 @@ function QuickEditor({
               </div>
             )}
             {activity && (
-              <ActivityFields key={kind} kind={kind} locale={locale} />
+              <ActivityFields
+                key={kind}
+                kind={kind}
+                locale={locale}
+                record={active?.childRecord}
+              />
             )}
             {feed && kind !== 'breast' && (
               <AmountRuler
+                unit={active?.unit === 'g' ? 'g' : 'ml'}
                 locale={locale}
                 kind={kind}
                 value={amount}
@@ -842,19 +758,33 @@ function QuickEditor({
           </>
         )}
       </fieldset>
-      <input type="hidden" name="note" value="" />
+      <input
+        type="hidden"
+        name="note"
+        value={active?.feedingRecord?.note ?? active?.childRecord?.note ?? ''}
+      />
       <footer className="quick-composer-footer">
         <button
           type="button"
           className="button secondary quick-cancel"
           onClick={close}
-          disabled={pending}
+          disabled={busy}
         >
           {locale === 'ko' ? '취소' : 'Cancel'}
         </button>
+        {active && (
+          <QuickDelete
+            locale={locale}
+            childId={childId}
+            entry={active}
+            disabled={busy}
+            completed={completed}
+            onPending={setDeleting}
+          />
+        )}
         <button
           className="button primary quick-confirm"
-          disabled={pending || !startIso || (durationNeeded && !endedAt)}
+          disabled={busy || !startIso || (durationNeeded && !endedAt)}
           aria-busy={pending}
         >
           {mode === 'start' ? (
@@ -881,6 +811,7 @@ function QuickEditor({
   );
 }
 function AmountRuler({
+  unit = 'ml',
   locale,
   kind,
   value,
@@ -888,11 +819,11 @@ function AmountRuler({
 }: {
   locale: Locale;
   kind: 'formula' | 'solids';
+  unit?: 'ml' | 'g';
   value: string;
   onChange: (value: string) => void;
 }) {
   const c = quickCopy(locale),
-    unit = 'ml',
     max = Math.max(
       kind === 'solids' ? 500 : 600,
       Math.ceil(Number(value) / 100) * 100,

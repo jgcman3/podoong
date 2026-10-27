@@ -63,11 +63,35 @@ export async function loadQuickTimeline(
         .range(from, to),
     ),
   ]);
-  return todayEntries(
-    quickTimeline(feeds, child, shots),
-    day,
-    context.timezone,
-  );
+  const timeline = quickTimeline(feeds, child, shots);
+  const growthIds = child
+    .filter((r) => r.service === 'growth')
+    .map((r) => r.id);
+  if (growthIds.length) {
+    const [photos, shares] = await Promise.all([
+      context.db
+        .from('child_record_photos')
+        .select('id,record_id')
+        .eq('child_id', context.child.id)
+        .in('record_id', growthIds),
+      context.db
+        .from('growth_diary_shares')
+        .select('record_id,same_birth_date,everyone')
+        .in('record_id', growthIds),
+    ]);
+    if (shares.error) throw new Error('Diary privacy unavailable');
+    if (photos.error) throw new Error('Diary photos unavailable');
+    for (const entry of timeline) {
+      if (entry.service === 'growth') {
+        const share = shares.data.find((row) => row.record_id === entry.id);
+        entry.isPrivate = !share?.same_birth_date && !share?.everyone;
+        entry.photoIds = photos.data
+          .filter((photo) => photo.record_id === entry.id)
+          .map((photo) => photo.id);
+      }
+    }
+  }
+  return todayEntries(timeline, day, context.timezone);
 }
 
 export async function loadRecentFeedingAmounts(context: CareContext) {
