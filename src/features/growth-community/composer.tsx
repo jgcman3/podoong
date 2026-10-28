@@ -1,9 +1,10 @@
 'use client';
+import { AttachmentPreview, type DiaryAttachment } from './attachment-preview';
+import { PatternAttachment } from './pattern-attachment';
 import { createRecordId } from '@/lib/record-id';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useId, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { PenLine, Check, ImagePlus, Ellipsis } from 'lucide-react';
-import Image from 'next/image';
+import { PenLine, Check, ImagePlus, Ellipsis, Trash2 } from 'lucide-react';
 import { createDiary, removeDiary } from './composer-action';
 
 export function DiaryComposer({
@@ -12,6 +13,7 @@ export function DiaryComposer({
   record,
   trigger,
   triggerClassName,
+  triggerLabel,
   disabled,
   onSaved,
 }: {
@@ -19,6 +21,7 @@ export function DiaryComposer({
   locale: 'ko' | 'en';
   trigger?: ReactNode;
   triggerClassName?: string;
+  triggerLabel?: string;
   disabled?: boolean;
   onSaved?: () => void;
   record?: {
@@ -39,13 +42,37 @@ export function DiaryComposer({
   const id = useRef('');
   const router = useRouter();
   const [opened, setOpened] = useState(false);
-  const [editing, setEditing] = useState(!record);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRoot = useRef<HTMLDivElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
+  useEffect(() => {
+    if (!menuOpen) return;
+    menuRoot.current
+      ?.querySelector<HTMLButtonElement>('.diary-menu-options button')
+      ?.focus();
+    function dismiss(event: PointerEvent) {
+      if (!menuRoot.current?.contains(event.target as Node)) setMenuOpen(false);
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+        menuButton.current?.focus();
+      }
+    }
+    document.addEventListener('pointerdown', dismiss);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', dismiss);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [menuOpen]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  const [warning, setWarning] = useState('');
-  const [photoName, setPhotoName] = useState('');
-  const [selectedPhotoCount, setSelectedPhotoCount] = useState(0);
+  const [attachments, setAttachments] = useState<DiaryAttachment[]>([]);
+  const [patternBusy, setPatternBusy] = useState(false);
+
   useEffect(() => {
     if (!opened) return;
     const previousOverflow = document.body.style.overflow;
@@ -56,17 +83,30 @@ export function DiaryComposer({
     };
   }, [opened]);
   function open() {
+    setAttachments((record?.photo_ids ?? []).map((id) => ({ key: id, id })));
     setOpened(true);
     id.current = record?.id ?? createRecordId();
-    setEditing(Boolean(trigger) || !record);
+    setMenuOpen(false);
     setConfirmDelete(false);
     form.current?.reset();
     setError('');
-    setPhotoName('');
-    setSelectedPhotoCount(0);
+
     dialog.current?.showModal();
   }
   async function submit(data: FormData) {
+    if (patternBusy) return;
+    data.delete('photo');
+    let nextFile = 0;
+    data.set(
+      'photoOrder',
+      JSON.stringify(
+        attachments.map((item) => {
+          if (item.id) return item.id;
+          data.append('photo', item.file!);
+          return `new:${nextFile++}`;
+        }),
+      ),
+    );
     setPending(true);
     setError('');
     data.set('id', id.current);
@@ -78,13 +118,6 @@ export function DiaryComposer({
     try {
       const result = await createDiary(data);
       if (result.saved) {
-        setWarning(
-          result.error === 'photo'
-            ? ko
-              ? '일기는 저장했지만 사진을 올리지 못했어요. 일기 관리에서 다시 추가해 주세요.'
-              : 'Diary saved, but the photo upload failed. Add it again in Manage diary.'
-            : '',
-        );
         dialog.current?.close();
         router.refresh();
         onSaved?.();
@@ -92,8 +125,8 @@ export function DiaryComposer({
         setError(
           result.error === 'photo-limit'
             ? ko
-              ? '사진은 기존 사진을 포함해 최대 5장까지 올릴 수 있어요.'
-              : 'A diary can contain up to 5 photos, including existing photos.'
+              ? '사진은 기존 사진을 포함해 최대 9장까지 올릴 수 있어요.'
+              : 'A diary can contain up to 9 photos, including existing photos.'
             : result.error === 'birth'
               ? ko
                 ? '공개하려면 아이의 출생일과 기록 시각을 확인해 주세요. 비공개로도 저장할 수 있어요.'
@@ -130,6 +163,7 @@ export function DiaryComposer({
       data.set('child', child);
       data.set('locale', locale);
       if (!(await removeDiary(data))) throw new Error('delete');
+      setMenuOpen(false);
       dialog.current?.close();
       router.refresh();
       onSaved?.();
@@ -152,6 +186,7 @@ export function DiaryComposer({
       : 'Write a diary';
   return (
     <div
+      ref={menuRoot}
       className={
         trigger
           ? 'quick-diary-entry'
@@ -160,26 +195,72 @@ export function DiaryComposer({
             : 'diary-compose-entry'
       }
     >
-      {warning && <p role="status">{warning}</p>}
       <button
+        ref={menuButton}
         type="button"
         className={
           triggerClassName ??
           (record ? 'diary-manage-icon' : 'diary-compose-add')
         }
         disabled={disabled}
-        onClick={open}
-        aria-label={title}
+        onClick={
+          record && !trigger
+            ? () => {
+                setMenuOpen(!menuOpen);
+                setConfirmDelete(false);
+                setError('');
+              }
+            : open
+        }
+        aria-expanded={record && !trigger ? menuOpen : undefined}
+        aria-controls={record && !trigger ? menuId : undefined}
+        aria-label={triggerLabel ?? title}
       >
         {trigger ?? (record ? <Ellipsis size={22} /> : <PenLine size={24} />)}
       </button>
+      {record && !trigger && menuOpen && (
+        <div
+          id={menuId}
+          className="diary-menu-options diary-own-menu"
+          role="group"
+          aria-label={title}
+        >
+          <button type="button" disabled={pending} onClick={open}>
+            <PenLine size={17} aria-hidden="true" />
+            {ko ? '편집' : 'Edit'}
+          </button>
+          <button
+            type="button"
+            className="diary-delete-option"
+            disabled={pending}
+            onClick={deleteEntry}
+          >
+            <Trash2 size={17} aria-hidden="true" />
+            {confirmDelete
+              ? ko
+                ? '삭제 확인'
+                : 'Confirm delete'
+              : ko
+                ? '삭제'
+                : 'Delete'}
+          </button>
+          {confirmDelete && (
+            <p>
+              {ko
+                ? '일기와 사진을 삭제할까요?'
+                : 'Delete this diary and its photos?'}
+            </p>
+          )}
+          {error && <p role="alert">{error}</p>}
+        </div>
+      )}
       <dialog
         ref={dialog}
         onClose={() => setOpened(false)}
         className="diary-compose-sheet"
         aria-label={title}
         onCancel={(event) => {
-          if (pending) event.preventDefault();
+          if (pending || patternBusy) event.preventDefault();
         }}
       >
         {(!record || opened) && (
@@ -192,143 +273,9 @@ export function DiaryComposer({
                 {title}
               </h2>
             </header>
-            {record && !editing ? (
-              <div className="diary-manage-preview">
-                {record.note && <p className="record-note">{record.note}</p>}
-                <div className="diary-preview-metrics">
-                  {[
-                    [ko ? '몸무게' : 'Weight', record.weight_kg, 'kg'],
-                    [ko ? '키' : 'Height', record.height_cm, 'cm'],
-                    [
-                      ko ? '머리둘레' : 'Head circumference',
-                      record.head_cm,
-                      'cm',
-                    ],
-                  ].map(
-                    ([label, value, unit]) =>
-                      value !== null && (
-                        <span key={label}>
-                          {label} {value} {unit}
-                        </span>
-                      ),
-                  )}
-                </div>
-                <div className="public-diary-photos">
-                  {record.photo_ids.map((photo) => (
-                    <Image
-                      key={photo}
-                      src={`/api/care/photos/${photo}?size=480`}
-                      alt={ko ? '일기 사진' : 'Diary photo'}
-                      width={240}
-                      height={240}
-                      unoptimized
-                    />
-                  ))}
-                </div>
-                {error && <p role="alert">{error}</p>}
-                {confirmDelete && (
-                  <p role="alert">
-                    {ko
-                      ? '이 일기와 사진을 삭제할까요?'
-                      : 'Delete this diary and its photos?'}
-                  </p>
-                )}
-                <div className="diary-manage-actions quick-composer-footer">
-                  <button
-                    type="button"
-                    className="button secondary quick-cancel"
-                    disabled={pending}
-                    onClick={() => dialog.current?.close()}
-                  >
-                    {ko ? '취소' : 'Cancel'}
-                  </button>
-                  <button
-                    type="button"
-                    className="button primary"
-                    disabled={pending}
-                    onClick={() => {
-                      setEditing(true);
-                      setConfirmDelete(false);
-                      setError('');
-                    }}
-                  >
-                    {ko ? '편집' : 'Edit'}
-                  </button>
-                  <button
-                    type="button"
-                    className="button"
-                    disabled={pending}
-                    onClick={deleteEntry}
-                  >
-                    {confirmDelete
-                      ? ko
-                        ? '삭제 확인'
-                        : 'Confirm delete'
-                      : ko
-                        ? '삭제'
-                        : 'Delete'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <form ref={form} action={submit}>
-                <fieldset disabled={pending}>
-                  <label className="diary-note-field">
-                    <span>{ko ? '일기 내용' : 'Diary note'}</span>
-                    <textarea
-                      name="note"
-                      defaultValue={record?.note}
-                      aria-label={ko ? '일기 내용' : 'Diary note'}
-                      placeholder={
-                        ko
-                          ? '아이의 하루를 남겨 주세요'
-                          : 'Capture your child’s day'
-                      }
-                      maxLength={2000}
-                      rows={5}
-                    />
-                  </label>
-                  <label className="diary-photo-picker">
-                    <ImagePlus size={20} />
-                    {photoName || (ko ? '사진 추가' : 'Add photo')}
-                    <span className="diary-photo-count">
-                      {(record?.photo_ids.length ?? 0) + selectedPhotoCount}/5
-                    </span>
-                    <input
-                      type="file"
-                      multiple
-                      disabled={(record?.photo_ids.length ?? 0) >= 5}
-                      name="photo"
-                      accept="image/png,image/jpeg,image/webp"
-                      aria-label={ko ? '사진 추가' : 'Add photo'}
-                      onChange={(event) => {
-                        const files = Array.from(event.target.files ?? []);
-                        if (
-                          files.length + (record?.photo_ids.length ?? 0) >
-                          5
-                        ) {
-                          event.target.value = '';
-                          setPhotoName('');
-                          setSelectedPhotoCount(0);
-                          setError(
-                            ko
-                              ? '사진은 기존 사진을 포함해 최대 5장까지 올릴 수 있어요.'
-                              : 'Up to 5 photos per diary, including existing photos.',
-                          );
-                          return;
-                        }
-                        setError('');
-                        setSelectedPhotoCount(files.length);
-                        setPhotoName(
-                          files.length
-                            ? ko
-                              ? `${files.length}장 선택`
-                              : `${files.length} selected`
-                            : '',
-                        );
-                      }}
-                    />
-                  </label>
+            <form ref={form} action={submit}>
+              <fieldset disabled={pending || patternBusy}>
+                <div className="diary-compose-basics">
                   <div className="diary-compose-measures">
                     {(
                       [
@@ -353,8 +300,10 @@ export function DiaryComposer({
                       ] as const
                     ).map(({ name, label, unit, max }) => (
                       <label key={name}>
-                        {label}
-                        <span>{ko ? '선택' : 'Optional'}</span>
+                        <span className="diary-measure-label">
+                          {label}
+                          <span>{ko ? '선택' : 'Optional'}</span>
+                        </span>
                         <input
                           type="number"
                           name={name}
@@ -385,51 +334,141 @@ export function DiaryComposer({
                     />
                     {ko ? '비공개' : 'Private'}
                   </label>
-                </fieldset>
-                {error && <p role="alert">{error}</p>}
-                <footer className="quick-composer-footer">
+                </div>
+                <label className="diary-note-field">
+                  <span>{ko ? '일기 내용' : 'Diary note'}</span>
+                  <textarea
+                    name="note"
+                    defaultValue={record?.note}
+                    aria-label={ko ? '일기 내용' : 'Diary note'}
+                    placeholder={
+                      ko
+                        ? '아이의 하루를 남겨 주세요'
+                        : 'Capture your child’s day'
+                    }
+                    maxLength={2000}
+                    rows={4}
+                  />
+                </label>
+                <div className="diary-attachment-tools">
+                  <label className="diary-photo-picker">
+                    <ImagePlus size={20} />
+                    {ko ? '사진 추가' : 'Add photo'}
+                    <span className="diary-photo-count">
+                      {attachments.length}/9
+                    </span>
+                    <input
+                      type="file"
+                      multiple
+                      disabled={attachments.length >= 9}
+                      accept="image/png,image/jpeg,image/webp"
+                      aria-label={ko ? '사진 추가' : 'Add photo'}
+                      onChange={(event) => {
+                        const files = Array.from(event.target.files ?? []);
+                        event.target.value = '';
+                        if (attachments.length + files.length > 9) {
+                          setError(
+                            ko
+                              ? '사진은 하루 패턴을 포함해 최대 9장까지 올릴 수 있어요.'
+                              : 'Up to 9 photos, including daily patterns.',
+                          );
+                          return;
+                        }
+                        setError('');
+                        setAttachments((items) => [
+                          ...items,
+                          ...files.map((file) => ({
+                            key: createRecordId(),
+                            file,
+                          })),
+                        ]);
+                      }}
+                    />
+                  </label>
+                  <PatternAttachment
+                    key={String(opened)}
+                    child={child}
+                    locale={locale}
+                    full={attachments.length >= 9}
+                    onChange={(file) =>
+                      setAttachments((items) => [
+                        ...items,
+                        { key: createRecordId(), file },
+                      ])
+                    }
+                    onBusy={setPatternBusy}
+                  />
+                </div>
+                <div className="diary-attachment-grid">
+                  {attachments.map((item, index) => (
+                    <AttachmentPreview
+                      key={item.key}
+                      item={item}
+                      index={index}
+                      count={attachments.length}
+                      locale={locale}
+                      onMove={(direction) =>
+                        setAttachments((items) => {
+                          const next = [...items];
+                          [next[index], next[index + direction]] = [
+                            next[index + direction],
+                            next[index],
+                          ];
+                          return next;
+                        })
+                      }
+                      onRemove={() =>
+                        setAttachments((items) =>
+                          items.filter((value) => value.key !== item.key),
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              </fieldset>
+              {error && <p role="alert">{error}</p>}
+              <footer className="quick-composer-footer">
+                <button
+                  type="button"
+                  className="button secondary quick-cancel"
+                  disabled={pending || patternBusy}
+                  onClick={() => dialog.current?.close()}
+                >
+                  {ko ? '취소' : 'Cancel'}
+                </button>
+                {record && (
                   <button
                     type="button"
-                    className="button secondary quick-cancel"
-                    disabled={pending}
-                    onClick={() => dialog.current?.close()}
+                    className="button secondary"
+                    disabled={pending || patternBusy}
+                    onClick={deleteEntry}
                   >
-                    {ko ? '취소' : 'Cancel'}
-                  </button>
-                  {record && (
-                    <button
-                      type="button"
-                      className="button secondary"
-                      disabled={pending}
-                      onClick={deleteEntry}
-                    >
-                      {confirmDelete
-                        ? ko
-                          ? '삭제 확인'
-                          : 'Confirm delete'
-                        : ko
-                          ? '삭제'
-                          : 'Delete'}
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    className="button primary quick-confirm"
-                    disabled={pending}
-                    aria-busy={pending}
-                  >
-                    <Check size={18} aria-hidden="true" />
-                    {pending
+                    {confirmDelete
                       ? ko
-                        ? '저장 중…'
-                        : 'Saving…'
+                        ? '삭제 확인'
+                        : 'Confirm delete'
                       : ko
-                        ? '저장'
-                        : 'Save'}
+                        ? '삭제'
+                        : 'Delete'}
                   </button>
-                </footer>
-              </form>
-            )}
+                )}
+                <button
+                  type="submit"
+                  className="button primary quick-confirm"
+                  disabled={pending || patternBusy}
+                  aria-busy={pending}
+                >
+                  <Check size={18} aria-hidden="true" />
+                  {pending
+                    ? ko
+                      ? '저장 중…'
+                      : 'Saving…'
+                    : ko
+                      ? '저장'
+                      : 'Save'}
+                </button>
+              </footer>
+            </form>
           </>
         )}
       </dialog>

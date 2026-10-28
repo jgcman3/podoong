@@ -1,5 +1,7 @@
 'use server';
+import { isRelationship } from './relationship';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireUser } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
@@ -14,9 +16,13 @@ const birthDate = z.iso
   );
 const uuid = z.uuid();
 function familyReturn(form: FormData, locale: Locale) {
+  revalidatePath(`/${locale}`, 'layout');
   const page = form.get('returnPage') === 'account' ? 'account' : 'family';
   const section = form.get('panel');
-  const panel = section === 'child' || section === 'add' ? section : 'family';
+  const panel =
+    section === 'child' || section === 'add' || section === 'residence'
+      ? section
+      : 'family';
   return `/${locale}/${page}?panel=${panel}`;
 }
 export async function saveFamilyResidence(form: FormData) {
@@ -38,18 +44,27 @@ export async function saveFamilyResidence(form: FormData) {
   if (child.error || child.data?.family_id !== v.familyId)
     redirect(`${familyReturn(form, locale)}&child=${v.childId}&error=invalid`);
   const result =
-    !v.regionCode && v.countryCode
-      ? await db.rpc('save_family_residence_country', {
+    v.countryCode && v.countryCode !== 'KR'
+      ? await db.rpc('save_global_residence', {
           p_family: v.familyId,
-          p_country_code: v.countryCode,
+          p_country: v.countryCode,
+          p_province: String(form.get('provinceName') ?? ''),
+          p_city: String(form.get('cityName') ?? ''),
+          p_locality: String(form.get('localityName') ?? ''),
           p_version: v.version,
         })
-      : await db.rpc('save_family_residence_region', {
-          p_family: v.familyId,
-          p_region_code: v.regionCode,
-          p_country_code: v.countryCode,
-          p_version: v.version,
-        });
+      : !v.regionCode && v.countryCode
+        ? await db.rpc('save_family_residence_country', {
+            p_family: v.familyId,
+            p_country_code: v.countryCode,
+            p_version: v.version,
+          })
+        : await db.rpc('save_family_residence_region', {
+            p_family: v.familyId,
+            p_region_code: v.regionCode,
+            p_country_code: v.countryCode,
+            p_version: v.version,
+          });
   redirect(
     `${familyReturn(form, locale)}&child=${v.childId}&${result.error ? `error=${result.error.message.includes('conflict') ? 'conflict' : 'generic'}` : 'notice=saved'}`,
   );
@@ -64,6 +79,8 @@ export async function onboard(form: FormData) {
       name: z.string().trim().min(1).max(60),
       consent: z.literal('on'),
       birth: birthDate,
+      relationship:
+        z.custom<import('./relationship').Relationship>(isRelationship),
       sex: z.enum(['female', 'male']),
       timezone: z.enum([
         'Asia/Seoul',
@@ -94,6 +111,7 @@ export async function onboard(form: FormData) {
     p_child_name: v.child,
     p_birth_date: v.birth,
     p_sex: v.sex,
+    p_relationship: v.relationship,
   });
   if (result.error) redirect(`/${locale}/onboarding?error=generic`);
   redirect(`/${locale}/today?child=${result.data}`);
@@ -145,6 +163,7 @@ export async function addChild(form: FormData) {
     sex: v.sex,
   });
   if (error) redirect(`${familyReturn(form, locale)}&error=generic`);
+  revalidatePath(`/${locale}`, 'layout');
   redirect(
     form.get('returnPage') === 'account'
       ? `/${locale}/account?child=${childId}`
@@ -182,9 +201,17 @@ export async function acceptInvite(form: FormData) {
   const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
   const { db } = await requireUser(locale);
   const token = String(form.get('token') ?? '');
-  if (!/^[a-f0-9]{64}$/.test(token) || form.get('confirm') !== 'on')
+  const relationship = form.get('relationship');
+  if (
+    !isRelationship(relationship) ||
+    !/^[a-f0-9]{64}$/.test(token) ||
+    form.get('confirm') !== 'on'
+  )
     redirect(`/${locale}/invite/${encodeURIComponent(token)}?error=invite`);
-  const { data, error } = await db.rpc('accept_invitation', { p_token: token });
+  const { data, error } = await db.rpc('accept_invitation', {
+    p_token: token,
+    p_relationship: relationship,
+  });
   if (error) redirect(`/${locale}/invite/${token}?error=invite`);
   redirect(`/${locale}/today?child=${data}&notice=saved`);
 }
@@ -238,6 +265,8 @@ export async function saveChildDetails(form: FormData) {
     .safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect(`${familyReturn(form, locale)}&error=invalid`);
   const v = parsed.data;
+  const selected = uuid.safeParse(form.get('returnChild'));
+  const returnChild = selected.success ? selected.data : v.childId;
   const { error } = await db.rpc('update_child_details', {
     p_child_id: v.childId,
     p_name: v.name,
@@ -245,6 +274,45 @@ export async function saveChildDetails(form: FormData) {
     p_birth_date: v.birth,
   });
   redirect(
-    `${familyReturn(form, locale)}&child=${v.childId}&${error ? 'error=generic' : 'notice=saved'}`,
+    `${familyReturn(form, locale)}&child=${returnChild}&${error ? 'error=generic' : 'notice=saved'}`,
   );
+}
+
+export async function saveRelationship(form: FormData) {
+  const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
+  const { db } = await requireUser(locale);
+  const child = uuid.safeParse(form.get('childId'));
+  const relationship = form.get('relationship');
+  if (!child.success || !isRelationship(relationship))
+    redirect(`/${locale}/account?panel=account&error=invalid`);
+  const result = await db
+    .from('children')
+    .select('family_id')
+    .eq('id', child.data)
+    .single();
+  if (result.error) redirect(`/${locale}/account?panel=account&error=invalid`);
+  const saved = await db.rpc('set_caregiver_relationship', {
+    p_family: result.data.family_id,
+    p_relationship: relationship,
+  });
+  redirect(
+    `/${locale}/account?panel=account&child=${child.data}${saved.error ? '&error=generic' : ''}`,
+  );
+}
+
+export async function globalPlaceOptions(
+  country: string,
+  province: string,
+  city: string,
+) {
+  const { db } = await requireUser('ko');
+  if (!/^[A-Z]{2}$/.test(country) || province.length > 80 || city.length > 80)
+    return [];
+  const result = await db.rpc('global_place_options', {
+    p_country: country,
+    p_province: province,
+    p_city: city,
+  });
+  if (result.error) return [];
+  return result.data;
 }

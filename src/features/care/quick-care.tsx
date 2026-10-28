@@ -18,7 +18,6 @@ import { QuickDelete } from './quick-delete';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
-  Baby,
   Moon,
   Heart,
   Check,
@@ -27,6 +26,7 @@ import {
   ChevronRight,
   Minus,
   Plus,
+  Ruler,
 } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import { dateInTimeZone } from '@/lib/domain';
@@ -43,7 +43,6 @@ import {
 } from './quick-model';
 import { QuickVaccination } from './quick-vaccination';
 import { vaccineName } from '@/features/vaccination/copy';
-import type { DayAgendaData } from './day-agenda-model';
 import { DayBrowser } from './day-browser';
 import { ActivityFields } from './activity-fields';
 import { activityKinds } from '@/features/child-care/schema';
@@ -62,7 +61,7 @@ export function QuickCare({
   writable,
   timezone,
   today,
-  agenda,
+  birthDate,
 }: {
   locale: Locale;
   childId: string;
@@ -71,7 +70,7 @@ export function QuickCare({
   writable: boolean;
   timezone: string;
   today: string;
-  agenda: DayAgendaData;
+  birthDate: string;
 }) {
   const c = quickCopy(locale),
     router = useRouter();
@@ -156,6 +155,26 @@ export function QuickCare({
       <ActivityRail
         locale={locale}
         label={locale === 'ko' ? '빠른 기록 선택' : 'Choose a care record'}
+        leading={
+          <DiaryComposer
+            locale={locale}
+            child={childId}
+            triggerLabel={locale === 'ko' ? '성장 기록' : 'Growth record'}
+            triggerClassName="quick-orbit-item quick-color-growth"
+            trigger={
+              <>
+                <span className="quick-orbit-icon">
+                  <Ruler size={27} />
+                </span>
+                <strong>
+                  {locale === 'ko' ? '성장 기록' : 'Growth record'}
+                </strong>
+              </>
+            }
+            disabled={!writable || busy}
+            onSaved={completed}
+          />
+        }
         selected={selection ? [selection.kind] : []}
         onSelect={(kind) => open(kind)}
         disabled={!writable || busy}
@@ -178,7 +197,12 @@ export function QuickCare({
                     <Icon size={19} />
                     <div>
                       <strong>
-                        {labels[kind]} · {c.running}
+                        {labels[kind]} ·{' '}
+                        {['daycare', 'kindergarten'].includes(kind)
+                          ? locale === 'ko'
+                            ? '머무는 중'
+                            : 'Attending'
+                          : c.running}
                       </strong>
                       <Timer start={e.startedAt} />
                     </div>
@@ -190,7 +214,13 @@ export function QuickCare({
                         onClick={() => open(kind, e)}
                       >
                         <Square size={13} />
-                        {e.service === 'sleep' ? c.sleepStop : c.stop}
+                        {['daycare', 'kindergarten'].includes(e.kind)
+                          ? locale === 'ko'
+                            ? '귀가'
+                            : 'Finish'
+                          : e.service === 'sleep'
+                            ? c.sleepStop
+                            : c.stop}
                       </button>
                     ) : null}
                   </div>
@@ -199,14 +229,14 @@ export function QuickCare({
             </div>
           )}
           <DayBrowser
+            key={`${childId}:${today}`}
+            birthDate={birthDate}
             revision={historyRevision}
             locale={locale}
             childId={childId}
             today={today}
             timezone={timezone}
             entries={visible}
-            agenda={agenda}
-            writable={writable}
             disabled={busy || selection !== null}
           >
             {(history, selectedDay) => (
@@ -226,9 +256,15 @@ export function QuickCare({
                       const name =
                         e.source === 'vaccination'
                           ? vaccineName(e.kind, e.customName ?? '', locale)
-                          : e.service === 'feeding'
-                            ? labels[e.kind as 'breast' | 'formula' | 'solids']
-                            : kindLabel(e.kind, locale);
+                          : e.service === 'growth'
+                            ? locale === 'ko'
+                              ? '성장 기록'
+                              : 'Growth record'
+                            : e.service === 'feeding'
+                              ? labels[
+                                  e.kind as 'breast' | 'formula' | 'solids'
+                                ]
+                              : kindLabel(e.kind, locale);
                       const day = dateInTimeZone(
                         new Date(e.startedAt),
                         timezone,
@@ -243,6 +279,15 @@ export function QuickCare({
                           : '',
                         e.dose != null
                           ? `${e.dose}${locale === 'ko' ? '차' : ' dose'}`
+                          : '',
+                        e.childRecord?.attendance_status
+                          ? e.childRecord.attendance_status === 'arrival'
+                            ? locale === 'ko'
+                              ? '등원'
+                              : 'Drop-off'
+                            : locale === 'ko'
+                              ? '하원'
+                              : 'Pick-up'
                           : '',
                         e.title,
                       ]
@@ -416,13 +461,14 @@ function QuickEditor({
   const activity = activityKinds.includes(
     kind as (typeof activityKinds)[number],
   );
+  const childcare = kind === 'daycare' || kind === 'kindergarten';
   const diaper = kind === 'diaper' || kind === 'stool';
   const [mode, setMode] = useState<'start' | 'record' | 'stop'>(
     active?.running
       ? 'stop'
       : active
         ? 'record'
-        : kind === 'breast' || kind === 'sleep'
+        : kind === 'breast' || kind === 'sleep' || childcare
           ? 'start'
           : 'record',
   );
@@ -440,7 +486,7 @@ function QuickEditor({
       : String(initialAmount ?? (kind === 'solids' ? 50 : 80)),
   );
   const [recordKind, setRecordKind] = useState(
-    active?.kind ??
+    (active?.kind === 'dry' ? 'wet' : active?.kind) ??
       (kind === 'sleep'
         ? 'nap'
         : kind === 'stool'
@@ -474,7 +520,7 @@ function QuickEditor({
         ? new Date(start).toISOString()
         : '';
   const endedAt =
-    mode === 'record' && (feed || kind === 'sleep')
+    mode === 'record' && (feed || kind === 'sleep' || childcare)
       ? endFromDuration(startIso, duration)
       : '';
   const title = shortLabels(locale)[kind];
@@ -492,8 +538,9 @@ function QuickEditor({
         localDateInput(new Date(currentTime - value * 60000).toISOString()),
       );
   };
-  const durationRequired = kind === 'breast' || kind === 'sleep';
-  const durationNeeded = mode === 'record' && (feed || kind === 'sleep');
+  const durationRequired = kind === 'breast' || kind === 'sleep' || childcare;
+  const durationNeeded =
+    mode === 'record' && (feed || kind === 'sleep' || childcare);
   return (
     <form action={action} className="quick-editor-form" aria-label={title}>
       <header
@@ -523,7 +570,10 @@ function QuickEditor({
       <input
         type="hidden"
         name="useCurrentTime"
-        value={String(!timeEdited && (mode === 'start' || diaper || activity))}
+        value={String(
+          !timeEdited &&
+            (mode === 'start' || diaper || (activity && !childcare)),
+        )}
       />
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="childId" value={childId} />
@@ -569,31 +619,40 @@ function QuickEditor({
           </div>
         ) : (
           <>
-            {!active && (kind === 'breast' || kind === 'sleep') && (
-              <div className="quick-mode" role="group" aria-label={title}>
-                {(['start', 'record'] as const).map((value) => (
-                  <button
-                    type="button"
-                    key={value}
-                    aria-pressed={mode === value}
-                    onClick={() => {
-                      setMode(value);
-                      setDuration('');
-                      if (!timeEdited)
-                        setStart(localDateInput(new Date().toISOString()));
-                    }}
-                  >
-                    {value === 'start'
-                      ? kind === 'sleep'
-                        ? c.sleepNow
-                        : c.startNow
-                      : kind === 'sleep'
-                        ? c.recordSleep
-                        : c.recordAfter}
-                  </button>
-                ))}
-              </div>
-            )}
+            {!active &&
+              (kind === 'breast' || kind === 'sleep' || childcare) && (
+                <div className="quick-mode" role="group" aria-label={title}>
+                  {(['start', 'record'] as const).map((value) => (
+                    <button
+                      type="button"
+                      key={value}
+                      aria-pressed={mode === value}
+                      onClick={() => {
+                        setMode(value);
+                        setDuration('');
+                        if (!timeEdited)
+                          setStart(localDateInput(new Date().toISOString()));
+                      }}
+                    >
+                      {childcare
+                        ? value === 'start'
+                          ? locale === 'ko'
+                            ? '지금 등원해요'
+                            : 'Starting now'
+                          : locale === 'ko'
+                            ? '귀가했어요'
+                            : 'Already back'
+                        : value === 'start'
+                          ? kind === 'sleep'
+                            ? c.sleepNow
+                            : c.startNow
+                          : kind === 'sleep'
+                            ? c.recordSleep
+                            : c.recordAfter}
+                    </button>
+                  ))}
+                </div>
+              )}
             {kind === 'sleep' && (
               <div
                 className="quick-choices"
@@ -621,7 +680,7 @@ function QuickEditor({
               >
                 {(kind === 'stool'
                   ? ['dirty', 'mixed']
-                  : ['wet', 'dirty', 'mixed', 'dry']
+                  : ['wet', 'diaper_dirty', 'diaper_mixed']
                 ).map((value) => (
                   <button
                     type="button"
@@ -629,7 +688,6 @@ function QuickEditor({
                     aria-pressed={recordKind === value}
                     onClick={() => setRecordKind(value)}
                   >
-                    <Baby size={28} />
                     <strong>{kindLabel(value, locale)}</strong>
                   </button>
                 ))}
@@ -667,20 +725,29 @@ function QuickEditor({
               >
                 <legend>
                   <QuickFieldTitle>
-                    {kind === 'sleep' ? c.sleepDuration : c.duration}
+                    {childcare
+                      ? locale === 'ko'
+                        ? '머문 시간'
+                        : 'Time spent'
+                      : kind === 'sleep'
+                        ? c.sleepDuration
+                        : c.duration}
                   </QuickFieldTitle>
                 </legend>
                 <div className="quick-choices">
-                  {(kind === 'sleep'
-                    ? [15, 30, 45, 60, 90, 120, 180]
-                    : [5, 10, 15, 20, 30, 45, 60]
+                  {(childcare
+                    ? [60, 120, 180, 240, 300, 360, 480]
+                    : kind === 'sleep'
+                      ? [15, 30, 45, 60, 90, 120, 180]
+                      : [5, 10, 15, 20, 30, 45, 60]
                   ).map((value) => (
                     <button
                       type="button"
                       key={value}
                       aria-pressed={duration === String(value)}
                       onClick={() => {
-                        if (!durationRequired && duration === String(value)) setDuration('');
+                        if (!durationRequired && duration === String(value))
+                          setDuration('');
                         else changeDuration(value, Date.now());
                       }}
                     >
@@ -697,11 +764,15 @@ function QuickEditor({
                 <QuickFieldTitle>
                   {diaper
                     ? c.diaperTime
-                    : activity
+                    : childcare
                       ? locale === 'ko'
-                        ? '기록 시각'
-                        : 'Time'
-                      : c.time}
+                        ? '시작 시각'
+                        : 'Start time'
+                      : activity
+                        ? locale === 'ko'
+                          ? '기록 시각'
+                          : 'Time'
+                        : c.time}
                 </QuickFieldTitle>
                 <span
                   className="quick-time-control"
@@ -722,11 +793,15 @@ function QuickEditor({
                     aria-label={
                       diaper
                         ? c.diaperTime
-                        : activity
+                        : childcare
                           ? locale === 'ko'
-                            ? '기록 시각'
-                            : 'Time'
-                          : c.time
+                            ? '시작 시각'
+                            : 'Start time'
+                          : activity
+                            ? locale === 'ko'
+                              ? '기록 시각'
+                              : 'Time'
+                            : c.time
                     }
                     type="time"
                     style={{
@@ -788,7 +863,11 @@ function QuickEditor({
         )}
         <button
           className="button primary quick-confirm"
-          disabled={busy || !startIso || (durationNeeded && durationRequired && !endedAt)}
+          disabled={
+            busy ||
+            !startIso ||
+            (durationNeeded && durationRequired && !endedAt)
+          }
           aria-busy={pending}
         >
           {mode === 'start' ? (

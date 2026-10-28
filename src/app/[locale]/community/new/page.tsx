@@ -23,7 +23,7 @@ export default async function NewPost({
     board = chooseBoard(boards, q.board);
   const write = await db.rpc('community_can_write');
   if (write.error) throw new Error('Community unavailable');
-  const back = `/${locale}/community?${boardQuery(family?.id, board?.key)}`;
+  const back = `/${locale}/community/boards?${boardQuery(family?.id, board?.key)}`;
   return (
     <main className="main-content">
       <Link href={back}>

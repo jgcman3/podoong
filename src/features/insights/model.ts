@@ -166,16 +166,47 @@ export function aggregateWeek(
     kind: InsightKind,
     ms: number,
     values: Record<string, number | null> = {},
+    showInPattern = true,
   ) => {
     if (!Number.isFinite(ms) || ms > nowMs) return;
+    if (kind !== 'sleep' && showInPattern) {
+      const duration = values.minutes;
+      if (duration != null && duration > 0) {
+        const end = Math.min(nowMs, ms + duration * 60000);
+        let previous: { start: number; end: number } | undefined;
+        let previousDate = '';
+        for (let at = ms; at < end;) {
+          const next = Math.min(end, (Math.floor(at / 60000) + 1) * 60000);
+          const day = locate(kind, at);
+          if (day) {
+            const start = minuteOfDay(at);
+            const finish = Math.min(1440, start + (next - at) / 60000);
+            if (
+              previous &&
+              previousDate === day.date &&
+              Math.abs(previous.end - start) < 0.00001
+            )
+              previous.end = finish;
+            else {
+              previous = { start, end: finish };
+              day.segments.push(previous);
+            }
+            previousDate = day.date;
+          }
+          at = next;
+        }
+      } else {
+        const day = locate(kind, ms);
+        const minute = minuteOfDay(ms);
+        day?.segments.push({ start: minute, end: minute });
+      }
+    }
     const d = locate(kind, ms);
     if (!d) return;
     d.observed = true;
     d.count++;
     if (kind !== 'sleep') {
       d.hours[Number(hourFmt.format(new Date(ms)))]++;
-      const minute = minuteOfDay(ms);
-      d.segments.push({ start: minute, end: minute });
     }
     for (const [key, value] of Object.entries(values)) add(d, key, value, ms);
   };
@@ -219,11 +250,20 @@ export function aggregateWeek(
       point('sleep', at);
       sleepIntervals.push([at, finished]);
     } else if (r.service === 'diaper') {
-      point('diaper', at, {
-        wet: ['wet', 'mixed'].includes(r.kind) ? 1 : 0,
-        dirty: ['dirty', 'mixed'].includes(r.kind) ? 1 : 0,
-      });
-      if (['dirty', 'mixed'].includes(r.kind)) point('stool', at);
+      const stool = ['dirty', 'mixed'].includes(r.kind);
+      // Keep diaper statistics inclusive, but draw each record only once,
+      // using the same category as the Today timeline.
+      point(
+        'diaper',
+        at,
+        {
+          wet: ['wet', 'mixed', 'diaper_mixed'].includes(r.kind) ? 1 : 0,
+          dirty:
+            stool || ['diaper_dirty', 'diaper_mixed'].includes(r.kind) ? 1 : 0,
+        },
+        !stool,
+      );
+      if (stool) point('stool', at);
     } else if (r.service === 'growth') {
       if (r.kind === 'measurement')
         point('growth', at, {
@@ -237,7 +277,13 @@ export function aggregateWeek(
       insightKinds.includes(r.kind as InsightKind)
     ) {
       point(r.kind as InsightKind, at, {
-        minutes: r.duration_minutes,
+        minutes:
+          ['daycare', 'kindergarten'].includes(r.kind) && r.ended_at
+            ? Math.max(
+                0,
+                (Date.parse(r.ended_at) - Date.parse(r.occurred_at)) / 60000,
+              )
+            : r.duration_minutes,
         temperature: r.temperature_c,
         maxTemperature: r.temperature_c,
       });

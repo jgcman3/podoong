@@ -20,3 +20,11 @@ npx supabase test db supabase/tests/family_access_context.test.sql
 브라우저 테스트는 표시 변경으로 인한 인사이트 서버 요청이 0회인지, 기간 변경 시에는 조회하는지 검사한다. 메뉴 사전 로딩 요청은 별도이며, 전환 피드백은 응답을 지연시킨 상태에서 검사한다. DB 테스트는 조회 전용, 접근 권한 회수, 다른 아이, 익명 접근을 검사한다.
 
 배포 모드 테스트는 로컬 Supabase와 별도 `.next-e2e`/3188 포트를 사용한다. 이 결과는 실제 모바일·원격 Supabase의 전환 시간 측정을 대체하지 않는다. 개발 서버 3187의 출력 디렉터리는 사용하지 않는다.
+
+## 최근 메뉴 재사용 — 2026-10-28
+
+클라이언트 라우터의 dynamic/static 재사용 시간을 30초로 설정했습니다. 개인 데이터는 서버 공용 캐시에 저장하지 않습니다. 기록 저장·삭제의 revalidatePath를 유지하며, 아이/가족 변경 시 locale layout을 갱신합니다. 다른 보호자가 바꾼 자료는 재조회 시 반영되므로 캐시 기간에는 최대 30초의 차이가 있을 수 있습니다.
+
+오늘 페이지는 QuickTimeline에서 이미 읽는 care_records를 loadCare에서 중복 조회하지 않습니다. 과거 날짜 조회는 인증·아이 접근권한 확인을 유지한 GET /api/care/history로 분리하고 응답은 private, no-store로 제공합니다.
+
+배포 빌드에서 메뉴 재방문, 기록 저장, 과거 날짜 조회 3개 동선을 검증했습니다. 반복 재방문 측정은 페이지 RSC 요청 0회, 화면 표시 약 59ms였습니다. 개발 서버는 별도의 컴파일/HMR 비용과 재요청이 있어 동일한 속도를 보장하지 않습니다. 회귀 검증: PODUNG_TEST_PRODUCTION=1 npm run test:local -- --grep 'returning to today reuses'.

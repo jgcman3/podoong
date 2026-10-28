@@ -1,11 +1,13 @@
 'use client';
 
 import Image from 'next/image';
+import { useSettledPhoto } from './use-settled-photo';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 export function DiaryDetail({
   note,
+  author,
   date,
   photos,
   measurements,
@@ -14,6 +16,7 @@ export function DiaryDetail({
   onClose,
 }: {
   note: string;
+  author?: string;
   date: string;
   photos: string[];
   measurements?: ReactNode;
@@ -45,7 +48,18 @@ export function DiaryDetail({
   }
   const dialog = useRef<HTMLDialogElement>(null);
   const gallery = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(initialIndex);
+  const index = useSettledPhoto(gallery, photos.length, initialIndex);
+  const [galleryHeight, setGalleryHeight] = useState<number>();
+  useEffect(() => {
+    const image = gallery.current?.querySelectorAll('img')[index];
+    if (!image) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.height > 0)
+        setGalleryHeight(entry.contentRect.height + 8);
+    });
+    observer.observe(image);
+    return () => observer.disconnect();
+  }, [index]);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
@@ -97,23 +111,10 @@ export function DiaryDetail({
         <div
           ref={gallery}
           className="diary-detail-gallery"
+          style={{ height: galleryHeight }}
           role="region"
           aria-label={ko ? '일기 사진' : 'Diary photos'}
           tabIndex={0}
-          onScroll={(event) =>
-            setIndex(
-              Math.max(
-                0,
-                Math.min(
-                  photos.length - 1,
-                  Math.round(
-                    event.currentTarget.scrollLeft /
-                      event.currentTarget.clientWidth,
-                  ),
-                ),
-              ),
-            )
-          }
           onKeyDown={(event) => {
             if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
             event.preventDefault();
@@ -166,6 +167,7 @@ export function DiaryDetail({
       >
         {measurements}
         {note && <p>{note}</p>}
+        {author && <p className="diary-detail-author">by {author}</p>}
       </div>
     </dialog>
   );

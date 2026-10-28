@@ -1,6 +1,9 @@
+import { DiaperIcon } from '@/components/diaper-icon';
 import { BreastIcon } from '@/components/breast-icon';
 import {
   Bath,
+  Building2,
+  School,
   Hospital,
   Syringe,
   Thermometer,
@@ -12,7 +15,6 @@ import {
   Milk,
   Utensils,
   Moon,
-  Baby,
   Ruler,
 } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
@@ -21,9 +23,11 @@ export const careIcons = {
   formula: Milk,
   solids: Utensils,
   sleep: Moon,
-  diaper: Baby,
+  diaper: DiaperIcon,
   growth: Ruler,
   stool: Toilet,
+  daycare: Building2,
+  kindergarten: School,
   bath: Bath,
   hospital: Hospital,
   vaccination: Syringe,
@@ -48,6 +52,8 @@ export const careKinds = [
   'snack',
   'play',
   'tummy',
+  'daycare',
+  'kindergarten',
 ] as const;
 export const careLabels = (locale: Locale) =>
   locale === 'ko'
@@ -58,6 +64,8 @@ export const careLabels = (locale: Locale) =>
         diaper: '기저귀',
         stool: '배변',
         sleep: '수면',
+        daycare: '어린이집',
+        kindergarten: '유치원',
         bath: '목욕',
         hospital: '병원',
         vaccination: '예방접종',
@@ -75,6 +83,8 @@ export const careLabels = (locale: Locale) =>
         diaper: 'Diaper',
         stool: 'Poop',
         sleep: 'Sleep',
+        daycare: 'Daycare',
+        kindergarten: 'Kindergarten',
         bath: 'Bath',
         hospital: 'Doctor',
         vaccination: 'Vaccine',

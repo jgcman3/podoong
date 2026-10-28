@@ -9,7 +9,7 @@ export async function processOperations() {
     const { data, error } = await admin
       .from('community_photo_cleanup')
       .select('path')
-      .limit(100);
+      .limit(25);
     if (error) throw new Error('Operations unavailable');
     if (!data?.length) break;
     const paths = data.map((p: { path: string }) => p.path);
@@ -26,7 +26,7 @@ export async function processOperations() {
     const rows = await admin
       .from('child_photo_cleanup')
       .select('path')
-      .limit(100);
+      .limit(25);
     if (rows.error) throw new Error('Operations unavailable');
     if (!rows.data?.length) break;
     const paths = rows.data.map((row) => row.path);

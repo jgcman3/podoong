@@ -47,7 +47,7 @@ export default async function PostPage({
     context.family?.id;
   const boardKey =
     board.scope === 'topic' ? `topic:${board.topic}` : board.scope;
-  const back = `/${locale}/community?${boardQuery(familyId, boardKey)}`;
+  const back = `/${locale}/community/boards?${boardQuery(familyId, boardKey)}`;
   const n = Number(q.page);
   const page = Number.isSafeInteger(n) && n >= 0 ? Math.min(n, 1000) : 0;
   const [comments, photos, reaction, bookmark, write] = await Promise.all([

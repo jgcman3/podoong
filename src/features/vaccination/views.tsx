@@ -102,7 +102,7 @@ export async function VaccinationList({
   const tab = rawTab === 'completed' || rawTab === 'guide' ? rawTab : 'planned';
   const n = Number(rawPage ?? 0);
   const page = Number.isSafeInteger(n) && n >= 0 ? Math.min(n, 10000) : 0;
-  const base = `/${locale}/services/vaccination?child=${context.child.id}`;
+  const base = `/${locale}/vaccinations?child=${context.child.id}`;
   const result =
     tab === 'guide'
       ? null
@@ -227,14 +227,14 @@ export async function VaccinationEditor(props: PageProps) {
     <Shell
       context={context}
       locale={locale}
-      section="services"
+      section="calendar"
       languageRoute={`vaccination/${record ? `${record.id}/edit` : 'new'}`}
-      childRoute="services/vaccination"
+      childRoute="vaccinations"
     >
       <Flash error={q.error} notice={q.notice} />
       <Link
         className="text-link"
-        href={`/${locale}/services/vaccination?child=${context.child.id}`}
+        href={`/${locale}/vaccinations?child=${context.child.id}`}
       >
         {t.back}
       </Link>
@@ -261,14 +261,14 @@ export async function VaccinationDetail(props: PageProps) {
     <Shell
       context={context}
       locale={locale}
-      section="services"
+      section="calendar"
       languageRoute={`vaccination/${record.id}`}
-      childRoute="services/vaccination"
+      childRoute="vaccinations"
     >
       <Flash error={q.error} notice={q.notice} />
       <Link
         className="text-link"
-        href={`/${locale}/services/vaccination?child=${context.child.id}&tab=${record.status}`}
+        href={`/${locale}/vaccinations?child=${context.child.id}&tab=${record.status}`}
       >
         {t.back}
       </Link>
@@ -322,9 +322,7 @@ export async function UpcomingVaccinations({
           <ShieldCheck size={19} />
           {t.next}
         </h2>
-        <Link
-          href={`/${locale}/services/vaccination?child=${context.child.id}`}
-        >
+        <Link href={`/${locale}/vaccinations?child=${context.child.id}`}>
           {t.all}
           <ChevronRight size={15} />
         </Link>

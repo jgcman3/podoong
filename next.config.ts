@@ -26,6 +26,9 @@ const config: NextConfig = {
     new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://127.0.0.1:3187')
       .hostname,
   ],
-  experimental: { serverActions: { bodySizeLimit: '26mb' } },
+  experimental: {
+    staleTimes: { dynamic: 30, static: 30 },
+    serverActions: { bodySizeLimit: '46mb' },
+  },
 };
 export default createNextIntlPlugin('./src/i18n/request.ts')(config);

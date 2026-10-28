@@ -1,3 +1,4 @@
+import { relationshipLabel } from '@/features/family/relationship';
 import { DiaryShare } from '@/features/growth-community/diary-share';
 import { DiaryComposer } from '@/features/growth-community/composer';
 import Link from 'next/link';
@@ -205,6 +206,8 @@ export default async function Diaries({
                 )}
               </header>
               <DiaryBody
+                photoCacheScope={`${context.user.id}:${context.user.last_sign_in_at ?? ''}`}
+                author={relationshipLabel(entry.author_relationship, locale)}
                 note={entry.note}
                 date={entry.recorded_date}
                 photos={entry.photo_ids.map(photoUrl)}

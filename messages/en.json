@@ -1,4 +1,5 @@
 {
+  "caregiversRemain": "Other caregivers remain. Transfer family administration or revoke their access in Caregiver settings before deleting your account.",
   "brand": "Podung",
   "tagline": "A softer day, together",
   "today": "Today",
@@ -158,7 +159,7 @@
   "pages": "Pagination",
   "previous": "Previous",
   "nextPage": "Next",
-  "reauth": "Sign in again before changing sign-in methods. Verification is valid for five minutes.",
+  "reauth": "Sign in again to continue. Verification is valid for five minutes.",
   "linkConfirm": "Link this sign-in method to your current account?",
   "unlinkConfirm": "Unlink this sign-in method from your current account?",
   "community": "Community",

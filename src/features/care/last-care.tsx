@@ -1,7 +1,8 @@
 'use client';
+import { DiaperIcon } from '@/components/diaper-icon';
 import { BreastIcon } from '@/components/breast-icon';
 import { useEffect, useState } from 'react';
-import { Baby, Milk, Utensils, Moon } from 'lucide-react';
+import { Milk, Utensils, Moon } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import type { Row } from '@/lib/db';
 import { kindLabel } from '@/features/child-care/copy';
@@ -73,7 +74,7 @@ export function LastCare({
       key: 'diaper',
       label: ko ? '마지막 용변' : 'Last potty',
       color: 'diaper',
-      icon: Baby,
+      icon: DiaperIcon,
       at: diaper?.occurred_at,
       value: diaper ? careElapsed(diaper.occurred_at, now, locale) : null,
       detail: diaper ? kindLabel(diaper.kind, locale) : '',

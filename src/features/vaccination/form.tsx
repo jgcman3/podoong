@@ -201,7 +201,7 @@ export function VaccinationForm({
           <Submit label={t.save} />
           <Link
             className="text-link"
-            href={`/${locale}/services/vaccination?child=${childId}`}
+            href={`/${locale}/vaccinations?child=${childId}`}
           >
             {t.cancel}
           </Link>

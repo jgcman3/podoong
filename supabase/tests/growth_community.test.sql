@@ -91,6 +91,7 @@ select is((select count(*)::int from public.growth_diary_feed('20000000-0000-400
 select is((select count(*)::int from public.growth_diary_photo('40000000-0000-4000-8000-000000000001')),0,'revocation removes photo access');
 reset role;
 set local role anon;
+select ok(not has_function_privilege('anon','public.growth_diary_feed(uuid,text,integer,integer)','execute'),'anonymous has no member feed execution privilege');
 select throws_ok($$select public.growth_diary_feed('20000000-0000-4000-8000-000000000002','all')$$,'42501',null,'anonymous cannot read diary feed');
 reset role;
 select * from finish();

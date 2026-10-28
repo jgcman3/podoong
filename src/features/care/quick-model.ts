@@ -7,6 +7,8 @@ export type QuickKind =
   | 'sleep'
   | 'diaper'
   | 'stool'
+  | 'daycare'
+  | 'kindergarten'
   | 'bath'
   | 'hospital'
   | 'temperature'
@@ -83,7 +85,11 @@ export function quickTimeline(
     ]
       .filter(Boolean)
       .join(' · '),
-    running: r.service === 'sleep' && !r.ended_at,
+    running:
+      (r.service === 'sleep' ||
+        (['daycare', 'kindergarten'].includes(r.kind) &&
+          !r.attendance_status)) &&
+      !r.ended_at,
   }));
   const shots: QuickEntry[] = vaccinations
     .filter((r) => r.status === 'completed' && r.completed_date !== null)

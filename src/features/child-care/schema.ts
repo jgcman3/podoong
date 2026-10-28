@@ -10,6 +10,8 @@ const amount = (max: number) =>
     .default('')
     .transform((value) => (value === '' ? null : value));
 export const activityKinds = [
+  'daycare',
+  'kindergarten',
   'bath',
   'hospital',
   'temperature',
@@ -40,6 +42,7 @@ const base = z.object({
       }
     }),
   note: z.string().max(2000).default(''),
+  attendance: z.enum(['', 'arrival', 'departure']).default(''),
   title: z.string().trim().max(200).default(''),
   temperature: amount(45),
   medicine: z.string().trim().max(200).default(''),
@@ -71,7 +74,14 @@ export const childRecordSchema = z
     }),
     base.extend({
       service: z.literal('diaper'),
-      kind: z.enum(['wet', 'dirty', 'mixed', 'dry']),
+      kind: z.enum([
+        'wet',
+        'dirty',
+        'mixed',
+        'dry',
+        'diaper_dirty',
+        'diaper_mixed',
+      ]),
     }),
     base.extend({
       service: z.literal('growth'),

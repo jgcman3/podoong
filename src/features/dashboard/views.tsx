@@ -1,8 +1,16 @@
+import { DeveloperRequestForm } from '@/features/developer-requests/form';
+import { RelationshipField } from '@/features/family/relationship-field';
+import { relationshipLabel } from '@/features/family/relationship';
+import { saveRelationship } from '@/features/family/actions';
+import {
+  DataSettings,
+  AccountWithdrawal,
+} from '@/features/data-operations/settings';
+import { NotificationSettings } from '@/features/notifications/settings';
 import { ChildIcon } from '@/components/child-icon';
 import { ChildSexField } from '@/features/family/sex-field';
 import residenceCountries from '@/features/family/countries.json';
 import { InstallAppButton } from '@/components/install-app';
-import { loadDayAgenda } from '@/features/care/day-agenda-data';
 import { TaskCheckbox } from '@/features/care/task-checkbox';
 import { CalendarWorkspace } from '@/features/care/calendar-workspace';
 import Link from 'next/link';
@@ -10,24 +18,18 @@ import { getTranslations } from 'next-intl/server';
 import {
   Check,
   Settings as SettingsIcon,
-  Milk,
-  Moon,
-  Baby,
-  Ruler,
-  ArrowUpRight,
-  CalendarDays,
+  MapPin,
+  Languages,
   Plus,
   Heart,
   Users,
-  Grid2X2,
   ChevronRight,
   Bell,
-  Database,
+  MessageSquarePlus,
 } from 'lucide-react';
-import { Nest } from '@/components/nest';
 import { ConfirmButton } from '@/components/confirm-button';
 import type { CareContext } from '@/lib/data';
-import { services, ageInDays, type Locale } from '@/lib/domain';
+import { ageInDays, type Locale } from '@/lib/domain';
 import { QuickCare } from '@/features/care/quick-care';
 import {
   loadQuickTimeline,
@@ -36,8 +38,6 @@ import {
 import { ResidenceForm } from '@/features/family/residence-form';
 import { calendarTitle, calendarKind } from '@/features/care/calendar-entry';
 import { LastCare } from '@/features/care/last-care';
-import { VaccinationList } from '@/features/vaccination/views';
-import { isChildService } from '@/features/child-care/schema';
 import {
   TaskForm,
   EventForm,
@@ -56,15 +56,6 @@ import { logout, unlinkIdentity } from '@/features/auth/actions';
 import { cookies } from 'next/headers';
 import type { Row } from '@/lib/db';
 type Props = { context: CareContext; locale: Locale };
-const glyphs: Record<string, typeof Milk> = {
-  feeding: Milk,
-  sleep: Moon,
-  diaper: Baby,
-  growth: Ruler,
-  health: CalendarDays,
-  support: Heart,
-  community: Users,
-};
 export function formatTime(iso: string, locale: Locale, timezone: string) {
   return new Intl.DateTimeFormat(locale === 'ko' ? 'ko-KR' : 'en-US', {
     month: 'short',
@@ -212,7 +203,6 @@ export async function Today({ context, locale }: Props) {
     diaperResult,
     sleepResult,
     quickEntries,
-    agenda,
     recentAmounts,
   ] = await Promise.all([
     context.db
@@ -246,7 +236,6 @@ export async function Today({ context, locale }: Props) {
       .limit(1)
       .maybeSingle(),
     loadQuickTimeline(context),
-    loadDayAgenda(context),
     loadRecentFeedingAmounts(context),
   ]);
   if (feedingResult.error || diaperResult.error || sleepResult.error)
@@ -275,6 +264,7 @@ export async function Today({ context, locale }: Props) {
         now={now}
       />
       <QuickCare
+        birthDate={child.birth_date}
         key={child.id}
         locale={locale}
         childId={child.id}
@@ -283,7 +273,6 @@ export async function Today({ context, locale }: Props) {
         writable={context.writable}
         timezone={timezone}
         today={today}
-        agenda={agenda}
       />
     </>
   );
@@ -407,174 +396,7 @@ export async function Calendar({
           )}
         </section>
       </div>
-      <Pagination
-        context={context}
-        locale={locale}
-        path={service ? `services/${service}` : 'calendar'}
-      />
-    </>
-  );
-}
-export async function Services({ context, locale }: Props) {
-  const t = await getTranslations();
-  return (
-    <>
-      <PageHeading title={t('services')} subtitle={t('servicesSub')} />
-      <div className="services-grid">
-        <InstallAppButton locale={locale} card />
-        {services
-          .filter(
-            ([key]) =>
-              ![
-                'feeding',
-                'sleep',
-                'diaper',
-                'growth',
-                'health',
-                'vaccination',
-              ].includes(key),
-          )
-          .map(([key, , status]) => {
-            const Icon = glyphs[key] ?? Grid2X2;
-            return (
-              <Link
-                className={`service-card ${status === 'planned' ? 'planned-card' : ''}`}
-                href={
-                  key === 'community'
-                    ? `/${locale}/community?family=${context.family.id}`
-                    : key === 'polls'
-                      ? `/${locale}/polls`
-                      : `/${locale}/services/${key}?child=${context.child.id}`
-                }
-                key={key}
-              >
-                <span className="service-icon">
-                  <Icon size={24} />
-                </span>
-                {status === 'planned' && (
-                  <span className="badge planned">{t('planned')}</span>
-                )}
-                <h2>
-                  {key === 'community' || key === 'polls'
-                    ? t(key)
-                    : t(`serviceNames.${key}`)}
-                </h2>
-                <ChevronRight size={17} />
-              </Link>
-            );
-          })}
-        {(
-          [
-            ['notifications', Bell],
-            ['data', Database],
-          ] as const
-        ).map(([key, Icon]) => (
-          <Link key={key} className="service-card" href={`/${locale}/${key}`}>
-            <span className="service-icon">
-              <Icon size={24} />
-            </span>
-            <h2>{t(key)}</h2>
-            <ChevronRight size={17} />
-          </Link>
-        ))}
-      </div>
-    </>
-  );
-}
-export async function ServiceDetail({
-  context,
-  locale,
-  service,
-  page,
-  tab,
-}: {
-  context: CareContext;
-  locale: Locale;
-  service: string;
-  page?: string;
-  tab?: string;
-}) {
-  const t = await getTranslations();
-  const item = services.find((v) => v[0] === service);
-  if (!item && !isChildService(service)) return null;
-  if (service === 'vaccination')
-    return (
-      <VaccinationList
-        context={context}
-        locale={locale}
-        page={page}
-        tab={tab}
-      />
-    );
-  if (item?.[2] === 'planned')
-    return (
-      <>
-        <PageHeading
-          title={t(`serviceNames.${service}`)}
-          subtitle={t('planned')}
-        />
-        <section className="panel">
-          <Nest />
-          <Empty title={t('planned')} subtitle={t('servicesSub')} />
-        </section>
-      </>
-    );
-  const { data: content, error } = await context.db
-    .from('content_items')
-    .select('*,content_translations(*)')
-    .eq('service', service)
-    .eq('status', 'published');
-  if (error) throw new Error('Content unavailable');
-  const links: Record<string, string> = {
-    support: 'https://www.bokjiro.go.kr/',
-    health: 'https://www.nhis.or.kr/',
-  };
-  return (
-    <>
-      {content?.length ? (
-        <section className="panel content-guide">
-          {content.map((c) => {
-            const v = c.content_translations.find((v) => v.locale === locale);
-            return v ? (
-              <article key={c.key}>
-                <h2>{v.title}</h2>
-                <p>{v.body}</p>
-                <p className="small muted">
-                  {t('source')}: {c.region} · {c.last_reviewed_at} ·{' '}
-                  {c.reviewer}
-                </p>
-                {c.source_url && (
-                  <a
-                    className="text-link"
-                    href={c.source_url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {t('official')}
-                    <ArrowUpRight size={15} />
-                  </a>
-                )}
-              </article>
-            ) : null;
-          })}
-        </section>
-      ) : links[service] ? (
-        <section className="panel content-guide">
-          <h2>{t('contentPending')}</h2>
-          <p>{t('contentPendingSub')}</p>
-          <a
-            className="button secondary"
-            href={links[service]}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {t('official')}
-            <ArrowUpRight size={16} />
-          </a>
-          <p className="small muted">{t('externalNote')}</p>
-        </section>
-      ) : null}
-      <Calendar context={context} locale={locale} service={service} />
+      <Pagination context={context} locale={locale} path="calendar" />
     </>
   );
 }
@@ -583,9 +405,11 @@ export async function Family({
   locale,
   embedded = false,
   mode = 'all',
+  editableChildren,
 }: Props & {
   embedded?: boolean;
-  mode?: 'all' | 'management' | 'child' | 'add';
+  editableChildren?: Props['context']['children'];
+  mode?: 'all' | 'management' | 'residence' | 'child' | 'add';
 }) {
   const t = await getTranslations();
   const { child, owner, members } = context;
@@ -600,7 +424,15 @@ export async function Family({
       <input
         type="hidden"
         name="panel"
-        value={mode === 'child' ? 'child' : mode === 'add' ? 'add' : 'family'}
+        value={
+          mode === 'child'
+            ? 'child'
+            : mode === 'add'
+              ? 'add'
+              : mode === 'residence'
+                ? 'residence'
+                : 'family'
+        }
       />
     </>
   );
@@ -617,7 +449,7 @@ export async function Family({
   return (
     <>
       {!embedded && <PageHeading title={t('family')} subtitle={t('tagline')} />}
-      {manage && (
+      {(mode === 'all' || mode === 'residence') && (
         <section className="panel family-residence">
           <div className="panel-heading">
             <h2>{t('familyResidence')}</h2>
@@ -642,6 +474,7 @@ export async function Family({
                           (c) =>
                             c.code === context.family.residence_country_code,
                         )?.[locale] ?? context.family.residence_country_code,
+                        context.family.residence_province,
                         context.family.residence_city,
                         context.family.residence_locality,
                       ]
@@ -675,7 +508,9 @@ export async function Family({
                       : (context.caregivers.find((c) => c.user_id === m.user_id)
                           ?.display_name ?? t('otherChildMember'))}
                   </strong>
-                  <span>{t(m.role)}</span>
+                  <span>
+                    {relationshipLabel(m.relationship, locale)} · {t(m.role)}
+                  </span>
                 </div>
                 {owner && m.role !== 'owner' && (
                   <form action={revoke}>
@@ -725,43 +560,54 @@ export async function Family({
             )}
           </section>
         )}
-        {context.writable && (mode === 'all' || mode === 'child') && (
-          <section className="panel" id="child-info">
-            {!embedded && <h2>{t('changeDates')}</h2>}
-            <form
-              action={embedded ? saveChildDetails : saveBirthDate}
-              className="form-stack"
+        {(context.writable || editableChildren?.length) &&
+          (mode === 'all' || mode === 'child') &&
+          (editableChildren ?? [child]).map((item) => (
+            <section
+              className="panel account-child-details"
+              key={item.id}
+              id={item.id === child.id ? 'child-info' : `child-info-${item.id}`}
+              data-child-id={item.id}
             >
-              {formReturn}
-              <Hidden locale={locale} childId={child.id} />
-              {embedded && (
-                <>
-                  <label>
-                    {t('childName')}
-                    <input
-                      name="name"
-                      required
-                      maxLength={60}
-                      defaultValue={child.name}
-                    />
-                  </label>
-                  <ChildSexField locale={locale} value={child.sex} />
-                </>
-              )}
-              <label>
-                {t('birthDate')}
-                <input
-                  type="date"
-                  name="birth"
-                  required
-                  max={context.today}
-                  defaultValue={child.birth_date ?? ''}
-                />
-              </label>
-              <button className="button secondary">{t('save')}</button>
-            </form>
-          </section>
-        )}
+              {editableChildren && <h3>{item.name}</h3>}
+              {!embedded && <h2>{t('changeDates')}</h2>}
+              <form
+                action={embedded ? saveChildDetails : saveBirthDate}
+                className="form-stack"
+              >
+                {formReturn}
+                {editableChildren && (
+                  <input type="hidden" name="returnChild" value={child.id} />
+                )}
+                <Hidden locale={locale} childId={item.id} />
+                {embedded && (
+                  <>
+                    <label>
+                      {t('childName')}
+                      <input
+                        name="name"
+                        required
+                        maxLength={60}
+                        defaultValue={item.name}
+                      />
+                    </label>
+                    <ChildSexField locale={locale} value={item.sex} />
+                  </>
+                )}
+                <label>
+                  {t('birthDate')}
+                  <input
+                    type="date"
+                    name="birth"
+                    required
+                    max={context.today}
+                    defaultValue={item.birth_date ?? ''}
+                  />
+                </label>
+                <button className="button secondary">{t('save')}</button>
+              </form>
+            </section>
+          ))}
         {owner && (mode === 'all' || mode === 'add') && (
           <section className="panel" id="add-child">
             {!embedded && <h2>{t('newChild')}</h2>}
@@ -830,84 +676,193 @@ export async function ChildAccount({
   const ko = locale === 'ko';
   const t = await getTranslations();
   const { child } = context;
+  const owned = await context.db
+    .from('family_members')
+    .select('family_id')
+    .eq('user_id', context.user.id)
+    .eq('role', 'owner');
+  if (owned.error) throw new Error('Child settings unavailable');
+  const editableChildren = context.children.filter((item) =>
+    owned.data.some((family) => family.family_id === item.family_id),
+  );
+
   return (
     <div className="child-account-page">
-      <PageHeading title={ko ? '아이와 설정' : 'Children & settings'} />
-      <section className="panel account-children" aria-label={t('childSelect')}>
-        <h2>{t('childSelect')}</h2>
-        <div className="account-child-list">
-          {context.children.map((item) => (
-            <Link
-              key={item.id}
-              href={`/${locale}/account?child=${item.id}`}
-              replace
-              aria-current={item.id === child.id ? 'true' : undefined}
-            >
-              <span className="account-child-icon">
-                <ChildIcon sex={item.sex} size={22} />
-              </span>
-              <span>
-                <strong>{item.name}</strong>
-                <small>
-                  {t('days', {
-                    days: ageInDays(item.birth_date, context.today),
-                  })}
-                </small>
-              </span>
-              {item.id === child.id && <Check size={18} aria-hidden="true" />}
-            </Link>
-          ))}
-        </div>
-      </section>
       <div className="account-inline-settings" key={child.id}>
-        {context.writable && (
-          <details
-            className="panel account-settings-section"
-            open={panel === 'child'}
-          >
-            <summary>
-              <ChildIcon sex={child.sex} size={18} />
-              <span>{ko ? '아이 정보 수정' : 'Child details'}</span>
-              <ChevronRight size={16} />
-            </summary>
-            <Family context={context} locale={locale} embedded mode="child" />
-          </details>
-        )}
-        {context.owner && (
-          <details
-            className="panel account-settings-section"
-            open={panel === 'add'}
-          >
-            <summary>
-              <Plus size={18} />
-              <span>{t('newChild')}</span>
-              <ChevronRight size={16} />
-            </summary>
-            <Family context={context} locale={locale} embedded mode="add" />
-          </details>
-        )}
+        <section
+          className="panel account-children"
+          aria-label={t('childSelect')}
+        >
+          <h2>{t('childSelect')}</h2>
+          <div className="account-child-list">
+            {context.children.map((item) => (
+              <Link
+                key={item.id}
+                href={`/${locale}/account?child=${item.id}`}
+                replace
+                aria-current={item.id === child.id ? 'true' : undefined}
+              >
+                <span className="account-child-icon">
+                  <ChildIcon sex={item.sex} size={22} />
+                </span>
+                <span>
+                  <strong>{item.name}</strong>
+                  <small>
+                    {t('days', {
+                      days: ageInDays(item.birth_date, context.today),
+                    })}
+                  </small>
+                </span>
+                {item.id === child.id && <Check size={18} aria-hidden="true" />}
+              </Link>
+            ))}
+          </div>
+        </section>
         <details
           className="panel account-settings-section"
-          open={panel === 'family'}
+          open={panel === 'language'}
         >
           <summary>
-            <Users size={18} />
-            <span>{ko ? '가족 관리' : 'Manage family'}</span>
+            <Languages size={18} />
+            <span>{ko ? '언어 설정' : 'Language settings'}</span>
             <ChevronRight size={16} />
           </summary>
-          <Family
+          <Settings
             context={context}
             locale={locale}
             embedded
-            mode="management"
+            mode="language"
           />
         </details>
+        <details
+          className="panel account-settings-section"
+          open={panel === 'account'}
+        >
+          <summary>
+            <SettingsIcon size={18} />
+            <span>{ko ? '계정 설정' : 'Account settings'}</span>
+            <ChevronRight size={16} />
+          </summary>
+          <Settings context={context} locale={locale} embedded mode="account" />
+        </details>
+        <details
+          className="panel account-settings-section"
+          open={panel === 'notifications'}
+        >
+          <summary>
+            <Bell size={18} />
+            <span>{ko ? '알림 설정' : 'Notification settings'}</span>
+            <ChevronRight size={16} />
+          </summary>
+          <NotificationSettings context={context} locale={locale} />
+        </details>
+        <details
+          className="panel account-settings-section"
+          open={panel === 'developer'}
+        >
+          <summary>
+            <MessageSquarePlus size={18} />
+            <span>{ko ? '개발자에게 요청하기' : 'Contact the developer'}</span>
+            <ChevronRight size={16} />
+          </summary>
+          <DeveloperRequestForm
+            locale={locale}
+            initialId={crypto.randomUUID()}
+          />
+        </details>
+        {editableChildren.length > 0 && (
+          <>
+            <details
+              className="panel account-settings-section"
+              open={panel === 'child' || panel === 'add'}
+            >
+              <summary>
+                <ChildIcon sex={child.sex} size={18} />
+                <span>
+                  {ko ? '아이 설정' : 'Child settings'}
+                  <small className="account-admin-badge">
+                    {ko ? '가족관리자 전용' : 'Admin only'}
+                  </small>
+                </span>
+                <ChevronRight size={16} />
+              </summary>
+
+              {editableChildren.length > 0 && (
+                <>
+                  <Family
+                    context={context}
+                    locale={locale}
+                    embedded
+                    mode="child"
+                    editableChildren={editableChildren}
+                  />
+                </>
+              )}
+              {context.owner && (
+                <>
+                  <h3>{t('newChild')}</h3>
+                  <Family
+                    context={context}
+                    locale={locale}
+                    embedded
+                    mode="add"
+                  />
+                </>
+              )}
+            </details>
+          </>
+        )}
+        {context.owner && (
+          <>
+            <details
+              className="panel account-settings-section"
+              open={panel === 'residence'}
+            >
+              <summary>
+                <MapPin size={18} />
+                <span>
+                  {ko ? '주소 설정' : 'Address settings'}
+                  <small className="account-admin-badge">
+                    {ko ? '가족관리자 전용' : 'Admin only'}
+                  </small>
+                </span>
+                <ChevronRight size={16} />
+              </summary>
+              <Family
+                context={context}
+                locale={locale}
+                embedded
+                mode="residence"
+              />
+            </details>
+            <details
+              className="panel account-settings-section"
+              open={panel === 'family'}
+            >
+              <summary>
+                <Users size={18} />
+                <span>
+                  {ko ? '보호자 설정' : 'Caregiver settings'}
+                  <small className="account-admin-badge">
+                    {ko ? '가족관리자 전용' : 'Admin only'}
+                  </small>
+                </span>
+                <ChevronRight size={16} />
+              </summary>
+              <Family
+                context={context}
+                locale={locale}
+                embedded
+                mode="management"
+              />
+            </details>
+          </>
+        )}
+        <DataSettings context={context} locale={locale} panel={panel} />
       </div>
-      <div className="account-settings-heading">
-        <SettingsIcon size={18} aria-hidden="true" />
-        <h2>{t('settings')}</h2>
-      </div>
-      <Settings context={context} locale={locale} embedded />
+      <section className="panel settings-install">
+        <InstallAppButton locale={locale} />
+      </section>
     </div>
   );
 }
@@ -916,67 +871,105 @@ export async function Settings({
   context,
   locale,
   embedded = false,
-}: Props & { embedded?: boolean }) {
+  mode = 'all',
+}: Props & { embedded?: boolean; mode?: 'all' | 'language' | 'account' }) {
   const t = await getTranslations();
   return (
     <>
       {!embedded && (
         <PageHeading title={t('settings')} subtitle={t('tagline')} />
       )}
-      <section className="panel settings-install">
-        <InstallAppButton locale={locale} />
-      </section>
-      <section className="panel settings-language">
-        <h2>{locale === 'ko' ? '언어' : 'Language'}</h2>
-        <div className="residence-actions">
-          {(['ko', 'en'] as const).map((language) => (
-            <Link
-              key={language}
-              className={`button ${locale === language ? 'primary' : 'secondary'}`}
-              aria-current={locale === language ? 'true' : undefined}
-              href={`/${language}/${embedded ? 'account' : 'settings'}?child=${context.child.id}`}
-            >
-              {language === 'ko' ? '한국어' : 'English'}
-            </Link>
-          ))}
-        </div>
-      </section>
-      <section className="panel settings-panel">
-        <h2>{t('identities')}</h2>
-        {context.user.identities?.map((identity) => (
-          <div className="member-row" key={identity.identity_id}>
-            <strong>{identity.provider}</strong>
-            <form action={unlinkIdentity}>
-              <input type="hidden" name="locale" value={locale} />
-              <input
-                type="hidden"
-                name="identityId"
-                value={identity.identity_id}
-              />
-              <ConfirmButton
-                label={t('unlink')}
-                message={t('unlinkConfirm')}
-                disabled={
-                  (context.user.identities?.length ?? 0) <= 1 ||
-                  !context.recentlyAuthenticated
-                }
-              />
-            </form>
+      {mode === 'all' && (
+        <section className="panel settings-install">
+          <InstallAppButton locale={locale} />
+        </section>
+      )}
+      {mode !== 'account' && (
+        <section className="panel settings-language">
+          <h2>{locale === 'ko' ? '언어' : 'Language'}</h2>
+          <div className="residence-actions">
+            {(['ko', 'en'] as const).map((language) => (
+              <Link
+                key={language}
+                className={`button ${locale === language ? 'primary' : 'secondary'}`}
+                aria-current={locale === language ? 'true' : undefined}
+                href={`/${language}/${embedded ? 'account' : 'settings'}?child=${context.child.id}${embedded ? '&panel=language' : ''}`}
+              >
+                {language === 'ko' ? '한국어' : 'English'}
+              </Link>
+            ))}
           </div>
-        ))}
-        <p>{t('linkHelp')}</p>
-        <SocialButtons
-          locale={locale}
-          next={`/${locale}/${embedded ? 'account' : 'settings'}?child=${context.child.id}`}
-          link={context.recentlyAuthenticated}
-        />
-        {!context.recentlyAuthenticated && <p>{t('reauth')}</p>}
-        <p className="small muted">{t('lastIdentity')}</p>
-        <form action={logout}>
-          <input type="hidden" name="locale" value={locale} />
-          <button className="button secondary">{t('logout')}</button>
-        </form>
-      </section>
+        </section>
+      )}
+      {mode !== 'language' && (
+        <section className="panel settings-panel">
+          <div className="account-signed-in">
+            <span className="avatar" aria-hidden="true">
+              {context.profile.display_name.slice(0, 1) || <Users size={20} />}
+            </span>
+            <div>
+              <small>
+                {locale === 'ko' ? '로그인한 계정' : 'Signed in as'}
+              </small>
+              <strong>
+                {context.profile.display_name ||
+                  (locale === 'ko' ? '보호자' : 'Caregiver')}
+              </strong>
+              {context.user.email && <span>{context.user.email}</span>}
+            </div>
+          </div>
+          <form
+            action={saveRelationship}
+            className="form-stack account-relationship-form"
+          >
+            <Hidden locale={locale} childId={context.child.id} />
+            <RelationshipField
+              locale={locale}
+              value={
+                context.members.find(
+                  (member) => member.user_id === context.user.id,
+                )?.relationship
+              }
+            />
+            <button className="button secondary">{t('save')}</button>
+          </form>
+          <h2>{t('identities')}</h2>
+          {context.user.identities?.map((identity) => (
+            <div className="member-row" key={identity.identity_id}>
+              <strong>{identity.provider}</strong>
+              <form action={unlinkIdentity}>
+                <input type="hidden" name="locale" value={locale} />
+                <input
+                  type="hidden"
+                  name="identityId"
+                  value={identity.identity_id}
+                />
+                <ConfirmButton
+                  label={t('unlink')}
+                  message={t('unlinkConfirm')}
+                  disabled={
+                    (context.user.identities?.length ?? 0) <= 1 ||
+                    !context.recentlyAuthenticated
+                  }
+                />
+              </form>
+            </div>
+          ))}
+          <p>{t('linkHelp')}</p>
+          <SocialButtons
+            locale={locale}
+            next={`/${locale}/${embedded ? 'account' : 'settings'}?child=${context.child.id}`}
+            link={context.recentlyAuthenticated}
+          />
+          {!context.recentlyAuthenticated && <p>{t('reauth')}</p>}
+          <p className="small muted">{t('lastIdentity')}</p>
+          <form action={logout}>
+            <input type="hidden" name="locale" value={locale} />
+            <button className="button secondary">{t('logout')}</button>
+          </form>
+          <AccountWithdrawal context={context} locale={locale} />
+        </section>
+      )}
     </>
   );
 }

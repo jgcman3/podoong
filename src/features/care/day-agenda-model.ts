@@ -1,5 +1,4 @@
 import type { Row } from '@/lib/db';
-import type { CalendarEntry } from './calendar-model';
 export type AgendaTask = Pick<
   Row<'tasks'>,
   | 'id'
@@ -10,4 +9,3 @@ export type AgendaTask = Pick<
   | 'status'
   | 'assignee_id'
 >;
-export type DayAgendaData = { tasks: AgendaTask[]; events: CalendarEntry[] };

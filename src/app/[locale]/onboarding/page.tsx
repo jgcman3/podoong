@@ -1,3 +1,4 @@
+import { RelationshipField } from '@/features/family/relationship-field';
 import { ChildSexField } from '@/features/family/sex-field';
 import { getTranslations } from 'next-intl/server';
 import { requireUser } from '@/lib/data';
@@ -57,6 +58,7 @@ export default async function Onboarding({
                 <input name="child" required maxLength={60} />
               </label>
               <ChildSexField locale={locale} />
+              <RelationshipField locale={locale} />
               <div className="form-row">
                 <label>
                   {t('birthDate')}

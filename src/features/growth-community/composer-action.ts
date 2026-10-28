@@ -1,4 +1,5 @@
 'use server';
+import { storePhotoVariants } from './photo-variants.mjs';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/data';
@@ -20,12 +21,12 @@ export async function createDiary(form: FormData) {
     .filter((file): file is File => file instanceof File && file.size > 0);
   if (
     !parsed.success ||
-    photos.length > 5 ||
+    photos.length > 9 ||
     photos.some((photo) => photo.size > 5242880)
   )
     return {
       saved: false,
-      error: photos.length > 5 ? 'photo-limit' : 'invalid',
+      error: photos.length > 9 ? 'photo-limit' : 'invalid',
     };
   const uploads = await Promise.all(
     photos.map(async (photo) => {
@@ -48,14 +49,39 @@ export async function createDiary(form: FormData) {
     : null;
   if (value.version && (!existing?.data || existing.error))
     return { saved: false, error: 'generic' };
-  if (
-    !value.note.trim() &&
-    !measured &&
-    !photos.length &&
-    !existing?.data?.child_record_photos.length
-  )
+  let order: string[] | null = null;
+  if (form.has('photoOrder')) {
+    try {
+      const parsedOrder = z
+        .array(z.string())
+        .max(9)
+        .parse(JSON.parse(String(form.get('photoOrder'))));
+      const expected = [
+        ...(existing?.data?.child_record_photos.map((p) => p.id) ?? []),
+        ...photos.map((_, i) => `new:${i}`),
+      ];
+      if (
+        new Set(parsedOrder).size !== parsedOrder.length ||
+        parsedOrder.some((id) => !expected.includes(id)) ||
+        photos.some((_, i) => !parsedOrder.includes(`new:${i}`))
+      )
+        return { saved: false, error: 'invalid' };
+      order = parsedOrder;
+    } catch {
+      return { saved: false, error: 'invalid' };
+    }
+  }
+  const removed =
+    order === null
+      ? []
+      : (existing?.data?.child_record_photos ?? [])
+          .filter((photo) => !order.includes(photo.id))
+          .map((photo) => photo.id);
+  const retainedCount =
+    (existing?.data?.child_record_photos.length ?? 0) - removed.length;
+  if (!value.note.trim() && !measured && !photos.length && !retainedCount)
     return { saved: false, error: 'empty' };
-  if ((existing?.data?.child_record_photos.length ?? 0) + photos.length > 5)
+  if (retainedCount + photos.length > 9)
     return { saved: false, error: 'photo-limit' };
   const result = await db.rpc('save_growth_diary', {
     p_id: value.id,
@@ -64,6 +90,7 @@ export async function createDiary(form: FormData) {
     p_version: value.version,
     p_data: {
       kind: value.kind,
+      removed_photo_ids: removed,
       occurred_at: existing?.data?.occurred_at ?? value.occurredAt,
       timezone: existing?.data?.record_timezone ?? value.timezone,
       note: value.note,
@@ -78,30 +105,46 @@ export async function createDiary(form: FormData) {
       saved: false,
       error: result.error.code === '22023' ? 'birth' : 'generic',
     };
-  const uploaded = await Promise.all(
-    uploads.map(async ({ photo, bytes, type }) => {
-      const id = crypto.randomUUID();
-      const registration = await db.rpc('add_child_record_photo', {
-        p_id: id,
-        p_record: value.id,
-        p_type: type!,
-        p_size: photo.size,
-      });
-      if (registration.error || !registration.data) return false;
-      const result = await db.storage
-        .from('child-care-photos')
-        .upload(registration.data, bytes, {
-          contentType: type!,
-          upsert: false,
-        });
-      if (result.error) {
-        await db.rpc('remove_child_record_photo', { p_id: id });
-        return false;
-      }
-      return true;
-    }),
-  );
-  const photoFailed = uploaded.some((success) => !success);
+  const uploaded: (string | false)[] = [];
+  // Keep photo decoding bounded even when all nine attachments are uploaded.
+  for (const { photo, bytes, type } of uploads) {
+    const id = crypto.randomUUID();
+    const registration = await db.rpc('add_child_record_photo', {
+      p_id: id,
+      p_record: value.id,
+      p_type: type!,
+      p_size: photo.size,
+    });
+    if (registration.error || !registration.data) {
+      uploaded.push(false);
+      continue;
+    }
+    const result = await db.storage
+      .from('child-care-photos')
+      .upload(registration.data, bytes, { contentType: type!, upsert: false });
+    if (result.error) {
+      await db.rpc('remove_child_record_photo', { p_id: id });
+      uploaded.push(false);
+      continue;
+    }
+    try {
+      await storePhotoVariants(db, id, registration.data, Buffer.from(bytes));
+    } catch {
+      // Keep a successfully uploaded original readable; a backfill can retry derivatives.
+    }
+    uploaded.push(id);
+  }
+  let photoFailed = uploaded.some((success) => !success);
+  if (order) {
+    const ids = order
+      .map((id) => (id.startsWith('new:') ? uploaded[Number(id.slice(4))] : id))
+      .filter((id): id is string => typeof id === 'string');
+    const reordered = await db.rpc('reorder_diary_photos', {
+      p_record: value.id,
+      p_ids: ids,
+    });
+    photoFailed ||= Boolean(reordered.error);
+  }
   revalidatePath(`/${locale}/community/diaries`);
   revalidatePath(`/${locale}/today`);
   revalidatePath(`/${locale}/insights`);

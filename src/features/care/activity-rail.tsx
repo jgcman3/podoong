@@ -1,10 +1,11 @@
 'use client';
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import type { Locale } from '@/lib/domain';
 import { careIcons, careKinds, careLabels } from './activity-config';
 
 export function ActivityRail({
   locale,
+  leading,
   label,
   selected,
   onSelect,
@@ -15,6 +16,7 @@ export function ActivityRail({
   pending = false,
 }: {
   locale: Locale;
+  leading?: ReactNode;
   label: string;
   selected: readonly string[];
   onSelect: (kind: (typeof careKinds)[number]) => void;
@@ -40,6 +42,7 @@ export function ActivityRail({
       aria-busy={pending}
       onPointerDown={(event) => {
         suppressClick.current = false;
+        if ((event.target as Element).closest('dialog')) return;
         // Touch scrolling stays native, including momentum and vertical scrolling.
         if (event.pointerType !== 'mouse' || event.button !== 0) return;
         drag.current = {
@@ -82,6 +85,7 @@ export function ActivityRail({
         }
       }}
     >
+      {leading}
       {careKinds.map((kind) => {
         const Icon = careIcons[kind],
           active = selected.includes(kind);

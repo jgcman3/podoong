@@ -75,3 +75,39 @@ it('fails closed when the server credential is missing', async () => {
   expect((await request()).status).toBe(503);
   expect(mocks.serverDownload).not.toHaveBeenCalled();
 });
+it('serves the stored detail variant without reading or decoding the original', async () => {
+  mocks.metadata.mockResolvedValue({
+    data: { path: 'authorized/photo.png', variants_ready: true },
+    error: null,
+  });
+  const bytes = new Uint8Array([1, 2, 3, 4]);
+  mocks.serverDownload.mockResolvedValue({
+    data: new Blob([bytes]),
+    error: null,
+  });
+  const response = await request();
+  expect(response.status).toBe(200);
+  expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes);
+  expect(mocks.serverDownload).toHaveBeenCalledExactlyOnceWith(
+    'authorized/photo.png.display-v1-1600.webp',
+  );
+});
+it('falls back to a readable original when a prepared file is missing', async () => {
+  mocks.metadata.mockResolvedValue({
+    data: { path: 'authorized/photo.png', variants_ready: true },
+    error: null,
+  });
+  const bytes = await sharp({
+    create: { width: 12, height: 8, channels: 3, background: '#eee' },
+  })
+    .png()
+    .toBuffer();
+  mocks.serverDownload
+    .mockResolvedValueOnce({ data: null, error: { statusCode: '404' } })
+    .mockResolvedValueOnce({
+      data: new Blob([new Uint8Array(bytes)]),
+      error: null,
+    });
+  expect((await request()).status).toBe(200);
+  expect(mocks.serverDownload).toHaveBeenCalledTimes(2);
+});

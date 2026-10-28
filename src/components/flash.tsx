@@ -10,6 +10,7 @@ const keys: Record<string, string> = {
   provider: 'providerUnavailable',
   lastIdentity: 'lastIdentity',
   reauth: 'reauth',
+  caregiversRemain: 'caregiversRemain',
 };
 export async function Flash({
   error,

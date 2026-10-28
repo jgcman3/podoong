@@ -195,14 +195,14 @@ isOneToOne: false
                   ]
                 },"child_record_photos": {
                   Row: {
-                    "child_id": string,"content_type": string,"created_at": string,"id": string,"path": string,"record_id": string,"size_bytes": number,"uploaded_by": string
+                    "child_id": string,"content_type": string,"created_at": string,"id": string,"path": string,"record_id": string,"size_bytes": number,"sort_order": number,"uploaded_by": string,"variants_ready": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "child_id": string,"content_type": string,"created_at"?: string,"id": string,"path": string,"record_id": string,"size_bytes": number,"uploaded_by": string
+                    "child_id": string,"content_type": string,"created_at"?: string,"id": string,"path": string,"record_id": string,"size_bytes": number,"sort_order"?: number,"uploaded_by": string,"variants_ready"?: boolean
                   }
                   Update: {
-                    "child_id"?: string,"content_type"?: string,"created_at"?: string,"id"?: string,"path"?: string,"record_id"?: string,"size_bytes"?: number,"uploaded_by"?: string
+                    "child_id"?: string,"content_type"?: string,"created_at"?: string,"id"?: string,"path"?: string,"record_id"?: string,"size_bytes"?: number,"sort_order"?: number,"uploaded_by"?: string,"variants_ready"?: boolean
                   }
                   Relationships: [
                     {
@@ -221,14 +221,14 @@ isOneToOne: false
                   ]
                 },"child_records": {
                   Row: {
-                    "child_id": string,"created_at": string,"created_by": string | null,"dose_amount": number | null,"dose_unit": string | null,"duration_minutes": number | null,"ended_at": string | null,"head_cm": number | null,"height_cm": number | null,"id": string,"kind": string,"medicine_name": string,"note": string,"occurred_at": string,"record_timezone": string,"service": string,"stool_color": string | null,"stool_texture": string | null,"temperature_c": number | null,"title": string,"updated_at": string,"updated_by": string | null,"version": number,"weight_kg": number | null
+                    "attendance_status": string | null,"author_relationship": Database["public"]['Enums']["caregiver_relationship"] | null,"child_id": string,"created_at": string,"created_by": string | null,"dose_amount": number | null,"dose_unit": string | null,"duration_minutes": number | null,"ended_at": string | null,"head_cm": number | null,"height_cm": number | null,"id": string,"kind": string,"medicine_name": string,"note": string,"occurred_at": string,"record_timezone": string,"service": string,"stool_color": string | null,"stool_texture": string | null,"temperature_c": number | null,"title": string,"updated_at": string,"updated_by": string | null,"version": number,"weight_kg": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "child_id": string,"created_at"?: string,"created_by"?: string | null,"dose_amount"?: number | null,"dose_unit"?: string | null,"duration_minutes"?: number | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id": string,"kind": string,"medicine_name"?: string,"note"?: string,"occurred_at": string,"record_timezone": string,"service": string,"stool_color"?: string | null,"stool_texture"?: string | null,"temperature_c"?: number | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
+                    "attendance_status"?: string | null,"author_relationship"?: Database["public"]['Enums']["caregiver_relationship"] | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"dose_amount"?: number | null,"dose_unit"?: string | null,"duration_minutes"?: number | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id": string,"kind": string,"medicine_name"?: string,"note"?: string,"occurred_at": string,"record_timezone": string,"service": string,"stool_color"?: string | null,"stool_texture"?: string | null,"temperature_c"?: number | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
                   }
                   Update: {
-                    "child_id"?: string,"created_at"?: string,"created_by"?: string | null,"dose_amount"?: number | null,"dose_unit"?: string | null,"duration_minutes"?: number | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id"?: string,"kind"?: string,"medicine_name"?: string,"note"?: string,"occurred_at"?: string,"record_timezone"?: string,"service"?: string,"stool_color"?: string | null,"stool_texture"?: string | null,"temperature_c"?: number | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
+                    "attendance_status"?: string | null,"author_relationship"?: Database["public"]['Enums']["caregiver_relationship"] | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"dose_amount"?: number | null,"dose_unit"?: string | null,"duration_minutes"?: number | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id"?: string,"kind"?: string,"medicine_name"?: string,"note"?: string,"occurred_at"?: string,"record_timezone"?: string,"service"?: string,"stool_color"?: string | null,"stool_texture"?: string | null,"temperature_c"?: number | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
                   }
                   Relationships: [
                     {
@@ -667,6 +667,26 @@ isOneToOne: false
                   Relationships: [
 
                   ]
+                },"developer_requests": {
+                  Row: {
+                    "body": string,"category": string,"created_at": string,"id": string,"status": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"category": string,"created_at"?: string,"id": string,"status"?: string,"user_id": string
+                  }
+                  Update: {
+                    "body"?: string,"category"?: string,"created_at"?: string,"id"?: string,"status"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "developer_requests_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"events": {
                   Row: {
                     "child_id": string,"created_by": string | null,"date": string,"event_kind": string,"event_time": string | null,"id": string,"note": string,"record_timezone": string | null,"title": string,"updated_at": string
@@ -695,17 +715,23 @@ isOneToOne: false
                   ]
                 },"families": {
                   Row: {
-                    "created_at": string,"id": string,"name": string,"residence_city": string | null,"residence_country_code": string | null,"residence_locality": string | null,"residence_region_code": string | null,"residence_updated_at": string | null,"residence_version": number
+                    "created_at": string,"global_place_id": string | null,"id": string,"name": string,"residence_city": string | null,"residence_country_code": string | null,"residence_locality": string | null,"residence_province": string | null,"residence_region_code": string | null,"residence_updated_at": string | null,"residence_version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"name": string,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
+                    "created_at"?: string,"global_place_id"?: string | null,"id"?: string,"name": string,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_province"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"name"?: string,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
+                    "created_at"?: string,"global_place_id"?: string | null,"id"?: string,"name"?: string,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_province"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "families_global_place_id_fkey"
+      columns: ["global_place_id"]
+isOneToOne: false
+      referencedRelation: "global_residence_places"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "family_residence_country_fk"
       columns: ["residence_country_code"]
 isOneToOne: false
@@ -721,14 +747,14 @@ isOneToOne: false
                   ]
                 },"family_members": {
                   Row: {
-                    "family_id": string,"role": string,"user_id": string
+                    "family_id": string,"relationship": Database["public"]['Enums']["caregiver_relationship"] | null,"role": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "family_id": string,"role": string,"user_id": string
+                    "family_id": string,"relationship"?: Database["public"]['Enums']["caregiver_relationship"] | null,"role": string,"user_id": string
                   }
                   Update: {
-                    "family_id"?: string,"role"?: string,"user_id"?: string
+                    "family_id"?: string,"relationship"?: Database["public"]['Enums']["caregiver_relationship"] | null,"role"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -743,6 +769,26 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
+    }
+                  ]
+                },"global_residence_places": {
+                  Row: {
+                    "city": string,"city_key": string | null,"country_code": string,"id": string,"locality": string,"locality_key": string | null,"province": string,"province_key": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "city": string,"city_key"?: never,"country_code": string,"id"?: string,"locality": string,"locality_key"?: never,"province": string,"province_key"?: never
+                  }
+                  Update: {
+                    "city"?: string,"city_key"?: never,"country_code"?: string,"id"?: string,"locality"?: string,"locality_key"?: never,"province"?: string,"province_key"?: never
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "global_residence_places_country_code_fkey"
+      columns: ["country_code"]
+isOneToOne: false
+      referencedRelation: "residence_countries"
+      referencedColumns: ["code"]
     }
                   ]
                 },"growth_diary_shares": {
@@ -820,6 +866,86 @@ isOneToOne: false
       columns: ["moderator_id"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"neighborhood_enrollments": {
+                  Row: {
+                    "created_at": string,"family_id": string,"region": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"family_id": string,"region": string
+                  }
+                  Update: {
+                    "created_at"?: string,"family_id"?: string,"region"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "neighborhood_enrollments_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: true
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"neighborhood_openings": {
+                  Row: {
+                    "feature": string,"opened_at": string | null,"region": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "feature": string,"opened_at"?: string | null,"region": string
+                  }
+                  Update: {
+                    "feature"?: string,"opened_at"?: string | null,"region"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },"neighborhood_posts": {
+                  Row: {
+                    "author_id": string | null,"body": string,"created_at": string,"family_id": string,"feature": string,"id": string,"region": string,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "author_id"?: string | null,"body": string,"created_at"?: string,"family_id": string,"feature": string,"id"?: string,"region": string,"title": string
+                  }
+                  Update: {
+                    "author_id"?: string | null,"body"?: string,"created_at"?: string,"family_id"?: string,"feature"?: string,"id"?: string,"region"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "neighborhood_posts_author_id_fkey"
+      columns: ["author_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "neighborhood_posts_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"neighborhood_requests": {
+                  Row: {
+                    "created_at": string,"family_id": string,"feature": string,"region": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"family_id": string,"feature": string,"region": string
+                  }
+                  Update: {
+                    "created_at"?: string,"family_id"?: string,"feature"?: string,"region"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "neighborhood_requests_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
       referencedColumns: ["id"]
     }
                   ]
@@ -1048,6 +1174,9 @@ isOneToOne: false
           }
           Functions: {
             "accept_invitation":
+{ Args: { "p_relationship": Database["public"]['Enums']["caregiver_relationship"],"p_token": string }; Returns: string
+                           },
+"accept_invitation_before_relationship":
 { Args: { "p_token": string }; Returns: string
                            },
 "account_active":
@@ -1075,6 +1204,9 @@ isOneToOne: false
                            },
 "child_photo_access":
 { Args: { "p_path": string,"p_upload": boolean }; Returns: boolean
+                           },
+"child_photo_original_path":
+{ Args: { "p_path": string }; Returns: string
                            },
 "child_record_day_count":
 { Args: { "p_child": string,"p_day": string,"p_service": string,"p_timezone": string }; Returns: number
@@ -1126,9 +1258,13 @@ isOneToOne: false
 "community_post_visible":
 { Args: { "p_id": string }; Returns: boolean
                            },
-"update_child_details": { Args: { "p_child_id": string, "p_birth_date": string, "p_name": string, "p_sex": string }; Returns: undefined },
-"update_child_birth_date": { Args: { "p_child_id": string, "p_birth_date": string }; Returns: undefined },
+"complete_child_photo_variants":
+{ Args: { "p_photo": string }; Returns: undefined
+                           },
 "create_family_with_child":
+{ Args: { "p_birth_date": string,"p_child_name": string,"p_family_name": string,"p_relationship": Database["public"]['Enums']["caregiver_relationship"],"p_sex": string }; Returns: string
+                           },
+"create_family_with_child_before_relationship":
 { Args: { "p_birth_date": string,"p_child_name": string,"p_family_name": string,"p_sex": string }; Returns: string
                            },
 "create_invitation":
@@ -1160,7 +1296,7 @@ isOneToOne: false
                            },
 "diary_link_photo":
 { Args: { "p_photo": string,"p_token": string }; Returns: {
-              "content_type": string,"path": string
+              "content_type": string,"path": string,"variants_ready": boolean
             }[]
                            },
 "export_child_data":
@@ -1174,12 +1310,17 @@ isOneToOne: false
 "finish_data_operation":
 { Args: { "p_job": string,"p_lease": string,"p_success": boolean }; Returns: undefined
                            },
+"global_place_options":
+{ Args: { "p_city": string,"p_country": string,"p_province": string }; Returns: {
+              "city": string,"locality": string,"province": string
+            }[]
+                           },
 "growth_diary_cohort_visible":
 { Args: { "p_child": string,"p_record": string }; Returns: boolean
                            },
 "growth_diary_feed":
 { Args: { "p_age"?: number,"p_child": string,"p_page"?: number,"p_scope": string }; Returns: {
-              "age_days": number,"head_cm": number,"height_cm": number,"id": string,"nickname": string,"note": string,"photo_ids": (string)[],"recorded_date": string,"sex": string,"weight_kg": number
+              "age_days": number,"author_relationship": string,"head_cm": number,"height_cm": number,"id": string,"nickname": string,"note": string,"photo_ids": (string)[],"recorded_date": string,"sex": string,"weight_kg": number
             }[]
                            },
 "growth_diary_history":
@@ -1189,7 +1330,7 @@ isOneToOne: false
                            },
 "growth_diary_photo":
 { Args: { "p_id": string }; Returns: {
-              "content_type": string,"path": string
+              "content_type": string,"path": string,"variants_ready": boolean
             }[]
                            },
 "growth_diary_photo_allowed":
@@ -1221,6 +1362,19 @@ isOneToOne: false
 "moderate_growth_diary":
 { Args: { "p_hidden": boolean,"p_reason": string,"p_record": string }; Returns: undefined
                            },
+"neighborhood_feed":
+{ Args: { "p_family": string,"p_feature": string }; Returns: {
+              "body": string,"created_at": string,"id": string,"mine": boolean,"title": string
+            }[]
+                           },
+"neighborhood_region":
+{ Args: { "p_family": string }; Returns: string
+                           },
+"neighborhood_status":
+{ Args: { "p_family": string }; Returns: {
+              "families": number,"feature": string,"opened": boolean,"requested": boolean
+            }[]
+                           },
 "notification_child_access":
 { Args: { "p_child": string,"p_user": string }; Returns: boolean
                            },
@@ -1242,6 +1396,9 @@ isOneToOne: false
 "permit_account_deletion":
 { Args: { "p_user": string }; Returns: string
                            },
+"place_name_key":
+{ Args: { "p_name": string }; Returns: string
+                           },
 "poll_results":
 { Args: { "p_id": string }; Returns: Json
                            },
@@ -1250,7 +1407,7 @@ isOneToOne: false
                            },
 "read_child_diary_link":
 { Args: { "p_page"?: number,"p_token": string }; Returns: {
-              "id": string,"note": string,"photo_ids": (string)[],"recorded_date": string
+              "author_relationship": string,"id": string,"note": string,"photo_ids": (string)[],"recorded_date": string
             }[]
                            },
 "read_notification":
@@ -1259,11 +1416,20 @@ isOneToOne: false
 "remove_child_record_photo":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"reorder_diary_photos":
+{ Args: { "p_ids": (string)[],"p_record": string }; Returns: undefined
+                           },
 "report_growth_diary":
 { Args: { "p_child": string,"p_reason": string,"p_record": string }; Returns: undefined
                            },
 "request_account_deletion":
 { Args: { "p_confirmation": string,"p_permit": string }; Returns: string
+                           },
+"request_neighborhood":
+{ Args: { "p_family": string,"p_feature": string }; Returns: undefined
+                           },
+"request_neighborhood_family":
+{ Args: { "p_family": string }; Returns: undefined
                            },
 "require_recent_login":
 { Args: Record<PropertyKey, never>; Returns: undefined
@@ -1307,8 +1473,14 @@ isOneToOne: false
 "save_feeding_record":
 { Args: { "p_amount_g": number,"p_amount_ml": number,"p_child_id": string,"p_ended_at": string,"p_food_name": string,"p_id": string,"p_kind": string,"p_note": string,"p_started_at": string,"p_timezone": string,"p_version"?: number }; Returns: string
                            },
+"save_global_residence":
+{ Args: { "p_city": string,"p_country": string,"p_family": string,"p_locality": string,"p_province": string,"p_version": number }; Returns: undefined
+                           },
 "save_growth_diary":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_private"?: boolean,"p_version"?: number }; Returns: string
+                           },
+"save_neighborhood_post":
+{ Args: { "p_body": string,"p_family": string,"p_feature": string,"p_title": string }; Returns: string
                            },
 "save_notification_preferences":
 { Args: { "p_event": boolean,"p_feeding": boolean,"p_frequency": number,"p_hour": number,"p_interval": number,"p_quiet_end": string,"p_quiet_start": string,"p_snooze_minutes"?: number,"p_task": boolean }; Returns: undefined
@@ -1319,17 +1491,29 @@ isOneToOne: false
 "save_vaccination_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_version"?: number }; Returns: string
                            },
+"set_caregiver_relationship":
+{ Args: { "p_family": string,"p_relationship": Database["public"]['Enums']["caregiver_relationship"] }; Returns: undefined
+                           },
 "set_child_milestone":
 { Args: { "p_achieved": boolean,"p_child": string,"p_key": string }; Returns: undefined
                            },
 "share_growth_diary":
 { Args: { "p_everyone": boolean,"p_record": string,"p_same_birth_date": boolean,"p_sex": string }; Returns: undefined
                            },
+"submit_developer_request":
+{ Args: { "p_body": string,"p_category": string,"p_id": string }; Returns: string
+                           },
 "sync_notifications":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "transfer_family_ownership":
 { Args: { "p_confirmation": string,"p_family": string,"p_member": string }; Returns: undefined
+                           },
+"update_child_birth_date":
+{ Args: { "p_birth_date": string,"p_child_id": string }; Returns: undefined
+                           },
+"update_child_details":
+{ Args: { "p_birth_date": string,"p_child_id": string,"p_name": string,"p_sex": string }; Returns: undefined
                            },
 "valid_meal_times":
 { Args: { "times": (string)[] }; Returns: boolean
@@ -1339,7 +1523,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            [_ in never]: never
+            "caregiver_relationship": "mother"|"father"|"grandmother"|"grandfather"|"maternal_aunt"|"paternal_aunt"|"maternal_uncle"|"paternal_uncle"|"maternal_aunt_husband"|"paternal_aunt_husband"|"uncle_wife"|"relative"|"guardian"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1459,7 +1643,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-
+            "caregiver_relationship": ["mother", "father", "grandmother", "grandfather", "maternal_aunt", "paternal_aunt", "maternal_uncle", "paternal_uncle", "maternal_aunt_husband", "paternal_aunt_husband", "uncle_wife", "relative", "guardian"]
           }
         }
 } as const

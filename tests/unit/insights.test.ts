@@ -59,6 +59,8 @@ describe('weekly insights from recorded data', () => {
       'formula',
       'solids',
       'sleep',
+      'diaper',
+      'stool',
     ]);
     expect(selectedKinds('sleep,formula,sleep,unknown')).toEqual([
       'formula',
@@ -78,10 +80,19 @@ describe('weekly insights from recorded data', () => {
     const day = aggregateWeek(input, start, 'Asia/Seoul', now).categories
       .formula.days[0];
     expect(day.segments).toEqual([
-      { start: 665, end: 665 },
-      { start: 705, end: 705 },
+      { start: 665, end: 670 },
+      { start: 705, end: 710 },
     ]);
     expect(day.hours[11]).toBe(2);
+  });
+  it('splits feeding duration across midnight without adding a second count', () => {
+    const input = empty();
+    input.feeds = [feed('overnight', '2026-10-26T14:50:00Z', '2026-10-26T15:20:00Z', 80)];
+    const days = aggregateWeek(input, start, 'Asia/Seoul', now).categories.formula.days;
+    expect(days[0].segments).toEqual([{ start: 1430, end: 1440 }]);
+    expect(days[1].segments).toEqual([{ start: 0, end: 20 }]);
+    expect(days[0].count).toBe(1);
+    expect(days[1].count).toBe(0);
   });
   it('includes feeding with unknown duration, excludes future and deduplicates', () => {
     const input = empty();
@@ -249,6 +260,33 @@ describe('weekly insights from recorded data', () => {
     expect(weekValue(c.diaper, metrics.diaper[2])).toBe(1);
     expect(c.play.count).toBe(1);
     expect(weekValue(c.play, metrics.play[0])).toBeNull();
+  });
+  it('keeps dirty and mixed diaper entries out of the standalone stool pattern and count', () => {
+    const input = empty();
+    input.children = [
+      child('a', '2026-10-26T02:00:00Z', { service: 'diaper', kind: 'diaper_dirty' }),
+      child('b', '2026-10-26T03:00:00Z', { service: 'diaper', kind: 'diaper_mixed' }),
+    ];
+    const c = aggregateWeek(input, start, 'Asia/Seoul', now).categories;
+    expect(c.diaper.count).toBe(2);
+    expect(c.diaper.days.flatMap(d => d.segments)).toHaveLength(2);
+    expect(weekValue(c.diaper, metrics.diaper[1])).toBe(1);
+    expect(weekValue(c.diaper, metrics.diaper[2])).toBe(2);
+    expect(c.stool.count).toBe(0);
+    expect(c.stool.days.flatMap(d => d.segments)).toHaveLength(0);
+  });
+  it('draws stool records once while retaining a separate diaper at the same time', () => {
+    const input = empty();
+    input.children = [
+      child('a', '2026-10-26T02:00:00Z', {service:'diaper', kind:'dirty'}),
+      child('b', '2026-10-26T02:00:00Z', {service:'diaper', kind:'wet'}),
+      child('c', '2026-10-26T03:00:00Z', {service:'diaper', kind:'mixed'}),
+    ];
+    const c = aggregateWeek(input, start, 'Asia/Seoul', now).categories;
+    expect(c.diaper.days.flatMap(d=>d.segments)).toHaveLength(1);
+    expect(c.stool.days.flatMap(d=>d.segments)).toHaveLength(2);
+    expect(c.diaper.count).toBe(3);
+    expect(c.stool.count).toBe(2);
   });
   it('uses actual vaccination dates and never fabricates a time of day', () => {
     const input = empty();

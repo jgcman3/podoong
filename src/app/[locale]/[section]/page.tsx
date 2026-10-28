@@ -7,7 +7,6 @@ import {
   Today,
   Calendar,
   Family,
-  Services,
   Settings,
   ChildAccount,
 } from '@/features/dashboard/views';
@@ -46,17 +45,14 @@ export default async function AppPage({
       'insights',
       'family',
       'account',
-      'services',
       'settings',
     ].includes(section)
   )
     notFound();
-  const context = await loadCare(
-    locale,
-    q.child,
-    section === 'today' ? ['records'] : [],
-    { page: q.page, todayOnly: section === 'today' },
-  );
+  const context = await loadCare(locale, q.child, [], {
+    page: q.page,
+    todayOnly: section === 'today',
+  });
   if (section === 'insights' && q.child && context.child.id !== q.child)
     notFound();
   const props = { context, locale };
@@ -94,9 +90,6 @@ export default async function AppPage({
     case 'family':
       view = <Family {...props} />;
       break;
-    case 'services':
-      view = <Services {...props} />;
-      break;
     default:
       view = <Settings {...props} />;
   }
@@ -124,7 +117,9 @@ export default async function AppPage({
     >
       <Flash
         error={q.error}
-        notice={['calendar', 'account'].includes(section) ? undefined : q.notice}
+        notice={
+          ['calendar', 'account'].includes(section) ? undefined : q.notice
+        }
       />
       {view}
     </Shell>

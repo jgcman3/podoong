@@ -28,7 +28,7 @@ let cleaned = 0,
 check(await db.rpc('queue_orphan_photos'));
 for (let i = 0; i < 20; i++) {
   const rows = check(
-    await db.from('community_photo_cleanup').select('path').limit(100),
+    await db.from('community_photo_cleanup').select('path').limit(25),
   );
   if (!rows.length) break;
   const paths = rows.map((r) => r.path);
@@ -38,7 +38,7 @@ for (let i = 0; i < 20; i++) {
 }
 for (let i = 0; i < 20; i++) {
   const rows = check(
-    await db.from('child_photo_cleanup').select('path').limit(100),
+    await db.from('child_photo_cleanup').select('path').limit(25),
   );
   if (!rows.length) break;
   const paths = rows.map((row) => row.path);

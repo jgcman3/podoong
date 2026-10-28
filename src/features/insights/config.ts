@@ -16,6 +16,8 @@ export const insightKinds = [
   'tummy',
   'growth',
   'development',
+  'daycare',
+  'kindergarten',
 ] as const;
 export type InsightKind = (typeof insightKinds)[number];
 export type Metric = {
@@ -99,6 +101,8 @@ export const metrics: Record<InsightKind, Metric[]> = {
     count,
   ],
   development: [count],
+  daycare: [minutes, count],
+  kindergarten: [minutes, count],
 };
 const ko = [
   '모유',
@@ -117,6 +121,8 @@ const ko = [
   '터미타임',
   '성장',
   '발달',
+  '어린이집',
+  '유치원',
 ];
 const en = [
   'Breast',
@@ -135,6 +141,8 @@ const en = [
   'Tummy time',
   'Growth',
   'Development',
+  'Daycare',
+  'Kindergarten',
 ];
 export function kindName(kind: InsightKind, locale: Locale) {
   return (locale === 'ko' ? ko : en)[insightKinds.indexOf(kind)];
@@ -155,7 +163,8 @@ export function unitName(unit: string, locale: Locale) {
       : unit;
 }
 export function selectedKinds(value: string | undefined): InsightKind[] {
-  if (value === undefined) return ['breast', 'formula', 'solids', 'sleep'];
+  if (value === undefined)
+    return ['breast', 'formula', 'solids', 'sleep', 'diaper', 'stool'];
   const requested = value.split(',');
   return insightKinds.filter((kind) => requested.includes(kind));
 }

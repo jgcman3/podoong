@@ -46,7 +46,7 @@ export function InsightsNavigation({
     }
     params.set('kind', latest.current.join(','));
     const url = `${pathname}?${params}`;
-    const mode = params.get('pattern') ?? 'weekly';
+    const mode = params.get('pattern') ?? 'daily';
     if (
       loadedStart &&
       (params.get('week') ?? loadedStart) === loadedStart &&

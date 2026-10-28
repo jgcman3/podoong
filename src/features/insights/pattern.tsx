@@ -130,7 +130,7 @@ export function WeeklyPattern({
     left = 42,
     top = 24,
     dayWidth = 70,
-    height = expanded ? 600 : 432;
+    height = expanded ? 840 : 432;
   return (
     <svg
       className="insight-overlay-chart insight-weekly-pattern"
@@ -184,25 +184,18 @@ export function WeeklyPattern({
           {category.days.flatMap((day, d) =>
             day.segments.map((segment, i) => (
               <g key={`${d}:${i}`}>
-                {category.kind === 'sleep' && segment.end > segment.start && (
-                  <rect
-                    x={left + d * dayWidth + 6}
-                    y={top + (segment.start / 1440) * height}
-                    width={dayWidth - 12}
-                    height={((segment.end - segment.start) / 1440) * height}
-                    fill="var(--care-ink)"
-                    opacity="0.15"
-                  />
-                )}
                 <line
                   x1={left + d * dayWidth + 6}
                   x2={left + (d + 1) * dayWidth - 6}
-                  y1={top + (segment.start / 1440) * height}
-                  y2={top + (segment.start / 1440) * height}
+                  y1={top + ((segment.start + segment.end) / 2 / 1440) * height}
+                  y2={top + ((segment.start + segment.end) / 2 / 1440) * height}
                   stroke="var(--care-ink)"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  opacity="0.9"
+                  strokeWidth={Math.max(
+                    4,
+                    ((segment.end - segment.start) / 1440) * height,
+                  )}
+                  strokeLinecap="butt"
+                  opacity={category.kind === 'sleep' ? 0.45 : 0.9}
                   data-pattern-mark="true"
                 >
                   <title>{`${day.date} ${patternTime(segment.start)}${segment.end > segment.start ? `–${patternTime(segment.end)}` : ''} · ${kindName(category.kind, locale)}`}</title>

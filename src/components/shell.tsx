@@ -7,9 +7,7 @@ import {
   BookOpen,
   CalendarDays,
   ChartNoAxesColumn,
-  Grid2X2,
-  Users,
-  Settings,
+  MessagesSquare,
   Heart,
   ArrowRight,
 } from 'lucide-react';
@@ -22,8 +20,7 @@ const navigation = [
   ['calendar', CalendarDays],
   ['insights', ChartNoAxesColumn],
   ['community', BookOpen],
-  ['family', Users],
-  ['services', Grid2X2],
+  ['neighborhood', MessagesSquare],
 ] as const;
 export async function Shell({
   context,
@@ -60,7 +57,7 @@ export async function Shell({
     'family',
     'account',
     'settings',
-    'services',
+    'neighborhood',
   ].includes(section);
   const childOptions = all.map((c) => ({
     id: c.id,
@@ -84,43 +81,45 @@ export async function Shell({
           {t('brand')}
         </Link>
         <p className="brand-tagline">{t('tagline')}</p>
-        <nav aria-label={t('services')}>
+        <nav aria-label={locale === 'ko' ? '주 메뉴' : 'Main navigation'}>
           {navigation.map(([key, Icon]) => (
             <Link
               key={key}
               prefetch={true}
               replace
-              href={`/${locale}/${key === 'community' ? 'community/diaries' : key === 'family' ? 'account' : key}?child=${child.id}`}
-              className={`nav-link ${section === key || (key === 'family' && section === 'account') ? 'active' : ''}`}
-              aria-current={
-                section === key || (key === 'family' && section === 'account')
-                  ? 'page'
-                  : undefined
-              }
+              href={`/${locale}/${key === 'community' ? 'community/diaries' : key === 'neighborhood' ? 'community' : key}?child=${child.id}`}
+              className={`nav-link ${section === key ? 'active' : ''}`}
+              aria-current={section === key ? 'page' : undefined}
             >
               <NavigationStatus locale={locale} />
               <Icon size={20} />
-              {t(key === 'community' ? 'growthDiary' : key)}
-              {(section === key ||
-                (key === 'family' && section === 'account')) && (
-                <span className="nav-dot" />
-              )}
+              {key === 'neighborhood'
+                ? locale === 'ko'
+                  ? '동네 생활'
+                  : 'Local life'
+                : t(key === 'community' ? 'growthDiary' : key)}
+              {section === key && <span className="nav-dot" />}
             </Link>
           ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="gentle-note">
-            <Heart size={18} />
-            <p>{t('helpBody')}</p>
-          </div>
           <Link
-            className="nav-link"
-            href={`/${locale}/settings?child=${child.id}`}
+            className={`nav-link desktop-child-link ${['account', 'family', 'settings'].includes(section) ? 'active' : ''}`}
+            href={`/${locale}/account?child=${child.id}`}
+            replace
+            prefetch={true}
+            aria-current={
+              ['account', 'family', 'settings'].includes(section)
+                ? 'page'
+                : undefined
+            }
           >
-            <Settings size={18} />
-            {t('settings')}
+            <NavigationStatus locale={locale} />
+            <ChildIcon sex={child.sex} size={20} />
+            <span>{child.name}</span>
+            {['account', 'family', 'settings'].includes(section) && (
+              <span className="nav-dot" />
+            )}
           </Link>
-        </div>
+        </nav>
       </aside>
       <div className="app-content">
         <header className="topbar">
@@ -137,7 +136,7 @@ export async function Shell({
           <div className="topbar-actions">
             <Link
               className="avatar"
-              href={`/${locale}/settings?child=${child.id}`}
+              href={`/${locale}/account?child=${child.id}&panel=account`}
               aria-label={t('settings')}
             >
               {profile.display_name.slice(0, 1)}
@@ -177,36 +176,30 @@ export async function Shell({
         </main>
         <footer className="app-footer">PODUNG · {t('tagline')}</footer>
       </div>
-      <nav className="mobile-nav" aria-label={t('services')}>
-        {navigation
-          .filter(([key]) => key !== 'family')
-          .map(([key, Icon]) => (
-            <Link
-              key={key}
-              prefetch={true}
-              replace
-              className={
-                section === key || (key === 'family' && section === 'account')
-                  ? 'active'
-                  : ''
-              }
-              href={`/${locale}/${key === 'community' ? 'community/diaries' : key === 'family' ? 'account' : key}?child=${child.id}`}
-            >
-              <NavigationStatus locale={locale} />
-              <Icon size={21} />
-              <span>
-                {key === 'calendar'
+      <nav className="mobile-nav" aria-label={locale === 'ko' ? '주 메뉴' : 'Main navigation'}>
+        {navigation.map(([key, Icon]) => (
+          <Link
+            key={key}
+            prefetch={true}
+            replace
+            className={section === key ? 'active' : ''}
+            href={`/${locale}/${key === 'community' ? 'community/diaries' : key === 'neighborhood' ? 'community' : key}?child=${child.id}`}
+          >
+            <NavigationStatus locale={locale} />
+            <Icon size={21} />
+            <span>
+              {key === 'calendar'
+                ? locale === 'ko'
+                  ? '일정'
+                  : 'Plan'
+                : key === 'neighborhood'
                   ? locale === 'ko'
-                    ? '일정'
-                    : 'Plan'
-                  : key === 'services'
-                    ? locale === 'ko'
-                      ? '전체'
-                      : 'More'
-                    : t(key === 'community' ? 'growthDiary' : key)}
-              </span>
-            </Link>
-          ))}
+                    ? '동네 생활'
+                    : 'Local life'
+                  : t(key === 'community' ? 'growthDiary' : key)}
+            </span>
+          </Link>
+        ))}
         <Link
           className={`mobile-child-link ${['account', 'family', 'settings'].includes(section) ? 'active' : ''}`}
           href={`/${locale}/account?child=${child.id}`}

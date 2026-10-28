@@ -6,9 +6,9 @@ insert into auth.users(id,email) values('00000000-0000-4000-8000-000000000001','
 insert into profiles(id,display_name,consented_at) values('00000000-0000-4000-8000-000000000001','Test',now());
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-select throws_ok($$select create_family_with_child('Test','Child',current_date,null)$$,'22023','sex_required','onboarding rejects missing sex');
-select throws_ok($$select create_family_with_child('Test','Child',current_date,'')$$,'22023','sex_required','onboarding rejects empty sex');
-select lives_ok($$select create_family_with_child('Test','Child',current_date,'male')$$,'onboarding accepts selected sex');
+select throws_ok($$select create_family_with_child('Test','Child',current_date,null,'father')$$,'22023','sex_required','onboarding rejects missing sex');
+select throws_ok($$select create_family_with_child('Test','Child',current_date,'','father')$$,'22023','sex_required','onboarding rejects empty sex');
+select lives_ok($$select create_family_with_child('Test','Child',current_date,'male','father')$$,'onboarding accepts selected sex');
 select is((select sex from children limit 1),'male','selected sex persisted');
 reset role;
 select throws_ok($$update children set sex=null$$,'23502',null,'sex cannot be cleared');

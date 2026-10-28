@@ -83,7 +83,7 @@ export async function saveQuickCare(
   const { db } = await requireUser(v.locale);
   let error: { code?: string; message: string } | null = null;
   if (v.mode === 'stop') {
-    if (!v.version || (v.source !== 'sleep' && v.source !== 'feeding'))
+    if (!v.version || !['sleep', 'feeding', 'activity'].includes(v.source))
       return { status: 'error', error: 'invalid' };
     if (v.source === 'feeding') {
       const existing = await db
@@ -115,15 +115,22 @@ export async function saveQuickCare(
         .select('*')
         .eq('id', v.id)
         .eq('child_id', v.childId)
-        .eq('service', 'sleep')
+        .eq('service', v.source)
         .maybeSingle();
       const r = existing.data;
-      if (existing.error || !r || r.ended_at || r.version !== v.version)
+      if (
+        existing.error ||
+        !r ||
+        r.ended_at ||
+        r.version !== v.version ||
+        (v.source === 'activity' &&
+          !['daycare', 'kindergarten'].includes(r.kind))
+      )
         return { status: 'error', error: 'conflict' };
       const result = await db.rpc('save_child_record', {
         p_id: r.id,
         p_child: v.childId,
-        p_service: 'sleep',
+        p_service: r.service,
         p_version: v.version,
         p_data: {
           kind: r.kind,
@@ -139,7 +146,9 @@ export async function saveQuickCare(
     const parsed = feedingRecordSchema.safeParse(input);
     if (
       !parsed.success ||
-      (v.mode === 'record' && parsed.data.kind === 'breast' && !parsed.data.endedAt) ||
+      (v.mode === 'record' &&
+        parsed.data.kind === 'breast' &&
+        !parsed.data.endedAt) ||
       (v.mode === 'start' && (parsed.data.endedAt || v.version !== null))
     )
       return { status: 'error', error: 'invalid' };
@@ -168,11 +177,19 @@ export async function saveQuickCare(
         ((v.mode === 'record' && !parsed.data.endedAt) ||
           (v.mode === 'start' &&
             (parsed.data.endedAt || v.version !== null)))) ||
-      ((v.source === 'diaper' || v.source === 'activity') &&
+      ((v.source === 'diaper' ||
+        (v.source === 'activity' &&
+          !['daycare', 'kindergarten'].includes(parsed.data.kind))) &&
         v.mode !== 'record')
     )
       return { status: 'error', error: 'invalid' };
     const r = parsed.data;
+    if (
+      ['daycare', 'kindergarten'].includes(r.kind) &&
+      ((v.mode === 'record' && !r.endedAt) ||
+        (v.mode === 'start' && (r.endedAt || v.version !== null)))
+    )
+      return { status: 'error', error: 'invalid' };
     const result = await db.rpc('save_child_record', {
       p_id: r.id,
       p_child: r.childId,
@@ -198,7 +215,10 @@ export async function saveQuickCare(
             : null,
         title: r.service === 'activity' && r.kind === 'hospital' ? r.title : '',
         occurred_at: r.occurredAt,
-        ended_at: r.service === 'sleep' ? r.endedAt : null,
+        ended_at:
+          r.service === 'sleep' || ['daycare', 'kindergarten'].includes(r.kind)
+            ? r.endedAt
+            : null,
         stool_color: r.color || null,
         stool_texture: r.texture || null,
         note: r.note,
@@ -222,7 +242,5 @@ export async function saveQuickCare(
     };
   revalidatePath(`/${v.locale}/today`);
   revalidatePath(`/${v.locale}/insights`);
-  if (v.source !== 'feeding')
-    revalidatePath(`/${v.locale}/services/${v.source}`);
   return { status: 'saved', id: v.id };
 }

@@ -1,5 +1,6 @@
 import {
   test,
+  webkit,
   expect,
   type BrowserContext,
   type Page,
@@ -7,7 +8,7 @@ import {
 } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import sharp from 'sharp';
 async function expectPhoneFunctionDock(page: Page, rail: Locator) {
   await expect(rail).toBeVisible();
@@ -875,6 +876,8 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   await page.getByLabel('성별', { exact: true }).selectOption('female');
   await expect(page.getByText('출산 예정일')).toHaveCount(0);
   await page.getByLabel('아이 태어난 날').fill('2026-10-01');
+  await expect(page.getByLabel('아이와의 관계')).toHaveAttribute('required','');
+  await page.getByLabel('아이와의 관계').selectOption('father');
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: '우리 가족 시작하기' }).click();
   await expect(page).toHaveURL(/\/ko\/today/);
@@ -1603,15 +1606,19 @@ test('data export includes every record; ownership transfer and account deletion
       name: 'Delete fixture',
       birth_date: '2026-09-01',
     });
-    await page.reload();
-    const childPanel = page.locator('section').filter({
+    await page.goto(`/ko/account?panel=account&child=${childId}`);
+    await expect(page.getByText('다른 보호자가 있어 탈퇴할 수 없습니다.', { exact: false })).toBeVisible();
+    await expect(page.getByRole('button', { name: '회원 탈퇴', exact: true })).toHaveCount(0);
+    await page.goto(`/ko/account?panel=data&child=${childId}`);
+    await expect(page.getByLabel('DELETE CHILD 입력')).toHaveCount(2);
+    await expect(page.getByRole('link', { name: /다운로드/ })).toHaveCount(0);
+    const childPanel = page.locator('.account-danger-section').filter({
       has: page.getByRole('heading', { name: 'Delete fixture', exact: true }),
     });
     await childPanel.getByLabel('DELETE CHILD 입력').fill('DELETE CHILD');
-    await childPanel
-      .getByRole('button', { name: '아이 데이터 영구 삭제' })
-      .click();
-    await expect(childPanel).toHaveCount(0);
+    await childPanel.getByRole('button', { name: '아이 데이터 영구 삭제' }).click();
+    await expect.poll(async () => (await admin.from('children').select('id').eq('id', disposable)).data?.length).toBe(0);
+    await page.goto(`/ko/account?panel=data&child=${childId}`);
     const transfer = page
       .locator('form')
       .filter({ has: page.locator('input[name="action"][value="transfer"]') });
@@ -1620,10 +1627,11 @@ test('data export includes every record; ownership transfer and account deletion
     await transfer
       .getByRole('button', { name: '소유권 이전', exact: true })
       .click();
-    await expect(page.getByRole('status')).toHaveText('처리했습니다.');
+    await expect(page.getByText('데이터 설정', { exact: true })).toHaveCount(0);
+    await page.goto(`/ko/account?panel=account&child=${childId}`);
     await page.getByLabel('DELETE ACCOUNT 입력').fill('DELETE ACCOUNT');
     await page
-      .getByRole('button', { name: '계정 삭제 요청', exact: true })
+      .getByRole('button', { name: '회원 탈퇴', exact: true })
       .click();
     await expect(page).toHaveURL(/login\?notice=deletion-requested/);
     const records = await admin
@@ -1656,7 +1664,7 @@ test('data export includes every record; ownership transfer and account deletion
     await admin.from('data_operation_jobs').delete().eq('user_id', owner);
     await memberPage.goto('/en/data');
     await expect(
-      memberPage.getByRole('heading', { name: 'Data controls', exact: true }),
+      memberPage.getByRole('button', { name: 'Permanently delete child data', exact: true }),
     ).toBeVisible();
   } finally {
     await memberContext.close();
@@ -1680,7 +1688,7 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
   await page.setViewportSize({ width: 1440, height: 1050 });
   await page.goto(`/ko/today?child=${child}`);
   const quick = page.locator('.quick-care');
-  const dialog = quick.locator('dialog');
+  const dialog = quick.locator('dialog.quick-composer');
   await expect(quick.locator('.quick-grid')).not.toHaveCSS('position', 'fixed');
   await expect(quick).toBeVisible();
   await expect(quick.getByText('3초 육아 기록', { exact: true })).toHaveCount(
@@ -1900,7 +1908,7 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
     .eq('service', 'diaper')
     .single();
   expect(diaper.data).toMatchObject({
-    kind: 'mixed',
+    kind: 'diaper_mixed',
     stool_color: null,
     stool_texture: null,
   });
@@ -4472,18 +4480,19 @@ test('own diary uses a bottom sheet with optional growth measurements', async ({
   await expect(card.locator('.diary-nickname, .diary-sex')).toHaveCount(0);
   await card.getByRole('button', { name: '일기 관리', exact: true }).click();
   const manager = page.getByRole('dialog', { name: '일기 관리', exact: true });
-  await expect(manager).toBeVisible();
-  await expect(
-    manager.getByRole('button', { name: '편집', exact: true }),
-  ).toBeVisible();
-  await expect(
-    manager.getByRole('button', { name: '삭제', exact: true }),
-  ).toBeVisible();
-  await page.screenshot({
-    path: '/tmp/podung-diary-manage.png',
-    animations: 'disabled',
-  });
-  await manager.getByRole('button', { name: '편집', exact: true }).click();
+  const menu = card.getByRole('group', { name: '일기 관리', exact: true });
+  await expect(manager).not.toBeVisible();
+  await expect(menu.getByRole('button', { name: '편집', exact: true })).toBeVisible();
+  await expect(menu.getByRole('button', { name: '삭제', exact: true })).toBeVisible();
+  const menuBox = (await menu.boundingBox())!;
+  expect(menuBox.x).toBeGreaterThanOrEqual(0);
+  expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(390);
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(card.getByRole('button', { name: '일기 관리', exact: true })).toBeFocused();
+  await card.getByRole('button', { name: '일기 관리', exact: true }).click();
+  await page.screenshot({path: '/tmp/podung-diary-manage.png', animations: 'disabled'});
+  await menu.getByRole('button', { name: '편집', exact: true }).click();
   await expect(manager.getByRole('textbox', { name: '일기 내용' })).toHaveValue(
     '함께 남긴 성장 수치',
   );
@@ -4502,7 +4511,8 @@ test('own diary uses a bottom sheet with optional growth measurements', async ({
   await page.goto(`/ko/today?child=${own.child}`);
   await page
     .locator('.quick-entry-growth')
-    .filter({ hasText: '신체 측정' })
+    .filter({ hasText: '성장 기록' })
+    .first()
     .click();
   const todayDiary = page.getByRole('dialog', {
     name: '일기 관리',
@@ -4533,9 +4543,9 @@ test('own diary uses a bottom sheet with optional growth measurements', async ({
     .getByRole('link', { name: '우리 아이 성장일기', exact: true })
     .click();
   await card.getByRole('button', { name: '일기 관리', exact: true }).click();
-  await manager.getByRole('button', { name: '삭제', exact: true }).click();
+  await menu.getByRole('button', { name: '삭제', exact: true }).click();
   await expect(card).toBeVisible();
-  await manager.getByRole('button', { name: '삭제 확인', exact: true }).click();
+  await menu.getByRole('button', { name: '삭제 확인', exact: true }).click();
   await expect(card).toHaveCount(0);
   expect((await page.request.get(privateUrl)).status()).toBe(404);
   const deleted = await admin
@@ -4721,7 +4731,7 @@ test('compact mobile navigation switches children and opens language settings', 
     await expect(page.locator('.mobile-nav > a')).toHaveCount(6);
     await expect(page.locator('.mobile-nav > :last-child')).toHaveClass(/mobile-child-link/);
     await picker.click();
-    await expect(page.getByRole('heading', { name: '아이와 설정' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '아이와 설정' })).toHaveCount(0);
     await page.locator('.account-child-list').getByRole('link', { name: /둘째/ }).click();
     await expect(page).toHaveURL(new RegExp(`child=${second.data!.id}`));
     await expect(picker).toContainText('둘째');
@@ -4743,11 +4753,11 @@ test('compact mobile navigation switches children and opens language settings', 
     await page.screenshot({ path: `test-results/compact-mobile-${width}.png` });
   }
   await page.locator('.mobile-child-link').click();
-  await page.locator('summary').filter({ hasText: '가족 관리' }).click();
+  await page.locator('summary').filter({ hasText: '보호자 설정' }).click();
   await expect(page).toHaveURL(new RegExp(`/ko/account\\?child=${child}`));
   await expect(page.locator('.mobile-child-link')).toHaveClass(/active/);
   await page.locator('.mobile-child-link').click();
-  await page.locator('summary').filter({ hasText: '아이 정보 수정' }).click();
+  await page.locator('summary').filter({ hasText: '아이 설정' }).click();
   await expect(page).toHaveURL(/\/ko\/account/);
   await expect(page.locator('#child-info')).toBeInViewport();
   await page.locator('.mobile-child-link').click();
@@ -4783,7 +4793,7 @@ test('quick feeding remembers each kind across days and allows direct start-time
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/ko/today?child=${child}`);
   const quick = page.locator('.quick-care');
-  const dialog = quick.locator('dialog');
+  const dialog = quick.locator('dialog.quick-composer');
   for (const [name, amount] of [
     ['분유', '170'],
     ['이유식', '90'],
@@ -4888,7 +4898,7 @@ test('quick record subtitles and control gaps stay consistent across mobile and 
   const { child } = await childCareFamily(context);
   await page.goto(`/ko/today?child=${child}`);
   const quick = page.locator('.quick-care');
-  const dialog = quick.locator('dialog');
+  const dialog = quick.locator('dialog.quick-composer');
   for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const kind of ['분유', '이유식', '기저귀', '체온']) {
@@ -5240,20 +5250,27 @@ test('mobile patterns keep compact dates and enlarge daily and weekly graphs', a
   await page.setViewportSize({ width: 390, height: 844 });
   for (const mode of ['daily', 'weekly']) {
     await page.goto(`/ko/insights?child=${child}&pattern=${mode}`);
+    const kinds = page.locator('.insight-kind-rail');
+    await expect(kinds.getByRole('button',{name:'이유식',exact:true})).toHaveAttribute('aria-pressed','true');
+    await expect(kinds.getByRole('button',{name:'배변',exact:true})).toHaveAttribute('aria-pressed','true');
+    await expect(kinds.getByRole('button',{name:'기저귀',exact:true})).toHaveAttribute('aria-pressed','true');
+    expect(await kinds.locator('.quick-color-diaper').evaluate(node=>getComputedStyle(node).getPropertyValue('--care-ink').trim())).toBe('#a58a08');
+    expect(await kinds.locator('.quick-color-solids').evaluate(node=>getComputedStyle(node).getPropertyValue('--care-ink').trim())).toBe('#33815b');
+    expect(await kinds.locator('.quick-color-stool').evaluate(node=>getComputedStyle(node).getPropertyValue('--care-ink').trim())).toBe('#b77522');
     const panel = page.locator('.insight-pattern-panel');
     const chart = panel.locator(
       mode === 'daily' ? '.insight-daily-pattern' : '.insight-weekly-pattern',
     );
     await expect(chart).toHaveAttribute(
       'viewBox',
-      mode === 'daily' ? '8 8 364 364' : '0 0 544 658',
+      mode === 'daily' ? '8 8 364 364' : '0 0 544 898',
     );
     const dateBox = (await panel.locator('.insight-period-nav').boundingBox())!,
       graphBox = (await chart.boundingBox())!;
     expect(dateBox.height).toBeLessThanOrEqual(44);
     expect(dateBox.width).toBeLessThan(graphBox.width);
     expect(graphBox.width).toBeGreaterThan(330);
-    if (mode === 'weekly') expect(graphBox.height).toBeGreaterThan(400);
+    if (mode === 'weekly') expect(graphBox.height).toBeGreaterThan(540);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -5407,10 +5424,10 @@ test('mobile diaries have a compact header, top composer and five authorized thu
     buffer: i === 1 ? portrait : i === 2 ? small : png,
   }));
   const input = sheet.getByLabel('사진 추가', { exact: true });
-  await input.setInputFiles([...files, files[0]]);
-  await expect(sheet.getByRole('alert')).toContainText('최대 5장');
+  await input.setInputFiles([...files, ...files]);
+  await expect(sheet.getByRole('alert')).toContainText('최대 9장');
   await input.setInputFiles(files);
-  await expect(sheet.locator('.diary-photo-count')).toHaveText('5/5');
+  await expect(sheet.locator('.diary-photo-count')).toHaveText('5/9');
   await sheet
     .getByRole('textbox', { name: '일기 내용' })
     .fill(
@@ -5641,6 +5658,11 @@ test('mobile diaries have a compact header, top composer and five authorized thu
   await expect(detail.locator('header > span')).not.toHaveText('2 / 5');
   await detailTouch.detach();
   await expect.poll(() => detail.locator('img').nth(2).evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  expect(await detail.evaluate(node => {
+    const gallery = node.querySelector('.diary-detail-gallery')!.getBoundingClientRect();
+    const copy = node.querySelector('.diary-detail-copy')!.getBoundingClientRect();
+    return copy.top >= gallery.bottom;
+  })).toBe(true);
   await page.screenshot({ path: 'test-results/diary-detail-mobile.png' });
   await detail.getByRole('button', { name: '돌아가기' }).click();
   await expect(detail).toHaveCount(0);
@@ -5714,8 +5736,8 @@ test('mobile diaries have a compact header, top composer and five authorized thu
   }
   await card.getByRole('button', { name: '일기 관리', exact: true }).click();
   const manager = page.getByRole('dialog', { name: '일기 관리', exact: true });
-  await manager.getByRole('button', { name: '편집', exact: true }).click();
-  await expect(manager.getByLabel('사진 추가', { exact: true })).toBeDisabled();
+  await page.getByRole('group', { name: '일기 관리', exact: true }).getByRole('button', { name: '편집', exact: true }).click();
+  await expect(manager.getByLabel('사진 추가', { exact: true })).toBeEnabled();
   await manager.getByRole('checkbox', { name: '비공개', exact: true }).check();
   await manager.getByRole('button', { name: '저장', exact: true }).click();
   await expect(manager).toBeHidden();
@@ -5849,15 +5871,17 @@ test('child bottom navigation opens a main page with child selection and setting
   await page.goto(`/ko/today?child=${own.child}`);
   await page.locator('.mobile-nav').getByRole('link', { name: '돌봄 아이', exact: true }).click();
   await expect(page).toHaveURL(/\/ko\/account/);
-  await expect(page.getByRole('heading', { name: '아이와 설정' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '아이와 설정' })).toHaveCount(0);
   await expect(page.locator('.bottom-child-picker, .family-menu-scrim')).toHaveCount(0);
   await expect(page.locator('.mobile-child-link')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('.account-child-list > a')).toHaveCount(2);
+  await expect(page.locator('.account-settings-section > summary > span')).toHaveText(['언어 설정','계정 설정','알림 설정','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용']);
+  await page.locator('summary').filter({hasText:'아이 설정'}).click();
   await page.locator('.account-child-list').getByRole('link', { name: /둘째/ }).click();
   await expect(page).toHaveURL(new RegExp(`child=${second!.id}`));
   await expect(page.locator('.mobile-child-link')).toHaveText('둘째');
   await expect(page.locator('.account-child-list a[aria-current=true]')).toContainText('둘째');
-  await page.locator('summary').filter({ hasText: '아이 정보 수정' }).click();
+  await page.locator('summary').filter({ hasText: '아이 설정' }).click();
   const childForm = page.locator('#child-info');
   await childForm.locator('input[name=name]').fill('둘째 수정');
   await childForm.locator('select[name=sex]').selectOption('female');
@@ -5866,14 +5890,14 @@ test('child bottom navigation opens a main page with child selection and setting
   await expect(page.locator('.mobile-child-link')).toHaveText('둘째 수정');
   const saved = await admin.from('children').select('name,sex').eq('id', second!.id).single();
   expect(saved.data).toEqual({ name: '둘째 수정', sex: 'female' });
-  await page.locator('summary').filter({ hasText: '가족 관리' }).click();
+  await page.locator('summary').filter({ hasText: '주소 설정' }).click();
   await expect(page.locator('.family-residence')).toBeVisible();
   await page.locator('.family-residence select[name=countryCode]').selectOption('US');
   await page.locator('.family-residence button[type=submit], .family-residence button.primary').click();
-  await expect(page).toHaveURL(/\/ko\/account\?panel=family/);
+  await expect(page).toHaveURL(/\/ko\/account\?panel=residence/);
   const residence = await admin.from('families').select('residence_country_code').eq('id', own.family).single();
   expect(residence.data?.residence_country_code).toBe('US');
-  await page.locator('summary').filter({ hasText: '다른 아이 등록' }).click();
+  await page.locator('summary').filter({ hasText: '아이 설정' }).click();
   await expect(page.locator('#add-child input[name=name]')).toBeVisible();
   await page.locator('#add-child input[name=name]').fill('새 아이');
   await page.locator('#add-child select[name=sex]').selectOption('female');
@@ -5882,18 +5906,21 @@ test('child bottom navigation opens a main page with child selection and setting
   await expect(page).toHaveURL(/\/ko\/account\?child=/);
   await expect(page.locator('.mobile-child-link')).toHaveText('새 아이');
   await expect(page.locator('.account-child-list > a')).toHaveCount(3);
-  await page.locator('summary').filter({ hasText: '가족 관리' }).click();
+  await page.locator('summary').filter({ hasText: '보호자 설정' }).click();
   await page.getByRole('button', { name: '초대 링크 만들기', exact: true }).click();
   await expect(page).toHaveURL(/\/ko\/account\?panel=family/);
   await expect(page.getByRole('textbox', { name: '초대 링크', exact: true })).toBeVisible();
+  await page.locator('summary').filter({hasText:'아이 설정'}).click();
   await page.locator('.account-child-list').getByRole('link', { name: /둘째 수정/ }).click();
   await expect(page).toHaveURL(new RegExp(`child=${second!.id}`));
   await expect(page.locator('.mobile-child-link')).toHaveText('둘째 수정');
 
+  await page.locator('summary').filter({hasText:'언어 설정'}).click();
   await page.locator('.settings-language').getByRole('link', { name: 'English' }).click();
   await expect(page).toHaveURL(new RegExp(`/en/account\\?child=${second!.id}`));
-  await expect(page.getByRole('heading', { name: 'Children & settings' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeAttached();
+  await expect(page.getByRole('heading', { name: 'Children & settings' })).toHaveCount(0);
+  await page.locator('summary').filter({hasText:'Account settings'}).click();
+  await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
   for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -5909,7 +5936,7 @@ test('formula and solids can save without duration', async ({ page, context }) =
   for (const [label, kind] of [['분유', 'formula'], ['이유식', 'solids']]) {
     const quick = page.locator('.quick-care');
     await quick.locator('.quick-grid').getByRole('button', { name: label, exact: true }).click();
-    const dialog = quick.locator('dialog');
+    const dialog = quick.locator('dialog.quick-composer');
     await expect(dialog.getByRole('button', { name: '저장하기', exact: true })).toBeEnabled();
     await dialog.getByRole('button', { name: '저장하기', exact: true }).click();
     await expect(dialog).not.toBeVisible();
@@ -5918,4 +5945,609 @@ test('formula and solids can save without duration', async ({ page, context }) =
     expect(result.data?.ended_at).toBeNull();
     expect(result.data?.amount_ml).toBeGreaterThan(0);
   }
+});
+
+test('today history loads earlier dates vertically and opens past records', async ({ page, context }) => {
+  const { child, owner } = await childCareFamily(context);
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+  const previous = new Date(`${today}T00:00:00Z`);
+  previous.setUTCDate(previous.getUTCDate() - 1);
+  const day = previous.toISOString().slice(0, 10);
+  const result = await admin.from('care_records').insert({ id: crypto.randomUUID(), child_id: child, kind: 'formula', started_at: `${day}T03:00:00Z`, ended_at: `${day}T03:10:00Z`, amount_ml: 130, created_by: owner, updated_by: owner });
+  expect(result.error).toBeNull();
+  expect((await admin.from('tasks').insert({ id: crypto.randomUUID(), child_id: child, title: '준비물 확인', service: 'general', due_date: day, status: 'todo', created_by: owner })).error).toBeNull();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/today?child=${child}`);
+  await expect(page.getByRole('button', { name: '이전 날짜', exact: true })).toHaveCount(0);
+  const touch = await context.newCDPSession(page);
+  await touch.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+  for (let swipe = 0; swipe < 3; swipe++) {
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 180, y: 540 }] });
+    for (let y = 520; y >= 200; y -= 40) {
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 180, y }] });
+    }
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  }
+  const past = page.locator('.quick-day-browser').filter({ has: page.locator(`time[datetime="${day}"]`) });
+  await expect(past).toBeVisible();
+  await expect(page.locator(`.quick-day-browser time[datetime="${today}"]`)).toBeAttached();
+  await expect(past.locator('.quick-day-total strong')).toContainText('130 ml');
+  const todayAge = Math.floor((Date.parse(`${today}T00:00:00Z`) - Date.parse('2026-01-01T00:00:00Z')) / 86400000);
+  await expect(past.locator('.quick-day-age')).toHaveText(`· D+${todayAge - 1}`);
+  const todaySection = page.locator('.quick-day-browser').filter({has:page.locator(`time[datetime="${today}"]`)});
+  await expect(todaySection.locator('.quick-day-age')).toHaveText(`· D+${todayAge}`);
+  const dateBox = (await todaySection.locator('h3 time').boundingBox())!;
+  const ageBox = (await todaySection.locator('.quick-day-age').boundingBox())!;
+  expect(Math.abs(dateBox.y + dateBox.height / 2 - ageBox.y - ageBox.height / 2)).toBeLessThan(5);
+  for (const width of [320,390]) {
+    await page.setViewportSize({width,height:844});
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  const feedingCard = past.locator('.quick-timeline-entry').first();
+  await expect(past).not.toContainText('준비물 확인');
+  await expect(page.locator('.quick-agenda-timeline')).toHaveCount(0);
+  await feedingCard.click();
+  await expect(page.locator('.quick-care dialog.quick-composer')).toBeVisible();
+});
+
+test('returning to today reuses its recent page without another data request', async ({ page, context }) => {
+  test.skip(process.env.PODUNG_TEST_PRODUCTION !== '1', 'Router cache reuse requires the production navigation runtime.');
+  const { child } = await childCareFamily(context);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/today?child=${child}`);
+  await expect(page.locator('.quick-care')).toBeVisible();
+  await page.locator('.mobile-nav a[href*="/services?"]').click();
+  await expect(page).toHaveURL(/\/services/);
+  await expect(page.locator('.services-grid')).toBeVisible();
+  await page.locator('.mobile-nav a[href*="/today?"]').click();
+  await expect(page.locator('.quick-care')).toBeVisible();
+  await page.locator('.mobile-nav a[href*="/services?"]').click();
+  await expect(page).toHaveURL(/\/services/);
+  await expect(page.locator('.services-grid')).toBeVisible();
+  const requests: string[] = [];
+  page.on('request', request => {
+    const url = new URL(request.url());
+    if (url.pathname === '/ko/today' && url.searchParams.has('_rsc')) requests.push(url.pathname);
+  });
+  const started = Date.now();
+  await page.locator('.mobile-nav a[href*="/today?"]').click();
+  await expect(page.locator('.quick-care')).toBeVisible();
+  console.log(`Return to today: ${Date.now() - started}ms, ${requests.length} RSC requests`);
+  expect(requests).toHaveLength(0);
+});
+
+test('diary composer attaches a daily pattern as a photo', async ({page, context}) => {
+ const {child, owner} = await childCareFamily(context);
+ const now = new Date();
+ const day = now.toLocaleDateString('en-CA', {timeZone: 'Asia/Seoul'});
+ expect((await admin.from('care_records').insert({ id: crypto.randomUUID(), child_id: child, kind: 'formula', started_at: new Date(now.getTime() - 600000).toISOString(), ended_at: now.toISOString(), amount_ml: 120, created_by: owner, updated_by: owner })).error).toBeNull();
+ expect((await admin.from('child_records').insert({id:crypto.randomUUID(),child_id:child,service:'diaper',kind:'dirty',occurred_at:now.toISOString(),record_timezone:'Asia/Seoul',created_by:owner,updated_by:owner})).error).toBeNull();
+ await page.addInitScript(() => {
+   const original = CanvasRenderingContext2D.prototype.fillText;
+   CanvasRenderingContext2D.prototype.fillText = function(text, x, y, maxWidth) {
+     const draws = JSON.parse(sessionStorage.getItem('pattern-draws') ?? '[]');
+     draws.push({text,x,y}); sessionStorage.setItem('pattern-draws', JSON.stringify(draws));
+     if (maxWidth === undefined) original.call(this,text,x,y);
+     else original.call(this,text,x,y,maxWidth);
+   };
+ });
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/community/diaries?child=${child}`);
+ await page.getByRole('button', {name:'일기 쓰기',exact:true}).click();
+ const sheet = page.getByRole('dialog', {name:'일기 쓰기',exact:true});
+ await sheet.getByRole('button', {name:'하루 패턴 올리기',exact:true}).click();
+ for (const width of [320,390]) {
+   await page.setViewportSize({width,height:844});
+   const note = (await sheet.getByRole('textbox',{name:'일기 내용'}).boundingBox())!;
+   const weight = (await sheet.getByRole('spinbutton',{name:'몸무게',exact:true}).boundingBox())!;
+   const privacy = (await sheet.getByRole('checkbox',{name:'비공개',exact:true}).boundingBox())!;
+   expect(weight.y).toBeLessThan(note.y);
+   expect(privacy.y).toBeLessThan(note.y);
+   expect(await sheet.evaluate(node=>node.scrollWidth <= node.clientWidth)).toBe(true);
+   const photo = (await sheet.locator('.diary-photo-picker').boundingBox())!;
+   const pattern = (await sheet.getByRole('button',{name:'하루 패턴 올리기',exact:true}).boundingBox())!;
+   expect(Math.abs(photo.y-pattern.y)).toBeLessThan(1);
+ }
+ await page.screenshot({path:'/tmp/podung-compact-diary-composer.png'});
+ await sheet.getByLabel('패턴 날짜').fill(day);
+ await sheet.getByRole('button', {name:'첨부',exact:true}).click();
+ await expect(sheet.getByRole('img', {name:'첨부 사진 1',exact:true})).toBeVisible();
+ await expect(sheet.locator('.diary-photo-count')).toHaveText('1/9');
+ const patternBytes = await sheet.getByRole('img',{name:'첨부 사진 1',exact:true}).evaluate(async img => Array.from(new Uint8Array(await (await fetch((img as HTMLImageElement).src)).arrayBuffer())));
+ const draws = await page.evaluate(() => JSON.parse(sessionStorage.getItem('pattern-draws') ?? '[]') as {text:string,x:number,y:number}[]);
+ expect(draws.some(item=>item.text==='기저귀')).toBe(false);
+ expect(draws.some(item=>item.text==='분유')).toBe(true);
+ expect(draws.filter(item=>item.text==='배변')).toHaveLength(1); // Legend only; no individual record list.
+ expect(draws.some(item=>/^\d{2}:\d{2}$/.test(item.text))).toBe(false);
+ for (const label of ['총 먹은 양','120 ml','배변 횟수','1회','총 수면 시간','0분']) expect(draws.some(item=>item.text===label)).toBe(true);
+ expect(draws.find(item=>item.text==='24시간')?.x).toBe(900);
+ expect(draws.some(item=>item.text==='하루 패턴')).toBe(false);
+ const patternMeta = await sharp(Buffer.from(patternBytes)).metadata();
+ expect([patternMeta.width,patternMeta.height]).toEqual([1800,2400]);
+ writeFileSync('/tmp/podung-diary-pattern.png', Buffer.from(patternBytes));
+ const png = await sharp({create:{width:32,height:32,channels:3,background:'#ffeedd'}}).png().toBuffer();
+ const files = Array.from({length:8}, (_,i) => ({name:`photo-${i}.png`,mimeType:'image/png',buffer:png}));
+ await sheet.getByLabel('사진 추가',{exact:true}).setInputFiles(files);
+ await expect(sheet.locator('.diary-attachment img')).toHaveCount(9);
+ await expect(sheet.locator('.diary-photo-count')).toHaveText('9/9');
+ await expect(sheet.getByRole('button',{name:'하루 패턴 올리기',exact:true})).toBeDisabled();
+ await sheet.getByRole('button',{name:'1번 사진 뒤로',exact:true}).click();
+ await sheet.locator('.diary-attachment-grid').scrollIntoViewIfNeeded();
+ await page.screenshot({path:'/tmp/podung-diary-attachments.png'});
+ await sheet.getByRole('button', {name:'저장',exact:true}).click();
+ await expect(sheet).not.toBeVisible();
+ const photos = await admin.from('child_record_photos').select('id').eq('child_id',child);
+ expect(photos.error).toBeNull(); expect(photos.data).toHaveLength(9);
+ const ordered = await admin.from('child_record_photos').select('id,record_id,sort_order').eq('child_id',child).order('sort_order');
+ expect(ordered.data?.map(p=>p.sort_order)).toEqual([0,1,2,3,4,5,6,7,8]);
+ await page.getByRole('button',{name:'일기 관리',exact:true}).click();
+ const edit = page.getByRole('dialog',{name:'일기 관리',exact:true});
+ await page.getByRole('group',{name:'일기 관리',exact:true}).getByRole('button',{name:'편집',exact:true}).click();
+ await expect(edit.locator('.diary-attachment img')).toHaveCount(9);
+ await edit.getByRole('button',{name:'1번 사진 뒤로',exact:true}).click();
+ await edit.getByRole('button',{name:'저장',exact:true}).click();
+ await expect(edit).not.toBeVisible();
+ const reordered = await admin.from('child_record_photos').select('id').eq('child_id',child).order('sort_order');
+ expect(reordered.data?.[0].id).toBe(ordered.data?.[1].id);
+ expect(reordered.data?.[1].id).toBe(ordered.data?.[0].id);
+ await expect(page.locator('.public-diary-body img').first()).toHaveAttribute('src', new RegExp(reordered.data![0].id));
+ await page.getByRole('button',{name:'성장일기 사진 1 크게 보기',exact:true}).click();
+ const detail = page.getByRole('dialog',{name:'성장일기',exact:true});
+ const gallery = detail.locator('.diary-detail-gallery');
+ await expect.poll(()=>gallery.locator('img').first().evaluate(img=>(img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+ const before = await gallery.evaluate(node=>node.getBoundingClientRect().height);
+ await gallery.evaluate(node=>{
+   node.dispatchEvent(new Event('touchstart'));
+   node.scrollLeft = node.clientWidth;
+ });
+ // Pause with the finger held: resizing must wait until the gesture settles.
+ await page.waitForTimeout(350);
+ expect(await gallery.evaluate(node=>node.getBoundingClientRect().height)).toBeCloseTo(before,0);
+ await gallery.dispatchEvent('touchend');
+ await expect(detail.locator('header > span')).toHaveText('2 / 9');
+ await expect.poll(()=>gallery.evaluate(node=>node.getBoundingClientRect().height)).toBeLessThan(before);
+ await detail.getByRole('button',{name:'돌아가기',exact:true}).click();
+
+});
+
+test('today starts with growth record and labels diary entries consistently', async ({page,context}) => {
+ const {child} = await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/today?child=${child}`);
+ const rail = page.locator('.quick-care .quick-grid');
+ await expect(rail.getByRole('button').first()).toHaveAccessibleName('성장 기록');
+ await rail.getByRole('button',{name:'성장 기록',exact:true}).click();
+ const dialog = page.getByRole('dialog',{name:'일기 쓰기',exact:true});
+ await expect(dialog).toBeVisible();
+ await dialog.getByRole('textbox',{name:'일기 내용'}).fill('오늘 처음으로 웃었어요.');
+ await dialog.getByRole('button',{name:'저장',exact:true}).click();
+ await expect(dialog).not.toBeVisible();
+ await expect(page.locator('.quick-timeline-entry strong').filter({hasText:'성장 기록'}).first()).toBeVisible();
+ await expect(page.locator('.quick-timeline')).not.toContainText('발달 관찰·일기');
+ await page.locator('.quick-timeline-entry').filter({hasText:'성장 기록'}).first().click();
+ await expect(page.getByRole('dialog',{name:'일기 관리',exact:true})).toBeVisible();
+});
+
+test.describe('diary actions on mobile Safari', () => {
+  test('edit and delete remain actionable when tapping the card menu', async () => {
+    const browser = await webkit.launch();
+    const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3188', isMobile: true, hasTouch: true, viewport: {width:390,height:844} });
+    const page = await context.newPage();
+    try {
+    const { child, owner } = await childCareFamily(context);
+    const id = crypto.randomUUID();
+    expect((await admin.from('child_records').insert({
+      id, child_id: child, service: 'growth', kind: 'observation',
+      occurred_at: new Date().toISOString(), record_timezone: 'Asia/Seoul',
+      note: '모바일 메뉴 터치 확인', created_by: owner,
+    })).error).toBeNull();
+    await page.goto(`/ko/community/diaries?child=${child}`);
+    const card = page.locator('.public-diary-card').filter({ hasText: '모바일 메뉴 터치 확인' });
+    const more = card.getByRole('button', { name: '일기 관리', exact: true });
+    const menu = card.getByRole('group', { name: '일기 관리', exact: true });
+    await more.tap();
+    await menu.getByRole('button', { name: '편집', exact: true }).tap();
+    const editor = page.getByRole('dialog', { name: '일기 관리', exact: true });
+    await expect(editor).toBeVisible();
+    await editor.getByRole('textbox', { name: '일기 내용' }).fill('모바일 메뉴 터치 확인 수정');
+    await editor.getByRole('button', { name: '저장', exact: true }).tap();
+    await expect(editor).toBeHidden();
+    await expect(card).toContainText('모바일 메뉴 터치 확인 수정');
+    await more.tap();
+    await menu.getByRole('button', { name: '삭제', exact: true }).tap();
+    await expect(card).toBeVisible();
+    await menu.getByRole('button', { name: '삭제 확인', exact: true }).tap();
+    await expect(card).toHaveCount(0);
+    expect((await admin.from('child_records').select('id').eq('id', id)).data).toEqual([]);
+    } finally { await browser.close(); }
+  });
+});
+
+
+test('diaper dirty and mixed choices remain diaper records after saving and editing', async ({page,context}) => {
+  const {child} = await childCareFamily(context);
+  await page.setViewportSize({width:390,height:844});
+  await page.goto(`/ko/today?child=${child}`);
+  const quick = page.locator('.quick-care');
+  const sheet = quick.locator('dialog.quick-composer');
+  for (const [label,kind] of [['대변','diaper_dirty'],['소변·대변','diaper_mixed']]) {
+    await quick.locator('.quick-grid').getByRole('button',{name:'기저귀',exact:true}).click();
+    await expect(sheet.getByRole('button',{name:'단순 교체',exact:true})).toHaveCount(0);
+    await sheet.getByRole('button',{name:label,exact:true}).click();
+    await sheet.getByRole('button',{name:'저장하기',exact:true}).click();
+    await expect(sheet).toBeHidden();
+    const saved = await admin.from('child_records').select('id,kind').eq('child_id',child).eq('kind',kind);
+    expect(saved.error).toBeNull();
+    expect(saved.data).toHaveLength(1);
+    const entry = quick.locator('.quick-timeline-entry.quick-color-diaper').filter({has:page.getByText(label,{exact:true})});
+    await expect(entry).toBeVisible();
+    await entry.click();
+    await expect(sheet.locator('h3')).toHaveText('기저귀');
+    await expect(sheet.getByRole('button',{name:label,exact:true})).toHaveAttribute('aria-pressed','true');
+    await sheet.getByRole('button',{name:'저장하기',exact:true}).click();
+    await expect(sheet).toBeHidden();
+  }
+  await expect(quick.locator('.quick-timeline-entry.quick-color-stool')).toHaveCount(0);
+  await quick.locator('.quick-grid').getByRole('button',{name:'배변',exact:true}).click();
+  await sheet.getByRole('button',{name:'대변',exact:true}).click();
+  await sheet.getByRole('button',{name:'저장하기',exact:true}).click();
+  await expect(sheet).toBeHidden();
+  await expect(quick.locator('.quick-timeline-entry.quick-color-stool')).toHaveCount(1);
+});
+
+test('diary photo removal supports saved photos and cancellation', async ({page,context}) => {
+  const {child} = await childCareFamily(context);
+  await page.setViewportSize({width:390,height:844});
+  await page.goto(`/ko/community/diaries?child=${child}`);
+  await page.getByRole('button',{name:'일기 쓰기',exact:true}).click();
+  const compose = page.getByRole('dialog',{name:'일기 쓰기',exact:true});
+  await compose.getByRole('textbox',{name:'일기 내용'}).fill('사진 제거 확인');
+  const png = await sharp({create:{width:32,height:32,channels:3,background:'#ffeedd'}}).png().toBuffer();
+  await compose.getByLabel('사진 추가',{exact:true}).setInputFiles([1,2].map(i=>({name:`photo-${i}.png`,mimeType:'image/png',buffer:png})));
+  await compose.getByRole('button',{name:'2번 사진 제거',exact:true}).click();
+  await expect(compose.locator('.diary-attachment img')).toHaveCount(1);
+  await compose.getByRole('button',{name:'저장',exact:true}).click();
+  await expect(compose).toBeHidden();
+  const photos = await admin.from('child_record_photos').select('id,path').eq('child_id',child);
+  expect(photos.data).toHaveLength(1);
+  createdChildPhotos.push(photos.data![0].path);
+  const photoId = photos.data![0].id;
+  const card = page.locator('.public-diary-card').filter({hasText:'사진 제거 확인'});
+  const openEdit = async () => {
+    await card.getByRole('button',{name:'일기 관리',exact:true}).click();
+    await card.getByRole('group',{name:'일기 관리',exact:true}).getByRole('button',{name:'편집',exact:true}).click();
+  };
+  const edit = page.getByRole('dialog',{name:'일기 관리',exact:true});
+  await openEdit();
+  await edit.getByRole('button',{name:'1번 사진 제거',exact:true}).click();
+  await edit.getByRole('button',{name:'취소',exact:true}).click();
+  await openEdit();
+  await expect(edit.locator('.diary-attachment img')).toHaveCount(1);
+  await edit.getByRole('button',{name:'1번 사진 제거',exact:true}).click();
+  await edit.getByRole('button',{name:'저장',exact:true}).click();
+  await expect(edit).toBeHidden();
+  await expect(card.locator('.public-diary-body img')).toHaveCount(0);
+  expect((await admin.from('child_record_photos').select('id').eq('id',photoId)).data).toEqual([]);
+  expect((await page.request.get(`/api/care/photos/${photoId}?size=480`)).status()).toBe(404);
+});
+
+
+test('insights defaults to daily and notification settings save inside the child account', async ({page,context}) => {
+ const {child,owner} = await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/insights?child=${child}`);
+ await expect(page.locator('.insight-daily-pattern')).toBeVisible();
+ await expect(page.locator('.insight-weekly-pattern')).toHaveCount(0);
+ await page.goto(`/ko/account?child=${child}`);
+ await page.locator('summary').filter({hasText:'알림 설정'}).click();
+ const settings = page.locator('details').filter({has:page.locator('summary').filter({hasText:'알림 설정'})});
+ await settings.locator('input[name=hour]').fill('10');
+ await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
+ await expect(page).toHaveURL(/account\?panel=notifications/);
+ await expect(settings.locator('input[name=hour]')).toHaveValue('10');
+ expect((await admin.from('notification_preferences').select('delivery_hour').eq('user_id',owner).single()).data?.delivery_hour).toBe(10);
+ await expect(page.getByRole('status')).toHaveCount(0);
+ await page.screenshot({path:'/tmp/podung-account-settings.png',fullPage:true});
+});
+
+
+test('child settings match on desktop and Safari mobile with aligned date inputs and signed-in identity', async () => {
+ const browser = await webkit.launch();
+ const context = await browser.newContext({baseURL:'http://127.0.0.1:3188',viewport:{width:1440,height:900}});
+ try {
+  const {child} = await childCareFamily(context);
+  const page = await context.newPage();
+  await page.goto(`/ko/today?child=${child}`);
+  const nav = page.locator('.sidebar nav');
+  await expect(nav.locator('a').last()).toHaveText('돌봄 아이');
+  await nav.getByRole('link',{name:'돌봄 아이',exact:true}).click();
+  await expect(page).toHaveURL(/account/);
+  await expect(page.getByRole('heading',{name:'아이와 설정'})).toHaveCount(0);
+  const labels = ['언어 설정','계정 설정','알림 설정','개발자에게 요청하기','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용'];
+  await expect(page.locator('.account-settings-section > summary > span')).toHaveText(labels);
+  await page.locator('summary').filter({hasText:'계정 설정'}).click();
+  await expect(page.locator('.account-signed-in')).toContainText('Care test');
+  await expect(page.locator('.account-signed-in')).toContainText('로그인한 계정');
+  await page.locator('summary').filter({hasText:'아이 설정'}).click();
+  for (const width of [390,320]) {
+   await page.setViewportSize({width,height:844});
+   await expect(page.locator('.account-settings-section > summary > span')).toHaveText(labels);
+   for (const selector of ['#child-info','#add-child']) {
+    const form = page.locator(selector);
+    const name = (await form.locator('input[name=name]').boundingBox())!;
+    const date = (await form.locator('input[name=birth]').boundingBox())!;
+    const sex = (await form.locator('select[name=sex]').boundingBox())!;
+    expect(Math.abs(name.x-date.x)).toBeLessThan(1);
+    expect(Math.abs(name.width-date.width)).toBeLessThan(1);
+    expect(Math.abs(name.width-sex.width)).toBeLessThan(1);
+   }
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  await page.screenshot({path:'/tmp/podung-account-mobile-widths.png',fullPage:true});
+ } finally {await browser.close();}
+});
+
+test('caregivers can switch children without administrator settings or service shortcuts', async ({ page, context, browser }) => {
+  const own = await childCareFamily(context);
+  const second = crypto.randomUUID();
+  expect((await admin.from('children').insert({id:second,family_id:own.family,name:'선택할 아이',sex:'male',birth_date:'2026-10-01'})).error).toBeNull();
+  const memberContext = await browser.newContext({baseURL:'http://127.0.0.1:3188'});
+  try {
+    const member = await signIn(memberContext);
+    expect((await admin.from('profiles').insert({id:member,display_name:'Caregiver',consented_at:new Date().toISOString()})).error).toBeNull();
+    expect((await admin.from('family_members').insert({family_id:own.family,user_id:member,role:'editor'})).error).toBeNull();
+    expect((await admin.from('child_access').insert([own.child,second].map(child_id=>({child_id,family_id:own.family,user_id:member,role:'editor'})))).error).toBeNull();
+    const memberPage = await memberContext.newPage();
+    for (const width of [390,1440]) {
+      await memberPage.setViewportSize({width,height:900});
+      await memberPage.goto(`/ko/account?child=${own.child}&panel=child`);
+      await expect(memberPage.locator('.account-settings-section > summary > span')).toHaveText(['언어 설정','계정 설정','알림 설정','개발자에게 요청하기']);
+      await expect(memberPage.locator('.account-admin-badge')).toHaveCount(0);
+      await expect(memberPage.locator('#child-info,#add-child')).toHaveCount(0);
+      await expect(memberPage.locator('.account-child-list a')).toHaveCount(2);
+      await memberPage.locator('.account-child-list').getByRole('link',{name:/선택할 아이/}).click();
+      await expect(memberPage).toHaveURL(new RegExp(`child=${second}`));
+      await expect(memberPage.locator('.account-child-list a[aria-current=true]')).toContainText('선택할 아이');
+    }
+    await page.goto(`/ko/services?child=${own.child}`);
+    await expect(page.locator('.service-card[href="/ko/notifications"], .service-card[href="/ko/data"]')).toHaveCount(0);
+  } finally {await memberContext.close();}
+});
+
+test('child settings edit all managed children without changing the selected child', async ({page,context}) => {
+  const own = await childCareFamily(context);
+  const second = crypto.randomUUID();
+  expect((await admin.from('children').insert({id:second,family_id:own.family,name:'둘째 정보',sex:'male',birth_date:'2026-10-01'})).error).toBeNull();
+  await page.setViewportSize({width:390,height:844});
+  await page.goto(`/ko/account?child=${own.child}&panel=child`);
+  const cards = page.locator('.account-child-details');
+  await expect(cards).toHaveCount(2);
+  const form = page.locator(`.account-child-details[data-child-id="${second}"]`);
+  await expect(form.getByRole('heading',{name:'둘째 정보'})).toBeVisible();
+  await form.locator('input[name=name]').fill('둘째 수정');
+  await form.locator('select[name=sex]').selectOption('female');
+  await form.locator('input[name=birth]').fill('2026-09-30');
+  await form.getByRole('button',{name:'저장하기',exact:true}).click();
+  await expect(page).toHaveURL(new RegExp(`child=${own.child}`));
+  await expect(page.locator('.account-child-list a[aria-current=true]')).toContainText('돌봄 아이');
+  await expect(form.getByRole('heading',{name:'둘째 수정'})).toBeVisible();
+  const saved = await admin.from('children').select('name,sex,birth_date').eq('id',second).single();
+  expect(saved.data).toEqual({name:'둘째 수정',sex:'female',birth_date:'2026-09-30'});
+  await page.locator('.account-child-list').getByRole('link',{name:/둘째 수정/}).click();
+  await page.locator('summary').filter({hasText:'아이 설정'}).click();
+  await expect(cards).toHaveCount(2);
+  for(const width of [320,1440]) {
+    await page.setViewportSize({width,height:900});
+    await expect(cards).toHaveCount(2);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});
+
+test('invited caregiver must select relationship and diaries retain author relationship without displaying it', async ({page,context,browser}) => {
+  const own = await childCareFamily(context);
+  await admin.from('family_members').update({relationship:'father'}).eq('family_id',own.family).eq('user_id',own.owner);
+  await page.goto(`/ko/account?child=${own.child}&panel=family`);
+  await page.getByRole('button',{name:'초대 링크 만들기',exact:true}).click();
+  const link = await page.getByRole('textbox',{name:'초대 링크',exact:true}).inputValue();
+  const invited = await browser.newContext({baseURL:'http://127.0.0.1:3188',viewport:{width:390,height:844}});
+  try {
+    const member = await signIn(invited);
+    await admin.from('profiles').insert({id:member,display_name:'이모 보호자',consented_at:new Date().toISOString()});
+    const memberPage = await invited.newPage();
+    await memberPage.goto(new URL(link).pathname);
+    await expect(memberPage.getByLabel('아이와의 관계')).toHaveAttribute('required','');
+    await memberPage.getByLabel('아이와의 관계').selectOption('maternal_aunt');
+    await memberPage.getByRole('checkbox').check();
+    await memberPage.locator('form button[type=submit], form button.button.primary').click();
+    await expect(memberPage).toHaveURL(/today/);
+    expect((await admin.from('family_members').select('relationship').eq('family_id',own.family).eq('user_id',member).single()).data?.relationship).toBe('maternal_aunt');
+    await memberPage.goto(`/ko/community/diaries?child=${own.child}`);
+    await memberPage.getByRole('button',{name:'일기 쓰기',exact:true}).click();
+    const sheet = memberPage.getByRole('dialog',{name:'일기 쓰기',exact:true});
+    await sheet.getByRole('textbox',{name:'일기 내용'}).fill('이모가 남긴 오늘의 추억');
+    await sheet.getByRole('button',{name:'저장',exact:true}).click();
+    await expect(sheet).not.toBeVisible();
+    await expect(memberPage.locator('.public-diary-card .diary-author')).toHaveCount(0);
+    await memberPage.locator('.public-diary-card').first().getByRole('button',{name:'일기 보기',exact:true}).click();
+    await expect(memberPage.locator('.diary-detail-author')).toHaveText('by 이모');
+    await memberPage.getByRole('button',{name:'돌아가기',exact:true}).click();
+    await memberPage.goto(`/en/community/diaries?child=${own.child}&scope=all`);
+    await expect(memberPage.locator('.public-diary-card .diary-author')).toHaveCount(0);
+    await memberPage.goto(`/ko/account?child=${own.child}&panel=account`);
+    await memberPage.getByLabel('아이와의 관계').selectOption('mother');
+    await memberPage.locator('.account-relationship-form').getByRole('button',{name:'저장하기',exact:true}).click();
+    await expect(memberPage.getByLabel('아이와의 관계')).toHaveValue('mother');
+    await memberPage.goto(`/ko/community/diaries?child=${own.child}`);
+    await expect(memberPage.locator('.public-diary-card .diary-author')).toHaveCount(0);
+    const stored = await admin.from('child_records').select('author_relationship').eq('child_id',own.child).eq('created_by',member).single();
+    expect(stored.data?.author_relationship).toBe('maternal_aunt');
+  } finally { await invited.close(); }
+});
+
+test('diary upload stores display variants and serves them without the original', async ({page,context,browser}) => {
+ const {child} = await childCareFamily(context);
+ await page.goto(`/ko/community/diaries?child=${child}`);
+ await page.getByRole('button',{name:'일기 쓰기',exact:true}).click();
+ const sheet=page.getByRole('dialog',{name:'일기 쓰기',exact:true});
+ const original=await sharp({create:{width:1800,height:2400,channels:3,background:'#f4d5bc'}}).jpeg().toBuffer();
+ await sheet.getByRole('textbox',{name:'일기 내용'}).fill('표시용 사진 검증');
+ await sheet.getByLabel('사진 추가',{exact:true}).setInputFiles({name:'photo.jpg',mimeType:'image/jpeg',buffer:original});
+ await sheet.getByRole('button',{name:'저장',exact:true}).click();
+ await expect(sheet).toBeHidden();
+ const {data:photo,error}=await admin.from('child_record_photos').select('id,path,variants_ready').eq('child_id',child).single();
+ expect(error).toBeNull(); expect(photo?.variants_ready).toBe(true);
+ for(const path of [photo!.path,`${photo!.path}.display-v1-480.webp`,`${photo!.path}.display-v1-1600.webp`]) createdChildPhotos.push(path);
+ // A successful resized response with the source removed proves the request uses the stored variant.
+ expect((await admin.storage.from('child-care-photos').remove([photo!.path])).error).toBeNull();
+ for(const size of [480,1600]) {
+  for(const route of ['care/photos','community/diary-photos']) {
+   const response=await page.request.get(`/api/${route}/${photo!.id}?size=${size}`);
+   expect(response.status()).toBe(200);
+   const meta=await sharp(await response.body()).metadata();
+   expect(Math.max(meta.width!,meta.height!)).toBe(size);
+  }
+ }
+ await page.getByRole('button',{name:'일기 공유',exact:true}).click();
+ const share=page.getByRole('dialog',{name:'일기 공유',exact:true});
+ await share.getByRole('button',{name:'공유 링크 만들기',exact:true}).click();
+ const token=(await share.getByRole('textbox',{name:'공유 링크',exact:true}).inputValue()).split('/').pop()!;
+ const guest=await browser.newContext({baseURL:'http://127.0.0.1:3188'});
+ try {
+  const response=await guest.request.get(`/api/share/diary/${token}/photos/${photo!.id}`);
+  expect(response.status()).toBe(200);
+  expect((await sharp(await response.body()).metadata()).height).toBe(1600);
+  expect((await guest.request.get(`/api/care/photos/${photo!.id}?size=480`)).status()).toBe(401);
+  await admin.from('growth_diary_shares').update({everyone:false,same_birth_date:false}).eq('record_id',(await admin.from('child_records').select('id').eq('child_id',child).single()).data!.id);
+  expect((await guest.request.get(`/api/share/diary/${token}/photos/${photo!.id}`)).status()).toBe(404);
+ } finally {await guest.close();}
+});
+
+test('diary previews reuse session memory on menu return without another photo request', async ({page,context}) => {
+ const {child}=await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/community/diaries?child=${child}`);
+ await page.getByRole('button',{name:'일기 쓰기',exact:true}).click();
+ const sheet=page.getByRole('dialog',{name:'일기 쓰기',exact:true});
+ const png=await sharp({create:{width:800,height:600,channels:3,background:'#edcbbb'}}).png().toBuffer();
+ await sheet.getByRole('textbox',{name:'일기 내용'}).fill('미리보기 재방문 확인');
+ await sheet.getByLabel('사진 추가',{exact:true}).setInputFiles({name:'photo.png',mimeType:'image/png',buffer:png});
+ await sheet.getByRole('button',{name:'저장',exact:true}).click();
+ await expect(sheet).toBeHidden();
+ const photo=(await admin.from('child_record_photos').select('id,path').eq('child_id',child).single()).data!;
+ createdChildPhotos.push(photo.path,`${photo.path}.display-v1-480.webp`,`${photo.path}.display-v1-1600.webp`);
+ const img=page.locator('.public-diary-card img').first();
+ await expect.poll(()=>img.evaluate(node=>(node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+ const nav=page.locator('.mobile-nav');
+ await nav.locator('a[href*="/today?"]').click();
+ await expect(page).toHaveURL(/today/);
+ const requests:string[]=[];
+ page.on('request',request=>{if(request.url().includes(`/api/care/photos/${photo.id}`)) requests.push(request.url());});
+ await nav.locator('a[href*="/community/diaries?"]').click();
+ await expect(img).toHaveAttribute('src',/^data:image\/webp;base64,/);
+ await expect.poll(()=>img.evaluate(node=>(node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+ expect(requests).toHaveLength(0);
+ // Browser memory reuse must not weaken the actual API's revocation check.
+ await admin.from('child_record_photos').delete().eq('id',photo.id);
+ expect((await page.request.get(`/api/care/photos/${photo.id}?size=480`,{headers:{'If-None-Match':`"${photo.id}-480-webp-v1"`}})).status()).toBe(404);
+});
+
+test('daycare and kindergarten record start and duration and can finish an ongoing stay',async({page,context})=>{
+ const {child}=await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/today?child=${child}`);
+ for(const [label,kind] of [['어린이집','daycare'],['유치원','kindergarten']]) {
+  const button=page.locator('.quick-grid').getByRole('button',{name:label,exact:true});
+  await button.scrollIntoViewIfNeeded(); await button.click();
+  const dialog=page.locator('dialog.quick-composer');
+  await expect(dialog).toBeVisible();
+  await dialog.locator('.quick-mode button').last().click();
+  await dialog.getByRole('button',{name:'180분',exact:true}).click();
+  await dialog.getByRole('button',{name:'저장하기',exact:true}).click();
+  await expect(dialog).toBeHidden();
+  const record=(await admin.from('child_records').select('id,occurred_at,ended_at').eq('child_id',child).eq('kind',kind).single()).data!;
+  expect((Date.parse(record.ended_at!)-Date.parse(record.occurred_at))/60000).toBe(180);
+  // Overnight stays appear in both daily sections; both open this same record.
+  await page.locator(`.quick-timeline-entry.quick-color-${kind}`).first().click();
+  await expect(dialog.getByRole('button',{name:'180분',exact:true})).toHaveAttribute('aria-pressed','true');
+  await dialog.getByRole('button',{name:'120분',exact:true}).click();
+  await dialog.getByRole('button',{name:'저장하기',exact:true}).click();
+  await expect(dialog).toBeHidden();
+ }
+ await page.locator('.quick-grid').getByRole('button',{name:'어린이집',exact:true}).click();
+ const dialog=page.locator('dialog.quick-composer');
+ await dialog.locator('button.quick-confirm').click();
+ await expect(dialog).toBeHidden();
+ const running=page.locator('.quick-running.quick-color-daycare');
+ await expect(running).toContainText('머무는 중');
+ await running.getByRole('button',{name:'귀가',exact:true}).click();
+ await dialog.locator('button.quick-confirm').click();
+ await expect(dialog).toBeHidden();
+ await expect(running).toHaveCount(0);
+});
+
+test('local life requests count once per family and persist on revisit',async({page,context})=>{
+ const {child,family}=await childCareFamily(context);
+ await admin.from('families').update({residence_country_code:'KR',residence_locality:'테스트동',residence_city:`지역-${family}`}).eq('id',family);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/today?child=${child}`);
+ await page.locator('.mobile-nav').getByRole('link',{name:'동네 생활',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'동네 생활',exact:true})).toBeVisible();
+ const card=page.locator('.neighborhood-join');
+ await expect(card).toContainText('0/10 가족 신청');
+ await card.getByRole('button',{name:'우리 동네 신청하기',exact:true}).click();
+ await expect(card).toContainText('1/10 가족 신청');
+ await expect(card.getByRole('button',{name:'신청 완료',exact:true})).toBeDisabled();
+ await page.reload();
+ await expect(card).toContainText('1/10 가족 신청');
+ await expect(page.getByRole('button',{name:'신청 완료',exact:true})).toHaveCount(1);
+ await page.goto(`/en/community?child=${child}`);
+ await expect(page.getByRole('heading',{name:'Local life',exact:true})).toBeVisible();
+});
+
+test('overseas address registration is reusable by another family',async({page,context,browser})=>{
+ const own=await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/account?child=${own.child}&panel=residence`);
+ await page.locator('select[name=countryCode]').selectOption('US');
+ await page.locator('input[name=provinceName]').fill('California');
+ await page.locator('input[name=cityName]').fill('Palo Alto');
+ await page.locator('input[name=localityName]').fill('Downtown');
+ await page.locator('.family-residence button.primary').click();
+ await expect(page).toHaveURL(/panel=residence/);
+ await expect(page.locator('input[name=provinceName]')).toHaveValue('California');
+ await expect.poll(async()=>(await admin.from('families').select('residence_province').eq('id',own.family).single()).data?.residence_province).toBe('California');
+ const saved=(await admin.from('families').select('residence_province,residence_city,residence_locality,global_place_id').eq('id',own.family).single()).data!;
+ expect(saved.residence_province).toBe('California');expect(saved.global_place_id).toBeTruthy();
+ const another=await browser.newContext({baseURL:'http://127.0.0.1:3188'});
+ try {
+  const other=await childCareFamily(another);const second=await another.newPage();
+  await second.goto(`/ko/account?child=${other.child}&panel=residence`);
+  await second.locator('select[name=countryCode]').selectOption('US');
+  await expect(second.locator('datalist option[value="California"]')).toHaveCount(1);
+  await second.locator('input[name=provinceName]').fill('California');
+  await expect(second.locator('datalist option[value="Palo Alto"]')).toHaveCount(1);
+  await second.locator('input[name=cityName]').fill('Palo Alto');
+  await expect(second.locator('datalist option[value="Downtown"]')).toHaveCount(1);
+  await second.locator('input[name=localityName]').fill('Downtown');
+  await second.locator('.family-residence button.primary').click();
+  await expect(second.locator('input[name=localityName]')).toHaveValue('Downtown');
+  await expect.poll(async()=>(await admin.from('families').select('global_place_id').eq('id',other.family).single()).data?.global_place_id).toBe(saved.global_place_id);
+ }finally{await another.close();}
+});
+
+test('account page accepts developer requests without navigating away',async({page,context})=>{
+ const {child,owner}=await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/account?child=${child}`);
+ await page.locator('summary').filter({hasText:'개발자에게 요청하기'}).click();
+ const form=page.locator('.developer-request-form');
+ await form.getByLabel('요청 종류').selectOption('bug');
+ await form.getByLabel('요청 내용').fill('모바일 화면 개선 테스트 요청');
+ await form.getByRole('button',{name:'요청 보내기',exact:true}).click();
+ await expect(form.getByRole('button',{name:'접수 완료',exact:true})).toBeDisabled();
+ await expect(page).toHaveURL(new RegExp(`/account\\?child=${child}`));
+ const saved=await admin.from('developer_requests').select('category,body,status').eq('user_id',owner).single();
+ expect(saved.data).toEqual({category:'bug',body:'모바일 화면 개선 테스트 요청',status:'received'});
+ await form.getByLabel('요청 내용').fill('두 번째 기능 제안');
+ await expect(form.getByRole('button',{name:'요청 보내기',exact:true})).toBeEnabled();
 });

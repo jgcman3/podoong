@@ -42,7 +42,7 @@ export async function saveQuickVaccination(
               ? 'conflict'
               : 'generic',
     };
-  for (const path of ['today', 'calendar', 'services/vaccination'])
+  for (const path of ['today', 'calendar', 'vaccinations'])
     revalidatePath(`/${locale}/${path}`);
   return { status: 'saved', id: v.id };
 }

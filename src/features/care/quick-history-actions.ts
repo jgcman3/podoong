@@ -1,7 +1,6 @@
 'use server';
 import { z } from 'zod';
 import { loadCare } from '@/lib/data';
-import { loadDayAgenda } from './day-agenda-data';
 import { loadQuickTimeline } from './quick-data';
 
 export async function loadQuickDay(input: {
@@ -21,14 +20,10 @@ export async function loadQuickDay(input: {
   const context = await loadCare(locale, childId, []);
   if (context.child.id !== childId || day > context.today)
     return { ok: false as const };
-  const [entries, agenda] = await Promise.all([
-    loadQuickTimeline(context, day),
-    loadDayAgenda(context, day),
-  ]);
+  const entries = await loadQuickTimeline(context, day);
   return {
     ok: true as const,
     entries: entries.filter((entry) => !entry.running),
-    agenda,
     writable: context.writable,
   };
 }

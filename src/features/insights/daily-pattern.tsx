@@ -81,9 +81,7 @@ export function DailyPattern({
             ?.segments.flatMap((segment, i) => {
               // A point uses a small fixed tick. It does not represent a measured duration.
               const end =
-                segment.end > segment.start
-                  ? segment.end
-                  : Math.min(1440, segment.start + 6);
+                Math.min(1440, Math.max(segment.end, segment.start + 9));
               const ranges =
                 end - segment.start >= 1440
                   ? [

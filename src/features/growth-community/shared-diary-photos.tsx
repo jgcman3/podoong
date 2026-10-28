@@ -1,5 +1,6 @@
 'use client';
 import Image from 'next/image';
+import { useSettledPhoto } from './use-settled-photo';
 import { Images } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -17,7 +18,10 @@ export function SharedDiaryPhotos({
   const rail = useRef<HTMLDivElement>(null);
   const current = useRef(0);
   const [width, setWidth] = useState(0);
-  const [active, setActive] = useState(0);
+  const active = useSettledPhoto(rail, photos.length);
+  useEffect(() => {
+    current.current = active;
+  }, [active]);
   const [sizes, setSizes] = useState<
     Record<string, { width: number; height: number }>
   >({});
@@ -46,19 +50,6 @@ export function SharedDiaryPhotos({
       aria-label={ko ? '일기 사진' : 'Diary photos'}
       tabIndex={0}
       style={{ height }}
-      onScroll={(event) => {
-        const node = event.currentTarget;
-        if (node.clientWidth) {
-          current.current = Math.max(
-            0,
-            Math.min(
-              photos.length - 1,
-              Math.round(node.scrollLeft / node.clientWidth),
-            ),
-          );
-          setActive(current.current);
-        }
-      }}
     >
       {photos.map((id, i) => (
         <figure key={id}>

@@ -5,7 +5,7 @@ export async function loadOwnDiaries(context: CareContext, page: number) {
   const { data, error } = await context.db
     .from('child_records')
     .select(
-      'id,version,occurred_at,record_timezone,note,weight_kg,height_cm,head_cm,child_record_photos(id),growth_diary_shares(same_birth_date,everyone)',
+      'id,author_relationship,version,occurred_at,record_timezone,note,weight_kg,height_cm,head_cm,child_record_photos(id,sort_order),growth_diary_shares(same_birth_date,everyone)',
     )
     .eq('child_id', context.child.id)
     .eq('service', 'growth')
@@ -15,6 +15,7 @@ export async function loadOwnDiaries(context: CareContext, page: number) {
   if (error) throw new Error('Child diaries unavailable');
   return data.map((record) => ({
     id: record.id,
+    author_relationship: record.author_relationship,
     is_private:
       !record.growth_diary_shares?.same_birth_date &&
       !record.growth_diary_shares?.everyone,
@@ -37,6 +38,8 @@ export async function loadOwnDiaries(context: CareContext, page: number) {
     weight_kg: record.weight_kg,
     height_cm: record.height_cm,
     head_cm: record.head_cm,
-    photo_ids: record.child_record_photos.map((photo) => photo.id),
+    photo_ids: record.child_record_photos
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((photo) => photo.id),
   }));
 }

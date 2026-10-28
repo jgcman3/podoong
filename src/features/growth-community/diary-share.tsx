@@ -1,6 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Share2, Link as LinkIcon, Copy, X } from 'lucide-react';
+import {
+  Share2,
+  Link as LinkIcon,
+  Copy,
+  X,
+  RefreshCw,
+  Link2Off,
+} from 'lucide-react';
 import { manageDiaryLink } from './link-actions';
 
 export function DiaryShare({ child, ko }: { child: string; ko: boolean }) {
@@ -196,24 +203,26 @@ function LinkSheet({
         )}
       </footer>
       {url && (
-        <button
-          type="button"
-          className="diary-share-revoke"
-          disabled={busy}
-          onClick={() => change('rotate')}
-        >
-          {ko ? '새 링크 발급' : 'Replace link'}
-        </button>
-      )}
-      {url && (
-        <button
-          type="button"
-          className="diary-share-revoke"
-          disabled={busy}
-          onClick={() => change('revoke')}
-        >
-          {ko ? '공유 링크 끄기' : 'Turn off link sharing'}
-        </button>
+        <div className="diary-share-management">
+          <button
+            type="button"
+            className="diary-share-manage"
+            disabled={busy}
+            onClick={() => change('rotate')}
+          >
+            <RefreshCw size={16} aria-hidden="true" />
+            <span>{ko ? '새 링크 발급' : 'Replace link'}</span>
+          </button>
+          <button
+            type="button"
+            className="diary-share-manage diary-share-disable"
+            disabled={busy}
+            onClick={() => change('revoke')}
+          >
+            <Link2Off size={16} aria-hidden="true" />
+            <span>{ko ? '공유 링크 끄기' : 'Turn off link sharing'}</span>
+          </button>
+        </div>
       )}
     </dialog>
   );

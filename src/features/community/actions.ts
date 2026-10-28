@@ -26,7 +26,7 @@ export async function communityAction(form: FormData) {
         ? `/${locale}/community/${detail.data}`
         : form.get('compose') === 'true'
           ? `/${locale}/community/new`
-          : `/${locale}/community`;
+          : `/${locale}/community/boards`;
   const resultPath = (target: string, status: string) =>
     `${target}?${[boardQuery(familyId, target.endsWith('/new') ? board : undefined), status].filter(Boolean).join('&')}`;
   if (!action.success || !id.success)
@@ -49,7 +49,7 @@ export async function communityAction(form: FormData) {
     redirect(resultPath(`/${locale}/community/${id.data}`, 'notice=saved'));
   redirect(
     resultPath(
-      action.data === 'delete-post' ? `/${locale}/community` : path,
+      action.data === 'delete-post' ? `/${locale}/community/boards` : path,
       error
         ? error.message.includes('conflict')
           ? 'error=conflict'
@@ -62,7 +62,7 @@ export async function uploadPhoto(form: FormData) {
   const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
   const { db, user } = await requireUser(locale);
   const parsed = z.uuid().safeParse(form.get('postId'));
-  if (!parsed.success) redirect(`/${locale}/community?error=invalid`);
+  if (!parsed.success) redirect(`/${locale}/community/boards?error=invalid`);
   const postId = parsed.data;
   const family = z.uuid().safeParse(form.get('familyId'));
   const target = `/${locale}/community/${postId}?${boardQuery(family.success ? family.data : undefined)}`;

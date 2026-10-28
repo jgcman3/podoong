@@ -1,5 +1,8 @@
 'use server';
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { requireUser } from '@/lib/data';
 import { operationAdmin } from './admin';
 import { processOperations } from './worker';
@@ -7,10 +10,16 @@ export async function dataOperation(form: FormData) {
   const locale = form.get('locale') === 'en' ? 'en' : 'ko';
   const { db, user, recentlyAuthenticated } = await requireUser(locale);
   const action = String(form.get('action'));
+  const embedded = form.get('returnPage') === 'account';
+  const child = z.uuid().safeParse(form.get('child'));
+  const returnPath = embedded
+    ? `/${locale}/account?panel=${action === 'delete-account' ? 'account' : 'data'}${child.success ? `&child=${child.data}` : ''}`
+    : `/${locale}/data?`;
   if (!['process', 'retry-job'].includes(action) && !recentlyAuthenticated)
-    redirect(`/${locale}/data?error=reauth`);
+    redirect(`${returnPath}${embedded ? '&' : ''}error=reauth`);
   const confirmation = String(form.get('confirmation'));
   let failed = false;
+  let errorCode = 'operation';
   if (action === 'delete-account') {
     try {
       const admin = operationAdmin();
@@ -26,10 +35,19 @@ export async function dataOperation(form: FormData) {
         p_confirmation: confirmation,
       });
       failed = !!result.error;
+      if (result.error?.message === 'other_caregivers_remain')
+        errorCode = 'caregiversRemain';
     } catch {
       failed = true;
     }
     if (!failed) {
+      after(async () => {
+        try {
+          await processOperations();
+        } catch {
+          /* Durable queues retain failed work for retry. */
+        }
+      });
       await db.auth.signOut();
       redirect(`/${locale}/login?notice=deletion-requested`);
     }
@@ -39,6 +57,14 @@ export async function dataOperation(form: FormData) {
       p_confirmation: confirmation,
     });
     failed = !!result.error;
+    if (!failed)
+      after(async () => {
+        try {
+          await processOperations();
+        } catch {
+          /* Durable queues retain failed work for retry. */
+        }
+      });
   } else if (action === 'transfer') {
     const result = await db.rpc('transfer_family_ownership', {
       p_family: String(form.get('family')),
@@ -62,5 +88,8 @@ export async function dataOperation(form: FormData) {
       }
     }
   } else failed = true;
-  redirect(`/${locale}/data?${failed ? 'error=operation' : 'notice=saved'}`);
+  if (!failed) revalidatePath(`/${locale}`, 'layout');
+  redirect(
+    `${returnPath}${embedded ? (failed ? `&error=${errorCode}` : '') : failed ? 'error=operation' : 'notice=saved'}`,
+  );
 }

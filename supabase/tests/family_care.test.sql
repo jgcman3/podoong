@@ -59,10 +59,10 @@ insert into public.invitations(id,family_id,child_id,role,token_hash,created_by,
 update public.invitations set revoked_at=now() where id='60000000-0000-4000-8000-000000000003';
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
-select throws_ok($$select public.accept_invitation('expired')$$,'P0001','invalid_invitation','expired invite rejected');
-select throws_ok($$select public.accept_invitation('revoked')$$,'P0001','invalid_invitation','revoked invite rejected');
-select lives_ok($$select public.accept_invitation('valid')$$,'invite accepted');
-select throws_ok($$select public.accept_invitation('valid')$$,'P0001','invalid_invitation','used invite rejected');
+select throws_ok($$select public.accept_invitation('expired','father')$$,'P0001','invalid_invitation','expired invite rejected');
+select throws_ok($$select public.accept_invitation('revoked','father')$$,'P0001','invalid_invitation','revoked invite rejected');
+select lives_ok($$select public.accept_invitation('valid','father')$$,'invite accepted');
+select throws_ok($$select public.accept_invitation('valid','father')$$,'P0001','invalid_invitation','used invite rejected');
 select is((select count(*)::int from public.children),1,'new editor sees invited child only');
 select ok(public.can_write_child('20000000-0000-4000-8000-000000000001'),'new editor can write');
 select lives_ok($$select public.update_child_details('20000000-0000-4000-8000-000000000001','Updated','male','2026-10-20')$$,'editor updates child details');

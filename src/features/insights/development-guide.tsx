@@ -193,7 +193,7 @@ export function DevelopmentGuide({
               : 'Timing depends on previous doses and vaccine type. Check your child’s records alongside national guidance.'}
           </p>
           <div className="development-links">
-            <Link href={`/${locale}/services/vaccination?child=${child}`}>
+            <Link href={`/${locale}/vaccinations?child=${child}`}>
               {ko ? '아이 접종 기록' : 'Child’s vaccination records'}
             </Link>
             <a

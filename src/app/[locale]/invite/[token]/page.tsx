@@ -1,3 +1,4 @@
+import { RelationshipField } from '@/features/family/relationship-field';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
@@ -41,6 +42,7 @@ export default async function Invitation({
         <form action={acceptInvite} className="form-stack">
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="token" value={token} />
+          <RelationshipField locale={locale} />
           <label className="check-label">
             <input type="checkbox" name="confirm" required />
             {t('consent')}

@@ -49,7 +49,7 @@ export async function deleteVaccination(form: FormData) {
   const id = z.uuid().safeParse(form.get('id'));
   const child = z.uuid().safeParse(form.get('childId'));
   if (!id.success || !child.success)
-    redirect(`/${locale}/services/vaccination?error=invalid`);
+    redirect(`/${locale}/vaccinations?error=invalid`);
   const { db } = await requireUser(locale);
   const r = await db.rpc('delete_vaccination_record', { p_id: id.data });
   if (form.get('returnTo') === 'calendar')
@@ -57,6 +57,6 @@ export async function deleteVaccination(form: FormData) {
       `${calendarReturn(locale, child.data, form.get('calendarDay'))}&${r.error ? 'error=generic' : 'notice=saved'}`,
     );
   redirect(
-    `/${locale}/services/vaccination?child=${child.data}&${r.error ? 'error=generic' : 'notice=saved'}`,
+    `/${locale}/vaccinations?child=${child.data}&${r.error ? 'error=generic' : 'notice=saved'}`,
   );
 }

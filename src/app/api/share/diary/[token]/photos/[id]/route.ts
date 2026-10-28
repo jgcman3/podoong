@@ -1,4 +1,7 @@
-import sharp from 'sharp';
+import {
+  photoVariantPath,
+  renderPhotoVariant,
+} from '@/features/growth-community/photo-variants.mjs';
 import { z } from 'zod';
 import {
   diaryLinkClient,
@@ -28,19 +31,25 @@ export async function GET(
   // authorizes it. Read only the exact path returned by that authorization.
   const storage = diaryLinkPhotoClient();
   if (!storage) return new Response(null, { status: 503, headers });
+  if (data.variants_ready) {
+    const variant = await storage.storage
+      .from('child-care-photos')
+      .download(photoVariantPath(data.path, 1600));
+    if (!variant.error && variant.data)
+      return new Response(variant.data, {
+        headers: { ...headers, 'Content-Type': 'image/webp' },
+      });
+  }
   const file = await storage.storage
     .from('child-care-photos')
     .download(data.path);
   if (file.error || !file.data)
     return new Response(null, { status: 404, headers });
   try {
-    const image = await sharp(Buffer.from(await file.data.arrayBuffer()), {
-      limitInputPixels: 60000000,
-    })
-      .rotate()
-      .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 90 })
-      .toBuffer();
+    const image = await renderPhotoVariant(
+      Buffer.from(await file.data.arrayBuffer()),
+      1600,
+    );
     return new Response(new Uint8Array(image), {
       headers: { ...headers, 'Content-Type': 'image/webp' },
     });

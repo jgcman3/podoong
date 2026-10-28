@@ -1,4 +1,5 @@
 'use client';
+import { GlobalPlaceFields } from './global-place-fields';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useFormStatus } from 'react-dom';
@@ -55,7 +56,7 @@ export function ResidenceForm({
     <form action={saveFamilyResidence} className="form-stack">
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="returnPage" value={returnPage} />
-      <input type="hidden" name="panel" value="family" />
+      <input type="hidden" name="panel" value="residence" />
       <input type="hidden" name="familyId" value={family.id} />
       <input type="hidden" name="childId" value={childId} />
       <input type="hidden" name="version" value={family.residence_version} />
@@ -141,12 +142,35 @@ export function ResidenceForm({
           </label>
         </div>
       )}
+      {country && country !== 'KR' && (
+        <GlobalPlaceFields
+          key={country}
+          country={country}
+          locale={locale}
+          initial={{
+            province:
+              country === family.residence_country_code
+                ? (family.residence_province ?? '')
+                : '',
+            city:
+              country === family.residence_country_code
+                ? (family.residence_city ?? '')
+                : '',
+            locality:
+              country === family.residence_country_code
+                ? (family.residence_locality ?? '')
+                : '',
+          }}
+        />
+      )}
       <p className="small muted">
         {cleared
           ? t('residenceRemovalPending')
           : country === 'KR'
             ? t('residenceSelectHelp')
-            : t('residenceGlobalHelp')}
+            : locale === 'ko'
+              ? '등록된 지역을 선택하거나 새 이름을 입력하면 다른 가족도 선택할 수 있어요.'
+              : 'Select a registered area or enter a new name for other families to reuse.'}
       </p>
       <div className="residence-actions">
         <SaveButton

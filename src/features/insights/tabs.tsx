@@ -22,7 +22,7 @@ export function InsightTabs({
   const { navigate } = useInsightsNavigation();
   const query = useSearchParams();
   const requested = query.get('pattern') ?? mode;
-  const active = tabs.some(([key]) => key === requested) ? requested : 'weekly';
+  const active = tabs.some(([key]) => key === requested) ? requested : 'daily';
   return (
     <>
       <nav

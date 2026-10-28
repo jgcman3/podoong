@@ -1,4 +1,4 @@
-import sharp from 'sharp';
+import { photoVariantPath, renderPhotoVariant } from './photo-variants.mjs';
 import { z } from 'zod';
 import { createClient, configured } from '@/lib/supabase/server';
 
@@ -21,7 +21,7 @@ export async function diaryPhotoResponse(
     ? await db.rpc('growth_diary_photo', { p_id: id }).maybeSingle()
     : await db
         .from('child_record_photos')
-        .select('path,content_type')
+        .select('path,content_type,variants_ready')
         .eq('id', id)
         .maybeSingle();
   if (photo.error || !photo.data)
@@ -43,6 +43,15 @@ export async function diaryPhotoResponse(
     : headers;
   if (thumbnail && request.headers.get('if-none-match') === etag)
     return new Response(null, { status: 304, headers: imageHeaders });
+  if (size && photo.data.variants_ready) {
+    const variant = await db.storage
+      .from('child-care-photos')
+      .download(photoVariantPath(photo.data.path, size));
+    if (!variant.error && variant.data)
+      return new Response(variant.data, {
+        headers: { ...imageHeaders, 'Content-Type': 'image/webp' },
+      });
+  }
   const file = await db.storage
     .from('child-care-photos')
     .download(photo.data.path);
@@ -57,13 +66,10 @@ export async function diaryPhotoResponse(
       },
     });
   try {
-    const bytes = await sharp(Buffer.from(await file.data.arrayBuffer()), {
-      limitInputPixels: 60000000,
-    })
-      .rotate()
-      .resize(size!, size!, { fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: size === 1600 ? 90 : 76 })
-      .toBuffer();
+    const bytes = await renderPhotoVariant(
+      Buffer.from(await file.data.arrayBuffer()),
+      size!,
+    );
     return new Response(new Uint8Array(bytes), {
       headers: { ...imageHeaders, 'Content-Type': 'image/webp' },
     });

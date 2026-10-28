@@ -15,6 +15,7 @@ export function ActivityFields({
   record?: Row<'child_records'>;
 }) {
   const ko = locale === 'ko';
+
   const [temperature, setTemperature] = useState(
     String(record?.temperature_c ?? '36.5'),
   );

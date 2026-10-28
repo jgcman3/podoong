@@ -16,7 +16,7 @@ export async function Insights({
   locale,
   kind: rawKind,
   week: rawWeek,
-  pattern,
+  pattern = 'daily',
   day,
   interval: rawInterval,
 }: {

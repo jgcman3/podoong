@@ -1,5 +1,5 @@
 'use client';
-import Image from 'next/image';
+import { DiaryThumbnail } from './thumbnail';
 import { createPortal } from 'react-dom';
 import { DiaryDetail } from './diary-detail';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -56,16 +56,20 @@ function DiaryNote({
 
 export function DiaryBody({
   note,
+  author,
   date,
   photos,
   measurements,
   locale,
+  photoCacheScope,
 }: {
   note: string;
+  author?: string;
   date: string;
   photos: string[];
   measurements?: ReactNode;
   locale: 'ko' | 'en';
+  photoCacheScope: string;
 }) {
   const [index, setIndex] = useState(0);
   const [detailIndex, setDetailIndex] = useState<number | null>(null);
@@ -127,13 +131,11 @@ export function DiaryBody({
                     : `Open diary photo ${i + 1}`
                 }
               >
-                <Image
-                  src={`${url}?size=480`}
+                <DiaryThumbnail
+                  key={`${photoCacheScope}:${url}`}
+                  source={`${url}?size=480`}
+                  scope={photoCacheScope}
                   alt={ko ? `성장일기 사진 ${i + 1}` : `Diary photo ${i + 1}`}
-                  width={480}
-                  height={480}
-                  unoptimized
-                  draggable={false}
                 />
               </button>
             ))}
@@ -148,6 +150,7 @@ export function DiaryBody({
       {detailIndex !== null &&
         createPortal(
           <DiaryDetail
+            author={author}
             date={date}
             note={note}
             photos={photos}

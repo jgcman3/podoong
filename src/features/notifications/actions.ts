@@ -1,4 +1,5 @@
 'use server';
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requireUser } from '@/lib/data';
@@ -42,6 +43,13 @@ export async function notificationAction(form: FormData) {
           : await db.rpc('retry_notification_job', { p_id: id.data });
       failed = !!result.error;
     }
+  }
+  if (action === 'save' && form.get('returnPage') === 'account') {
+    revalidatePath(`/${locale}/account`);
+    const child = z.uuid().safeParse(form.get('child'));
+    redirect(
+      `/${locale}/account?panel=notifications${child.success ? `&child=${child.data}` : ''}${failed ? '&error=generic' : ''}`,
+    );
   }
   redirect(`${path}?${failed ? 'error=1' : 'notice=saved'}`);
 }
