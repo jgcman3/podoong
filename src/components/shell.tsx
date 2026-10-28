@@ -1,3 +1,4 @@
+import { ChildIcon } from './child-icon';
 import Link from 'next/link';
 import { NavigationStatus } from './navigation-status';
 import { getTranslations } from 'next-intl/server';
@@ -57,11 +58,14 @@ export async function Shell({
     'insights',
     'community',
     'family',
+    'account',
+    'settings',
     'services',
   ].includes(section);
   const childOptions = all.map((c) => ({
     id: c.id,
     name: c.name,
+    sex: c.sex,
     age: ageFor(c),
     href: `/${locale}/${childRoute ?? section}?${new URLSearchParams({ ...routeQuery, child: c.id })}`,
   }));
@@ -86,14 +90,21 @@ export async function Shell({
               key={key}
               prefetch={true}
               replace
-              href={`/${locale}/${key === 'community' ? 'community/diaries' : key}?child=${child.id}`}
-              className={`nav-link ${section === key ? 'active' : ''}`}
-              aria-current={section === key ? 'page' : undefined}
+              href={`/${locale}/${key === 'community' ? 'community/diaries' : key === 'family' ? 'account' : key}?child=${child.id}`}
+              className={`nav-link ${section === key || (key === 'family' && section === 'account') ? 'active' : ''}`}
+              aria-current={
+                section === key || (key === 'family' && section === 'account')
+                  ? 'page'
+                  : undefined
+              }
             >
               <NavigationStatus locale={locale} />
               <Icon size={20} />
               {t(key === 'community' ? 'growthDiary' : key)}
-              {section === key && <span className="nav-dot" />}
+              {(section === key ||
+                (key === 'family' && section === 'account')) && (
+                <span className="nav-dot" />
+              )}
             </Link>
           ))}
         </nav>
@@ -174,8 +185,12 @@ export async function Shell({
               key={key}
               prefetch={true}
               replace
-              className={section === key ? 'active' : ''}
-              href={`/${locale}/${key === 'community' ? 'community/diaries' : key}?child=${child.id}`}
+              className={
+                section === key || (key === 'family' && section === 'account')
+                  ? 'active'
+                  : ''
+              }
+              href={`/${locale}/${key === 'community' ? 'community/diaries' : key === 'family' ? 'account' : key}?child=${child.id}`}
             >
               <NavigationStatus locale={locale} />
               <Icon size={21} />
@@ -192,41 +207,21 @@ export async function Shell({
               </span>
             </Link>
           ))}
-        <TopbarChildPicker
-          key={child.id}
-          mobile
-          active={section === 'family'}
-          familyActions={[
-            ...(context.owner
-              ? [
-                  {
-                    href: `/${locale}/family?child=${child.id}#add-child`,
-                    label: t('newChild'),
-                  },
-                ]
-              : []),
-            ...(context.writable
-              ? [
-                  {
-                    href: `/${locale}/family?child=${child.id}#child-info`,
-                    label:
-                      locale === 'ko' ? '아이 정보 수정' : 'Edit child details',
-                  },
-                ]
-              : []),
-            {
-              href: `/${locale}/family?child=${child.id}`,
-              label: locale === 'ko' ? '가족 관리' : 'Manage family',
-            },
-          ]}
-          current={childOptions.find((option) => option.id === child.id)!}
-          options={childOptions}
-          label={t('childSelect')}
-          settings={{
-            href: `/${locale}/settings?child=${child.id}`,
-            label: t('settings'),
-          }}
-        />
+        <Link
+          className={`mobile-child-link ${['account', 'family', 'settings'].includes(section) ? 'active' : ''}`}
+          href={`/${locale}/account?child=${child.id}`}
+          replace
+          prefetch={true}
+          aria-current={
+            ['account', 'family', 'settings'].includes(section)
+              ? 'page'
+              : undefined
+          }
+        >
+          <NavigationStatus locale={locale} />
+          <ChildIcon sex={child.sex} size={21} />
+          <span>{child.name}</span>
+        </Link>
       </nav>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   Family,
   Services,
   Settings,
+  ChildAccount,
 } from '@/features/dashboard/views';
 import type { Locale } from '@/lib/domain';
 export default async function AppPage({
@@ -29,6 +30,7 @@ export default async function AppPage({
     week?: string;
     interval?: string;
     pattern?: string;
+    panel?: string;
   }>;
 }) {
   const { locale, section } = await params;
@@ -43,6 +45,7 @@ export default async function AppPage({
       'calendar',
       'insights',
       'family',
+      'account',
       'services',
       'settings',
     ].includes(section)
@@ -85,6 +88,9 @@ export default async function AppPage({
         />
       );
       break;
+    case 'account':
+      view = <ChildAccount {...props} panel={q.panel} />;
+      break;
     case 'family':
       view = <Family {...props} />;
       break;
@@ -118,7 +124,7 @@ export default async function AppPage({
     >
       <Flash
         error={q.error}
-        notice={section === 'calendar' ? undefined : q.notice}
+        notice={['calendar', 'account'].includes(section) ? undefined : q.notice}
       />
       {view}
     </Shell>

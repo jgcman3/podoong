@@ -53,7 +53,7 @@ export function quickTimeline(
     amount: r.amount_ml ?? r.amount_g,
     unit: r.amount_ml === null && r.amount_g !== null ? 'g' : 'ml',
     title: '',
-    running: !r.ended_at,
+    running: r.kind === 'breast' && !r.ended_at,
   }));
   const other: QuickEntry[] = child.map((r) => ({
     id: r.id,

@@ -1,3 +1,4 @@
+import { ChildIcon } from '@/components/child-icon';
 import { ChildSexField } from '@/features/family/sex-field';
 import residenceCountries from '@/features/family/countries.json';
 import { InstallAppButton } from '@/components/install-app';
@@ -7,6 +8,8 @@ import { CalendarWorkspace } from '@/features/care/calendar-workspace';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import {
+  Check,
+  Settings as SettingsIcon,
   Milk,
   Moon,
   Baby,
@@ -24,7 +27,7 @@ import {
 import { Nest } from '@/components/nest';
 import { ConfirmButton } from '@/components/confirm-button';
 import type { CareContext } from '@/lib/data';
-import { services, type Locale } from '@/lib/domain';
+import { services, ageInDays, type Locale } from '@/lib/domain';
 import { QuickCare } from '@/features/care/quick-care';
 import {
   loadQuickTimeline,
@@ -45,6 +48,7 @@ import {
   createInvite,
   revoke,
   saveBirthDate,
+  saveChildDetails,
   addChild,
 } from '@/features/family/actions';
 import { SocialButtons } from '@/components/social-buttons';
@@ -574,96 +578,128 @@ export async function ServiceDetail({
     </>
   );
 }
-export async function Family({ context, locale }: Props) {
+export async function Family({
+  context,
+  locale,
+  embedded = false,
+  mode = 'all',
+}: Props & {
+  embedded?: boolean;
+  mode?: 'all' | 'management' | 'child' | 'add';
+}) {
   const t = await getTranslations();
   const { child, owner, members } = context;
-  const { data: invitations } = owner
-    ? await context.db
-        .from('invitations')
-        .select('id,role,expires_at,accepted_at,revoked_at')
-        .eq('family_id', child.family_id)
-        .order('expires_at', { ascending: false })
-    : { data: [] };
+  const manage = mode === 'all' || mode === 'management';
+  const formReturn = (
+    <>
+      <input
+        type="hidden"
+        name="returnPage"
+        value={embedded ? 'account' : 'family'}
+      />
+      <input
+        type="hidden"
+        name="panel"
+        value={mode === 'child' ? 'child' : mode === 'add' ? 'add' : 'family'}
+      />
+    </>
+  );
+  const { data: invitations } =
+    owner && manage
+      ? await context.db
+          .from('invitations')
+          .select('id,role,expires_at,accepted_at,revoked_at')
+          .eq('family_id', child.family_id)
+          .order('expires_at', { ascending: false })
+      : { data: [] };
   const token = (await cookies()).get('podung_invite')?.value;
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://127.0.0.1:3187';
   return (
     <>
-      <PageHeading title={t('family')} subtitle={t('tagline')} />
-      <section className="panel family-residence">
-        <div className="panel-heading">
-          <h2>{t('familyResidence')}</h2>
-          <span className="small muted">{context.family.name}</span>
-        </div>
-        <p>{t('residenceHelp')}</p>
-        {owner ? (
-          <ResidenceForm
-            key={`${context.family.id}:${context.family.residence_version}`}
-            family={context.family}
-            childId={child.id}
-            locale={locale}
-          />
-        ) : (
-          <>
-            <p>
-              <strong>
-                {context.family.residence_country_code
-                  ? [
-                      residenceCountries.find(
-                        (c) => c.code === context.family.residence_country_code,
-                      )?.[locale] ?? context.family.residence_country_code,
-                      context.family.residence_city,
-                      context.family.residence_locality,
-                    ]
-                      .filter(Boolean)
-                      .join(' ')
-                  : t('residenceEmpty')}
-              </strong>
-            </p>
-            <p className="small muted">{t('residenceOwnerOnly')}</p>
-          </>
-        )}
-      </section>
-      <div className="two-column">
-        <section className="panel">
-          <h2>{t('members')}</h2>
-          {members.map((m) => (
-            <div className="member-row" key={m.user_id}>
-              <span className="avatar">
-                {m.user_id === context.user.id ? (
-                  context.profile.display_name.slice(0, 1)
-                ) : (
-                  <Users size={18} />
-                )}
-              </span>
-              <div>
+      {!embedded && <PageHeading title={t('family')} subtitle={t('tagline')} />}
+      {manage && (
+        <section className="panel family-residence">
+          <div className="panel-heading">
+            <h2>{t('familyResidence')}</h2>
+            <span className="small muted">{context.family.name}</span>
+          </div>
+          <p>{t('residenceHelp')}</p>
+          {owner ? (
+            <ResidenceForm
+              key={`${context.family.id}:${context.family.residence_version}`}
+              family={context.family}
+              childId={child.id}
+              locale={locale}
+              returnPage={embedded ? 'account' : 'family'}
+            />
+          ) : (
+            <>
+              <p>
                 <strong>
-                  {m.user_id === context.user.id
-                    ? context.profile.display_name
-                    : (context.caregivers.find((c) => c.user_id === m.user_id)
-                        ?.display_name ?? t('otherChildMember'))}
+                  {context.family.residence_country_code
+                    ? [
+                        residenceCountries.find(
+                          (c) =>
+                            c.code === context.family.residence_country_code,
+                        )?.[locale] ?? context.family.residence_country_code,
+                        context.family.residence_city,
+                        context.family.residence_locality,
+                      ]
+                        .filter(Boolean)
+                        .join(' ')
+                    : t('residenceEmpty')}
                 </strong>
-                <span>{t(m.role)}</span>
-              </div>
-              {owner && m.role !== 'owner' && (
-                <form action={revoke}>
-                  <Hidden locale={locale} childId={child.id} />
-                  <input name="id" type="hidden" value={m.user_id} />
-                  <input
-                    name="familyId"
-                    type="hidden"
-                    value={child.family_id}
-                  />
-                  <ConfirmButton label={t('revoke')} message={t('revoke')} />
-                </form>
-              )}
-            </div>
-          ))}
+              </p>
+              <p className="small muted">{t('residenceOwnerOnly')}</p>
+            </>
+          )}
         </section>
-        {owner && (
+      )}
+      <div className="two-column">
+        {manage && (
+          <section className="panel">
+            <h2>{t('members')}</h2>
+            {members.map((m) => (
+              <div className="member-row" key={m.user_id}>
+                <span className="avatar">
+                  {m.user_id === context.user.id ? (
+                    context.profile.display_name.slice(0, 1)
+                  ) : (
+                    <Users size={18} />
+                  )}
+                </span>
+                <div>
+                  <strong>
+                    {m.user_id === context.user.id
+                      ? context.profile.display_name
+                      : (context.caregivers.find((c) => c.user_id === m.user_id)
+                          ?.display_name ?? t('otherChildMember'))}
+                  </strong>
+                  <span>{t(m.role)}</span>
+                </div>
+                {owner && m.role !== 'owner' && (
+                  <form action={revoke}>
+                    {formReturn}
+                    <Hidden locale={locale} childId={child.id} />
+                    <input name="id" type="hidden" value={m.user_id} />
+                    <input
+                      name="familyId"
+                      type="hidden"
+                      value={child.family_id}
+                    />
+                    <ConfirmButton label={t('revoke')} message={t('revoke')} />
+                  </form>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+        {owner && manage && (
           <section className="panel">
             <h2>{t('invite')}</h2>
             <p>{t('inviteSub')}</p>
             <form action={createInvite} className="form-stack">
+              {formReturn}
               <Hidden locale={locale} childId={child.id} />
               <label>
                 {t('role')}
@@ -689,11 +725,29 @@ export async function Family({ context, locale }: Props) {
             )}
           </section>
         )}
-        {context.writable && (
+        {context.writable && (mode === 'all' || mode === 'child') && (
           <section className="panel" id="child-info">
-            <h2>{t('changeDates')}</h2>
-            <form action={saveBirthDate} className="form-stack">
+            {!embedded && <h2>{t('changeDates')}</h2>}
+            <form
+              action={embedded ? saveChildDetails : saveBirthDate}
+              className="form-stack"
+            >
+              {formReturn}
               <Hidden locale={locale} childId={child.id} />
+              {embedded && (
+                <>
+                  <label>
+                    {t('childName')}
+                    <input
+                      name="name"
+                      required
+                      maxLength={60}
+                      defaultValue={child.name}
+                    />
+                  </label>
+                  <ChildSexField locale={locale} value={child.sex} />
+                </>
+              )}
               <label>
                 {t('birthDate')}
                 <input
@@ -708,10 +762,11 @@ export async function Family({ context, locale }: Props) {
             </form>
           </section>
         )}
-        {owner && (
+        {owner && (mode === 'all' || mode === 'add') && (
           <section className="panel" id="add-child">
-            <h2>{t('newChild')}</h2>
+            {!embedded && <h2>{t('newChild')}</h2>}
             <form action={addChild} className="form-stack">
+              {formReturn}
               <input name="familyId" type="hidden" value={child.family_id} />
               <input name="locale" type="hidden" value={locale} />
               <label>
@@ -728,7 +783,7 @@ export async function Family({ context, locale }: Props) {
           </section>
         )}
       </div>
-      {owner && (
+      {owner && manage && (
         <section className="panel">
           <h2>{t('invitations')}</h2>
           {invitations?.map((i) => (
@@ -748,6 +803,7 @@ export async function Family({ context, locale }: Props) {
               </span>
               {!i.accepted_at && !i.revoked_at && (
                 <form action={revoke}>
+                  {formReturn}
                   <Hidden locale={locale} childId={child.id} />
                   <input type="hidden" name="id" value={i.id} />
                   <input
@@ -766,11 +822,107 @@ export async function Family({ context, locale }: Props) {
     </>
   );
 }
-export async function Settings({ context, locale }: Props) {
+export async function ChildAccount({
+  context,
+  locale,
+  panel,
+}: Props & { panel?: string }) {
+  const ko = locale === 'ko';
+  const t = await getTranslations();
+  const { child } = context;
+  return (
+    <div className="child-account-page">
+      <PageHeading title={ko ? '아이와 설정' : 'Children & settings'} />
+      <section className="panel account-children" aria-label={t('childSelect')}>
+        <h2>{t('childSelect')}</h2>
+        <div className="account-child-list">
+          {context.children.map((item) => (
+            <Link
+              key={item.id}
+              href={`/${locale}/account?child=${item.id}`}
+              replace
+              aria-current={item.id === child.id ? 'true' : undefined}
+            >
+              <span className="account-child-icon">
+                <ChildIcon sex={item.sex} size={22} />
+              </span>
+              <span>
+                <strong>{item.name}</strong>
+                <small>
+                  {t('days', {
+                    days: ageInDays(item.birth_date, context.today),
+                  })}
+                </small>
+              </span>
+              {item.id === child.id && <Check size={18} aria-hidden="true" />}
+            </Link>
+          ))}
+        </div>
+      </section>
+      <div className="account-inline-settings" key={child.id}>
+        {context.writable && (
+          <details
+            className="panel account-settings-section"
+            open={panel === 'child'}
+          >
+            <summary>
+              <ChildIcon sex={child.sex} size={18} />
+              <span>{ko ? '아이 정보 수정' : 'Child details'}</span>
+              <ChevronRight size={16} />
+            </summary>
+            <Family context={context} locale={locale} embedded mode="child" />
+          </details>
+        )}
+        {context.owner && (
+          <details
+            className="panel account-settings-section"
+            open={panel === 'add'}
+          >
+            <summary>
+              <Plus size={18} />
+              <span>{t('newChild')}</span>
+              <ChevronRight size={16} />
+            </summary>
+            <Family context={context} locale={locale} embedded mode="add" />
+          </details>
+        )}
+        <details
+          className="panel account-settings-section"
+          open={panel === 'family'}
+        >
+          <summary>
+            <Users size={18} />
+            <span>{ko ? '가족 관리' : 'Manage family'}</span>
+            <ChevronRight size={16} />
+          </summary>
+          <Family
+            context={context}
+            locale={locale}
+            embedded
+            mode="management"
+          />
+        </details>
+      </div>
+      <div className="account-settings-heading">
+        <SettingsIcon size={18} aria-hidden="true" />
+        <h2>{t('settings')}</h2>
+      </div>
+      <Settings context={context} locale={locale} embedded />
+    </div>
+  );
+}
+
+export async function Settings({
+  context,
+  locale,
+  embedded = false,
+}: Props & { embedded?: boolean }) {
   const t = await getTranslations();
   return (
     <>
-      <PageHeading title={t('settings')} subtitle={t('tagline')} />
+      {!embedded && (
+        <PageHeading title={t('settings')} subtitle={t('tagline')} />
+      )}
       <section className="panel settings-install">
         <InstallAppButton locale={locale} />
       </section>
@@ -782,7 +934,7 @@ export async function Settings({ context, locale }: Props) {
               key={language}
               className={`button ${locale === language ? 'primary' : 'secondary'}`}
               aria-current={locale === language ? 'true' : undefined}
-              href={`/${language}/settings?child=${context.child.id}`}
+              href={`/${language}/${embedded ? 'account' : 'settings'}?child=${context.child.id}`}
             >
               {language === 'ko' ? '한국어' : 'English'}
             </Link>
@@ -815,7 +967,7 @@ export async function Settings({ context, locale }: Props) {
         <p>{t('linkHelp')}</p>
         <SocialButtons
           locale={locale}
-          next={`/${locale}/settings`}
+          next={`/${locale}/${embedded ? 'account' : 'settings'}?child=${context.child.id}`}
           link={context.recentlyAuthenticated}
         />
         {!context.recentlyAuthenticated && <p>{t('reauth')}</p>}

@@ -13,6 +13,12 @@ const birthDate = z.iso
       new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }),
   );
 const uuid = z.uuid();
+function familyReturn(form: FormData, locale: Locale) {
+  const page = form.get('returnPage') === 'account' ? 'account' : 'family';
+  const section = form.get('panel');
+  const panel = section === 'child' || section === 'add' ? section : 'family';
+  return `/${locale}/${page}?panel=${panel}`;
+}
 export async function saveFamilyResidence(form: FormData) {
   const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
   const { db } = await requireUser(locale);
@@ -20,7 +26,7 @@ export async function saveFamilyResidence(form: FormData) {
   if (!value.success) {
     const child = uuid.safeParse(form.get('childId'));
     redirect(
-      `/${locale}/family?${child.success ? `child=${child.data}&` : ''}error=invalid`,
+      `${familyReturn(form, locale)}&${child.success ? `child=${child.data}&` : ''}error=invalid`,
     );
   }
   const v = value.data;
@@ -30,7 +36,7 @@ export async function saveFamilyResidence(form: FormData) {
     .eq('id', v.childId)
     .maybeSingle();
   if (child.error || child.data?.family_id !== v.familyId)
-    redirect(`/${locale}/family?child=${v.childId}&error=invalid`);
+    redirect(`${familyReturn(form, locale)}&child=${v.childId}&error=invalid`);
   const result =
     !v.regionCode && v.countryCode
       ? await db.rpc('save_family_residence_country', {
@@ -45,7 +51,7 @@ export async function saveFamilyResidence(form: FormData) {
           p_version: v.version,
         });
   redirect(
-    `/${locale}/family?child=${v.childId}&${result.error ? `error=${result.error.message.includes('conflict') ? 'conflict' : 'generic'}` : 'notice=saved'}`,
+    `${familyReturn(form, locale)}&child=${v.childId}&${result.error ? `error=${result.error.message.includes('conflict') ? 'conflict' : 'generic'}` : 'notice=saved'}`,
   );
 }
 export async function onboard(form: FormData) {
@@ -126,7 +132,7 @@ export async function addChild(form: FormData) {
       sex: z.enum(['female', 'male']),
     })
     .safeParse(Object.fromEntries(form));
-  if (!parsed.success) redirect(`/${locale}/family?error=invalid`);
+  if (!parsed.success) redirect(`${familyReturn(form, locale)}&error=invalid`);
   const v = parsed.data;
   const childId = crypto.randomUUID();
   // The child_read policy looks up the child through a STABLE function;
@@ -138,8 +144,12 @@ export async function addChild(form: FormData) {
     birth_date: v.birth,
     sex: v.sex,
   });
-  if (error) redirect(`/${locale}/family?error=generic`);
-  redirect(`/${locale}/today?child=${childId}`);
+  if (error) redirect(`${familyReturn(form, locale)}&error=generic`);
+  redirect(
+    form.get('returnPage') === 'account'
+      ? `/${locale}/account?child=${childId}`
+      : `/${locale}/today?child=${childId}`,
+  );
 }
 
 export async function createInvite(form: FormData) {
@@ -148,12 +158,12 @@ export async function createInvite(form: FormData) {
   const parsed = z
     .object({ childId: uuid, role: z.enum(['editor', 'viewer']) })
     .safeParse(Object.fromEntries(form));
-  if (!parsed.success) redirect(`/${locale}/family?error=invalid`);
+  if (!parsed.success) redirect(`${familyReturn(form, locale)}&error=invalid`);
   const { data, error } = await db.rpc('create_invitation', {
     p_child_id: parsed.data.childId,
     p_role: parsed.data.role,
   });
-  if (error || !data) redirect(`/${locale}/family?error=generic`);
+  if (error || !data) redirect(`${familyReturn(form, locale)}&error=generic`);
   // Carry the one-time link in a short-lived HttpOnly cookie, never persist its raw token in the DB or URL query.
   const { cookies } = await import('next/headers');
   (await cookies()).set('podung_invite', data, {
@@ -161,9 +171,11 @@ export async function createInvite(form: FormData) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 300,
-    path: `/${locale}/family`,
+    path: `/${locale}/${form.get('returnPage') === 'account' ? 'account' : 'family'}`,
   });
-  redirect(`/${locale}/family?child=${parsed.data.childId}&notice=saved`);
+  redirect(
+    `${familyReturn(form, locale)}&child=${parsed.data.childId}&notice=saved`,
+  );
 }
 
 export async function acceptInvite(form: FormData) {
@@ -183,7 +195,7 @@ export async function revoke(form: FormData) {
   const id = uuid.safeParse(form.get('id'));
   const familyId = uuid.safeParse(form.get('familyId'));
   if (!id.success || !familyId.success)
-    redirect(`/${locale}/family?error=invalid`);
+    redirect(`${familyReturn(form, locale)}&error=invalid`);
   const result =
     form.get('kind') === 'invite'
       ? await db.rpc('revoke_invitation', { p_id: id.data })
@@ -192,7 +204,7 @@ export async function revoke(form: FormData) {
           p_user_id: id.data,
         });
   redirect(
-    `/${locale}/family?${result.error ? 'error=generic' : 'notice=saved'}&child=${String(form.get('childId') ?? '')}`,
+    `${familyReturn(form, locale)}&${result.error ? 'error=generic' : 'notice=saved'}&child=${String(form.get('childId') ?? '')}`,
   );
 }
 
@@ -202,13 +214,37 @@ export async function saveBirthDate(form: FormData) {
   const parsed = z
     .object({ childId: uuid, birth: birthDate })
     .safeParse(Object.fromEntries(form));
-  if (!parsed.success) redirect(`/${locale}/family?error=invalid`);
+  if (!parsed.success) redirect(`${familyReturn(form, locale)}&error=invalid`);
   const { childId, birth } = parsed.data;
   const { error } = await db.rpc('update_child_birth_date', {
     p_child_id: childId,
     p_birth_date: birth,
   });
   redirect(
-    `/${locale}/family?child=${childId}&${error ? 'error=generic' : 'notice=saved'}`,
+    `${familyReturn(form, locale)}&child=${childId}&${error ? 'error=generic' : 'notice=saved'}`,
+  );
+}
+
+export async function saveChildDetails(form: FormData) {
+  const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
+  const { db } = await requireUser(locale);
+  const parsed = z
+    .object({
+      childId: uuid,
+      name: z.string().trim().min(1).max(60),
+      sex: z.enum(['female', 'male']),
+      birth: birthDate,
+    })
+    .safeParse(Object.fromEntries(form));
+  if (!parsed.success) redirect(`${familyReturn(form, locale)}&error=invalid`);
+  const v = parsed.data;
+  const { error } = await db.rpc('update_child_details', {
+    p_child_id: v.childId,
+    p_name: v.name,
+    p_sex: v.sex,
+    p_birth_date: v.birth,
+  });
+  redirect(
+    `${familyReturn(form, locale)}&child=${v.childId}&${error ? 'error=generic' : 'notice=saved'}`,
   );
 }

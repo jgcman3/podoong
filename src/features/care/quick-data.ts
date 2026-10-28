@@ -33,7 +33,7 @@ export async function loadQuickTimeline(
         .select('*')
         .eq('child_id', context.child.id)
         .or(
-          `and(started_at.gte.${lower},started_at.lt.${upper}),and(started_at.lt.${upper},ended_at.gte.${lower}),ended_at.is.null`,
+          `and(started_at.gte.${lower},started_at.lt.${upper}),and(started_at.lt.${upper},ended_at.gte.${lower}),and(kind.eq.breast,ended_at.is.null)`,
         )
         .order('started_at', { ascending: false })
         .order('id')
@@ -102,7 +102,6 @@ export async function loadRecentFeedingAmounts(context: CareContext) {
       .eq('child_id', context.child.id)
       .eq('kind', kind)
       .not('amount_ml', 'is', null)
-      .not('ended_at', 'is', null)
       .lte('started_at', new Date().toISOString())
       .order('started_at', { ascending: false })
       .order('id', { ascending: false })

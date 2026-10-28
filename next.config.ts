@@ -22,6 +22,7 @@ const config: NextConfig = {
   ...(process.env.PODUNG_E2E === '1' ? { devIndicators: false as const } : {}),
   agentRules: false,
   allowedDevOrigins: [
+    '192.168.45.85',
     new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://127.0.0.1:3187')
       .hostname,
   ],

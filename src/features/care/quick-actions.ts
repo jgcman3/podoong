@@ -139,7 +139,7 @@ export async function saveQuickCare(
     const parsed = feedingRecordSchema.safeParse(input);
     if (
       !parsed.success ||
-      (v.mode === 'record' && !parsed.data.endedAt) ||
+      (v.mode === 'record' && parsed.data.kind === 'breast' && !parsed.data.endedAt) ||
       (v.mode === 'start' && (parsed.data.endedAt || v.version !== null))
     )
       return { status: 'error', error: 'invalid' };

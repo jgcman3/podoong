@@ -25,10 +25,12 @@ export function ResidenceForm({
   family,
   childId,
   locale,
+  returnPage = 'family',
 }: {
   family: Row<'families'>;
   childId: string;
   locale: Locale;
+  returnPage?: 'family' | 'account';
 }) {
   const t = useTranslations();
   const initial = residenceRegions.find(
@@ -52,6 +54,8 @@ export function ResidenceForm({
   return (
     <form action={saveFamilyResidence} className="form-stack">
       <input type="hidden" name="locale" value={locale} />
+      <input type="hidden" name="returnPage" value={returnPage} />
+      <input type="hidden" name="panel" value="family" />
       <input type="hidden" name="familyId" value={family.id} />
       <input type="hidden" name="childId" value={childId} />
       <input type="hidden" name="version" value={family.residence_version} />

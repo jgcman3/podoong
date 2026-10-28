@@ -83,30 +83,30 @@ describe('weekly insights from recorded data', () => {
     ]);
     expect(day.hours[11]).toBe(2);
   });
-  it('groups completed feeding by profile date, counts unknown amounts, excludes running/future and deduplicates', () => {
+  it('includes feeding with unknown duration, excludes future and deduplicates', () => {
     const input = empty();
     input.feeds = [
       feed('a', '2026-10-25T15:10:00Z', '2026-10-25T15:20:00Z', 120),
       feed('b', '2026-10-26T15:10:00Z', '2026-10-26T15:20:00Z', 80),
       feed('c', '2026-10-26T16:00:00Z', '2026-10-26T16:10:00Z'),
-      feed('running', '2026-10-26T16:00:00Z', null, 500),
+      feed('unknown-duration', '2026-10-26T16:00:00Z', null, 500),
       feed('future', '2026-12-01T00:00:00Z', '2026-12-01T00:10:00Z', 900),
     ];
     input.feeds.push(input.feeds[0]);
     const c = aggregateWeek(input, start, 'Asia/Seoul', now).categories.formula;
-    expect(c.count).toBe(3);
-    expect(c.excludedRunning).toBe(1);
+    expect(c.count).toBe(4);
+    expect(c.excludedRunning).toBe(0);
     expect(c.recordedDays).toBe(2);
     expect(dailyValues(c, metrics.formula[0])).toEqual([
       120,
-      80,
+      580,
       null,
       null,
       null,
       null,
       null,
     ]);
-    expect(weekValue(c, metrics.formula[0])).toBe(200);
+    expect(weekValue(c, metrics.formula[0])).toBe(700);
   });
   it('never converts legacy grams to milliliters and keeps missing amounts distinct from zero', () => {
     const input = empty();

@@ -5088,83 +5088,13 @@ button.task-check:disabled {
     z-index: 22;
     height: calc(var(--mobile-main-nav-height) + env(safe-area-inset-bottom));
   }
-  .mobile-nav > a,
-  .mobile-nav > .bottom-child-picker {
+  .mobile-nav > a {
     flex: 1;
     min-width: 0;
   }
   .mobile-nav > a span {
     font-size: 9px;
     white-space: nowrap;
-  }
-  .bottom-child-picker {
-    position: relative;
-  }
-  .bottom-child-picker summary {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 5px;
-    min-height: 44px;
-    list-style: none;
-    cursor: pointer;
-    color: var(--brown);
-  }
-  .bottom-child-picker summary::-webkit-details-marker {
-    display: none;
-  }
-  .bottom-child-info {
-    width: 100%;
-    text-align: center;
-  }
-  .bottom-child-info strong {
-    display: block;
-    font-size: 9px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .bottom-child-options {
-    position: absolute;
-    bottom: calc(100% + 12px);
-    left: 5px;
-    width: min(300px, calc(100vw - 24px));
-    max-height: 55dvh;
-    overflow-y: auto;
-    padding: 8px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: var(--surface);
-    box-shadow: 0 -6px 30px #29374720;
-  }
-  .bottom-child-options a {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 48px;
-    padding: 10px 12px;
-    border-radius: 10px;
-  }
-  .bottom-child-options a[aria-current='true'] {
-    background: #eef3fc;
-  }
-  .bottom-child-options a > span {
-    display: grid;
-    gap: 2px;
-    overflow-wrap: anywhere;
-  }
-  .bottom-child-options strong {
-    font-size: 14px;
-  }
-  .bottom-child-options small {
-    font-size: 12px;
-    color: var(--muted);
-  }
-  .bottom-child-options a:last-child {
-    border-top: 1px solid var(--line);
-    border-radius: 0;
   }
   .mobile-function-rail,
   .quick-grid.quick-orbit.mobile-function-rail,
@@ -6073,17 +6003,6 @@ html[data-standalone] :is(input, select, textarea) { font-size: max(16px, 1em); 
   html, body, dialog { touch-action: pan-x pan-y; }
 }
 
-@media (max-width: 900px) {
-  .bottom-child-picker summary { position: relative; color: var(--muted); }
-  .bottom-child-picker.active summary, .bottom-child-picker[open] summary { color: var(--brown); }
-  .bottom-child-chevron { position: absolute; top: 14px; left: calc(50% + 10px); }
-  .family-menu-scrim { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #19130e66; backdrop-filter: blur(3px); z-index: 1; }
-  .bottom-child-options { position: fixed; inset: auto 0 0; z-index: 2; width: min(100%, 560px); margin: 0 auto; max-height: 80dvh; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); border-radius: 24px 24px 0 0; box-sizing: border-box; overscroll-behavior: contain; }
-  .family-menu-heading { display: flex; justify-content: space-between; align-items: center; padding: 0 12px 8px; }
-  .family-menu-heading button { display: grid; place-items: center; width: 44px; height: 44px; background: transparent; border: 0; color: var(--muted); }
-  .bottom-child-options .family-menu-action { font-size: 13px; }
-  .bottom-child-options a:not(.family-menu-action) + .family-menu-action { margin-top: 8px; border-top: 1px solid var(--line); border-radius: 0; }
-}
 #child-info, #add-child { scroll-margin-top: 24px; }
 
 .diary-detail-toolbar > .diary-share-trigger { width: 44px; height: 44px; justify-content: center; padding: 0; flex-shrink: 0; }
@@ -6234,3 +6153,33 @@ html[data-standalone] :is(input, select, textarea) { font-size: max(16px, 1em); 
   .milestone-item { min-height: 44px; padding: 8px 0; gap: 10px; font-size: 14px; line-height: 1.45; }
   .milestone-item input { width: 20px; height: 20px; min-height: 20px; padding: 0; flex-basis: 20px; margin: 0; }
 }
+
+.mobile-child-link > span { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.child-account-page { max-width: 850px; margin: 0 auto; }
+.account-children h2 { margin-bottom: 12px; }
+.account-child-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.account-child-list > a { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 14px; }
+.account-child-list > a[aria-current='true'] { background: #f1f4ff; border-color: #dbe1f6; }
+.account-child-icon { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%; background: #fff3e8; color: var(--brown); }
+.account-child-list > a > span:nth-child(2) { flex: 1; min-width: 0; }
+.account-child-list strong, .account-child-list small { display: block; overflow-wrap: anywhere; }
+.account-child-list small { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.account-child-list > a > svg { color: var(--brown); }
+.account-settings-heading { display: flex; align-items: center; gap: 8px; margin: 22px 0 12px; }
+.account-settings-heading h2 { margin: 0; }
+@media (max-width: 760px) {
+  .child-account-page .page-heading { margin-bottom: 14px; }
+  .child-account-page .page-heading h1 { font-size: 21px; }
+  .child-account-page .panel { padding: 16px; margin-bottom: 12px; }
+  .account-child-list { grid-template-columns: minmax(0, 1fr); }
+}
+
+.account-settings-section > summary { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.account-settings-section > summary > span { flex: 1; }
+.account-settings-section > summary > svg { color: var(--muted); }
+.account-settings-section[open] > summary > svg:last-child { transform: rotate(90deg); }
+.account-settings-section > .panel, .account-settings-section .two-column > .panel { border: 0; box-shadow: none; padding: 16px 0 0; margin-bottom: 12px; background: transparent; }
+.account-settings-section .two-column { display: block; }
+.account-settings-section .panel h2 { font-size: 14px; }
+.account-settings-section .invitation-row { flex-wrap: wrap; }
+.account-settings-section .invite-result input { min-width: 0; max-width: 100%; }

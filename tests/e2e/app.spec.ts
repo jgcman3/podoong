@@ -754,12 +754,12 @@ test('family owner can add another child and read both children after saving', a
   await expect(page.locator('.topbar-child-info strong')).toHaveText('둘째');
   await page
     .locator(
-      '.topbar-child-picker:visible summary, .bottom-child-picker:visible summary',
+      '.topbar-child-picker:visible summary',
     )
     .click();
   await expect(page.locator('.topbar-child-options a')).toHaveCount(2);
   await page
-    .locator('.topbar-child-options:visible, .bottom-child-options:visible')
+    .locator('.topbar-child-options:visible')
     .getByRole('link')
     .filter({ hasText: '첫째' })
     .click();
@@ -767,16 +767,16 @@ test('family owner can add another child and read both children after saving', a
   await expect(page.locator('.topbar .date')).toHaveCount(0);
   await expect(page.locator('.child-bar')).toHaveCount(0);
   await expect(page.locator('.topbar-child-info')).toContainText('생후');
-  for (const width of [1440, 390]) {
+  for (const width of [1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page
       .locator(
-        '.topbar-child-picker:visible summary, .bottom-child-picker:visible summary',
+        '.topbar-child-picker:visible summary',
       )
       .click();
     await expect(
       page.locator(
-        '.topbar-child-options:visible, .bottom-child-options:visible',
+        '.topbar-child-options:visible',
       ),
     ).toBeVisible();
     expect(
@@ -791,23 +791,23 @@ test('family owner can add another child and read both children after saving', a
     await page.keyboard.press('Escape');
     await expect(
       page.locator(
-        '.topbar-child-options:visible, .bottom-child-options:visible',
+        '.topbar-child-options:visible',
       ),
     ).not.toBeVisible();
   }
   await page
     .locator(
-      '.topbar-child-picker:visible summary, .bottom-child-picker:visible summary',
+      '.topbar-child-picker:visible summary',
     )
     .click();
-  await page.locator('.family-menu-scrim:visible').click();
+  await page.locator('[data-last-care="sleep"]').click();
   await expect(
     page.locator(
-      '.topbar-child-options:visible, .bottom-child-options:visible',
+      '.topbar-child-options:visible',
     ),
   ).not.toBeVisible();
   const firstId = new URL(page.url()).searchParams.get('child')!;
-  for (const width of [1440, 390]) {
+  for (const width of [1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const section of ['calendar', 'family', 'services']) {
       const dateQuery =
@@ -826,11 +826,11 @@ test('family owner can add another child and read both children after saving', a
       else await expect(page.locator('.topbar')).toBeHidden();
       await page
         .locator(
-          '.topbar-child-picker:visible summary, .bottom-child-picker:visible summary',
+          '.topbar-child-picker:visible summary',
         )
         .click();
       await page
-        .locator('.topbar-child-options:visible, .bottom-child-options:visible')
+        .locator('.topbar-child-options:visible')
         .getByRole('link')
         .filter({ hasText: '둘째' })
         .click();
@@ -3900,13 +3900,14 @@ test('insights supports rolling seven days, multiple activity patterns and child
     .single();
   expect(second.error).toBeNull();
   await page.reload();
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page
     .locator(
-      '.topbar-child-picker:visible summary, .bottom-child-picker:visible summary',
+      '.topbar-child-picker:visible summary',
     )
     .click();
   await page
-    .locator('.topbar-child-options:visible, .bottom-child-options:visible')
+    .locator('.topbar-child-options:visible')
     .getByRole('link')
     .filter({ hasText: '빈 기록 아이' })
     .click();
@@ -4716,19 +4717,14 @@ test('compact mobile navigation switches children and opens language settings', 
     await page.setViewportSize({ width, height: 844 });
     await page.goto(`/ko/today?child=${child}`);
     await expect(page.locator('.topbar')).toBeHidden();
-    const picker = page.locator('.bottom-child-picker');
-    await expect(page.locator('.mobile-nav > a')).toHaveCount(5);
-    await expect(page.locator('.mobile-nav > :last-child')).toHaveClass(/bottom-child-picker/);
-    await expect(page.locator('.mobile-nav > a')).toHaveText(['오늘', '일정', '인사이트', '성장 일기', '전체']);
-    await picker.locator('summary').click();
-    await expect(picker.locator('nav')).toBeVisible();
-    await picker.getByRole('link', { name: /둘째/ }).click();
+    const picker = page.locator('.mobile-child-link');
+    await expect(page.locator('.mobile-nav > a')).toHaveCount(6);
+    await expect(page.locator('.mobile-nav > :last-child')).toHaveClass(/mobile-child-link/);
+    await picker.click();
+    await expect(page.getByRole('heading', { name: '아이와 설정' })).toBeVisible();
+    await page.locator('.account-child-list').getByRole('link', { name: /둘째/ }).click();
     await expect(page).toHaveURL(new RegExp(`child=${second.data!.id}`));
-    await expect(picker.locator('summary')).toContainText('둘째');
-    await picker.locator('summary').click();
-    await expect(picker.locator('nav')).toContainText('생후');
-    await page.keyboard.press('Escape');
-    await expect(picker.locator('nav')).toBeHidden();
+    await expect(picker).toContainText('둘째');
     for (const section of ['today', 'calendar', 'insights']) {
       await page.goto(`/ko/${section}?child=${child}`);
       const rail = page.locator('.mobile-function-rail');
@@ -4746,24 +4742,17 @@ test('compact mobile navigation switches children and opens language settings', 
     }
     await page.screenshot({ path: `test-results/compact-mobile-${width}.png` });
   }
-  await page.locator('.bottom-child-picker summary').click();
-  await page.locator('.bottom-child-picker').getByRole('link', { name: '가족 관리', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/ko/family\\?child=${child}`));
-  await expect(page.locator('.bottom-child-picker')).toHaveClass(/active/);
-  await page.locator('.bottom-child-picker summary').click();
-  await page.locator('.bottom-child-picker').getByRole('link', { name: '아이 정보 수정', exact: true }).click();
-  await expect(page).toHaveURL(/#child-info$/);
+  await page.locator('.mobile-child-link').click();
+  await page.locator('summary').filter({ hasText: '가족 관리' }).click();
+  await expect(page).toHaveURL(new RegExp(`/ko/account\\?child=${child}`));
+  await expect(page.locator('.mobile-child-link')).toHaveClass(/active/);
+  await page.locator('.mobile-child-link').click();
+  await page.locator('summary').filter({ hasText: '아이 정보 수정' }).click();
+  await expect(page).toHaveURL(/\/ko\/account/);
   await expect(page.locator('#child-info')).toBeInViewport();
-  await page.locator('.bottom-child-picker summary').click();
-  await page
-    .locator('.bottom-child-picker')
-    .getByRole('link', { name: '계정 설정', exact: true })
-    .click();
-  await page
-    .locator('.settings-language')
-    .getByRole('link', { name: 'English', exact: true })
-    .click();
-  await expect(page).toHaveURL(new RegExp(`/en/settings\\?child=${child}`));
+  await page.locator('.mobile-child-link').click();
+  await page.locator('.settings-language').getByRole('link', { name: 'English', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/en/account\\?child=${child}`));
   await expect(page.locator('.settings-language')).toContainText('Language');
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/ko/today?child=${child}`);
@@ -5350,9 +5339,10 @@ test('insight presentation changes reuse loaded records', async ({
     }),
     contentType: 'application/json',
   });
-  await page.locator('.bottom-child-picker summary').click();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.locator('.topbar-child-picker summary').click();
   await page
-    .locator('.bottom-child-options')
+    .locator('.topbar-child-options')
     .getByRole('link')
     .filter({ hasText: '다른 아이' })
     .click();
@@ -5849,4 +5839,83 @@ test('postbirth service catalog removes retired services and requires birth date
   await page.goto(`/en/family?child=${own.child}`);
   await expect(page.getByText('Due date', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('Child’s date of birth', { exact: true }).first()).toBeVisible();
+});
+
+test('child bottom navigation opens a main page with child selection and settings', async ({ page, context }) => {
+  const own = await childCareFamily(context);
+  const { data: second, error } = await admin.from('children').insert({ family_id: own.family, name: '둘째', birth_date: '2026-10-01', sex: 'male' }).select('id').single();
+  expect(error).toBeNull();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/today?child=${own.child}`);
+  await page.locator('.mobile-nav').getByRole('link', { name: '돌봄 아이', exact: true }).click();
+  await expect(page).toHaveURL(/\/ko\/account/);
+  await expect(page.getByRole('heading', { name: '아이와 설정' })).toBeVisible();
+  await expect(page.locator('.bottom-child-picker, .family-menu-scrim')).toHaveCount(0);
+  await expect(page.locator('.mobile-child-link')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.account-child-list > a')).toHaveCount(2);
+  await page.locator('.account-child-list').getByRole('link', { name: /둘째/ }).click();
+  await expect(page).toHaveURL(new RegExp(`child=${second!.id}`));
+  await expect(page.locator('.mobile-child-link')).toHaveText('둘째');
+  await expect(page.locator('.account-child-list a[aria-current=true]')).toContainText('둘째');
+  await page.locator('summary').filter({ hasText: '아이 정보 수정' }).click();
+  const childForm = page.locator('#child-info');
+  await childForm.locator('input[name=name]').fill('둘째 수정');
+  await childForm.locator('select[name=sex]').selectOption('female');
+  await childForm.getByRole('button', { name: '저장하기', exact: true }).click();
+  await expect(page).toHaveURL(/\/ko\/account\?panel=child/);
+  await expect(page.locator('.mobile-child-link')).toHaveText('둘째 수정');
+  const saved = await admin.from('children').select('name,sex').eq('id', second!.id).single();
+  expect(saved.data).toEqual({ name: '둘째 수정', sex: 'female' });
+  await page.locator('summary').filter({ hasText: '가족 관리' }).click();
+  await expect(page.locator('.family-residence')).toBeVisible();
+  await page.locator('.family-residence select[name=countryCode]').selectOption('US');
+  await page.locator('.family-residence button[type=submit], .family-residence button.primary').click();
+  await expect(page).toHaveURL(/\/ko\/account\?panel=family/);
+  const residence = await admin.from('families').select('residence_country_code').eq('id', own.family).single();
+  expect(residence.data?.residence_country_code).toBe('US');
+  await page.locator('summary').filter({ hasText: '다른 아이 등록' }).click();
+  await expect(page.locator('#add-child input[name=name]')).toBeVisible();
+  await page.locator('#add-child input[name=name]').fill('새 아이');
+  await page.locator('#add-child select[name=sex]').selectOption('female');
+  await page.locator('#add-child input[name=birth]').fill('2026-10-01');
+  await page.locator('#add-child').getByRole('button', { name: '아이 추가', exact: true }).click();
+  await expect(page).toHaveURL(/\/ko\/account\?child=/);
+  await expect(page.locator('.mobile-child-link')).toHaveText('새 아이');
+  await expect(page.locator('.account-child-list > a')).toHaveCount(3);
+  await page.locator('summary').filter({ hasText: '가족 관리' }).click();
+  await page.getByRole('button', { name: '초대 링크 만들기', exact: true }).click();
+  await expect(page).toHaveURL(/\/ko\/account\?panel=family/);
+  await expect(page.getByRole('textbox', { name: '초대 링크', exact: true })).toBeVisible();
+  await page.locator('.account-child-list').getByRole('link', { name: /둘째 수정/ }).click();
+  await expect(page).toHaveURL(new RegExp(`child=${second!.id}`));
+  await expect(page.locator('.mobile-child-link')).toHaveText('둘째 수정');
+
+  await page.locator('.settings-language').getByRole('link', { name: 'English' }).click();
+  await expect(page).toHaveURL(new RegExp(`/en/account\\?child=${second!.id}`));
+  await expect(page.getByRole('heading', { name: 'Children & settings' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeAttached();
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: '/tmp/podung-child-account.png', fullPage: true });
+});
+
+test('formula and solids can save without duration', async ({ page, context }) => {
+  const { child } = await childCareFamily(context);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/today?child=${child}`);
+  for (const [label, kind] of [['분유', 'formula'], ['이유식', 'solids']]) {
+    const quick = page.locator('.quick-care');
+    await quick.locator('.quick-grid').getByRole('button', { name: label, exact: true }).click();
+    const dialog = quick.locator('dialog');
+    await expect(dialog.getByRole('button', { name: '저장하기', exact: true })).toBeEnabled();
+    await dialog.getByRole('button', { name: '저장하기', exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+    const result = await admin.from('care_records').select('ended_at,amount_ml').eq('child_id', child).eq('kind', kind).single();
+    expect(result.error).toBeNull();
+    expect(result.data?.ended_at).toBeNull();
+    expect(result.data?.amount_ml).toBeGreaterThan(0);
+  }
 });

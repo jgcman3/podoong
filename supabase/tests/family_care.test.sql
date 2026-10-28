@@ -19,6 +19,7 @@ insert into public.child_access values('20000000-0000-4000-8000-000000000001','1
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 select is((select count(*)::int from public.children),0,'another family cannot read children');
+select throws_ok($$select public.update_child_details('20000000-0000-4000-8000-000000000001','No','male','2026-10-20')$$,'42501','forbidden','outsider cannot update child details');
 select is((select count(*)::int from public.family_members),0,'another family cannot read membership');
 select throws_ok($$select public.save_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','x','2026-10-12','')$$,'42501','forbidden','another family cannot write events');
 select throws_ok($$select * from public.list_caregivers('20000000-0000-4000-8000-000000000001')$$,'42501','forbidden','caregiver names cannot cross family boundaries');
@@ -26,6 +27,7 @@ select throws_ok($$select * from public.list_caregivers('20000000-0000-4000-8000
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 select is((select count(*)::int from public.children),1,'viewer sees only invited child');
 select ok(public.can_read_child('20000000-0000-4000-8000-000000000001'),'viewer reads assigned child');
+select throws_ok($$select public.update_child_details('20000000-0000-4000-8000-000000000001','No','male','2026-10-20')$$,'42501','forbidden','viewer cannot update child details');
 select ok(not public.can_read_child('20000000-0000-4000-8000-000000000002'),'viewer cannot read sibling');
 select throws_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula',now(),now(),100,'',null)$$,'42501','forbidden','viewer cannot save care');
 select throws_ok($$select public.update_child_birth_date('20000000-0000-4000-8000-000000000001','2026-10-21')$$,'42501','forbidden','viewer cannot change dates');
@@ -63,6 +65,10 @@ select lives_ok($$select public.accept_invitation('valid')$$,'invite accepted');
 select throws_ok($$select public.accept_invitation('valid')$$,'P0001','invalid_invitation','used invite rejected');
 select is((select count(*)::int from public.children),1,'new editor sees invited child only');
 select ok(public.can_write_child('20000000-0000-4000-8000-000000000001'),'new editor can write');
+select lives_ok($$select public.update_child_details('20000000-0000-4000-8000-000000000001','Updated','male','2026-10-20')$$,'editor updates child details');
+select is((select name from public.children where id='20000000-0000-4000-8000-000000000001'),'Updated','child name persisted');
+select throws_ok($$select public.update_child_details('20000000-0000-4000-8000-000000000001','','male','2026-10-20')$$,'22023','invalid_child_details','empty name rejected');
+select throws_ok($$select public.update_child_details('20000000-0000-4000-8000-000000000001','Updated',null,'2026-10-20')$$,'22023','invalid_child_details','missing sex rejected');
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select public.save_task('40000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','Assigned','general','2026-10-25','todo','00000000-0000-4000-8000-000000000003');
 select lives_ok($$select public.revoke_member('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003')$$,'owner revokes editor');

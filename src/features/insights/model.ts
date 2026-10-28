@@ -188,6 +188,10 @@ export function aggregateWeek(
     const kind = r.kind as InsightKind,
       at = Date.parse(r.started_at),
       finished = r.ended_at ? Date.parse(r.ended_at) : null;
+    if (finished === null && kind !== 'breast') {
+      point(kind, at, { ml: r.amount_ml, g: r.amount_g, minutes: null });
+      continue;
+    }
     if (finished === null) {
       running(kind, at);
       continue;

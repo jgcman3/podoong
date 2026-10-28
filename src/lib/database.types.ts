@@ -1126,6 +1126,7 @@ isOneToOne: false
 "community_post_visible":
 { Args: { "p_id": string }; Returns: boolean
                            },
+"update_child_details": { Args: { "p_child_id": string, "p_birth_date": string, "p_name": string, "p_sex": string }; Returns: undefined },
 "update_child_birth_date": { Args: { "p_child_id": string, "p_birth_date": string }; Returns: undefined },
 "create_family_with_child":
 { Args: { "p_birth_date": string,"p_child_name": string,"p_family_name": string,"p_sex": string }; Returns: string

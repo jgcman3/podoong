@@ -492,6 +492,7 @@ function QuickEditor({
         localDateInput(new Date(currentTime - value * 60000).toISOString()),
       );
   };
+  const durationRequired = kind === 'breast' || kind === 'sleep';
   const durationNeeded = mode === 'record' && (feed || kind === 'sleep');
   return (
     <form action={action} className="quick-editor-form" aria-label={title}>
@@ -678,7 +679,10 @@ function QuickEditor({
                       type="button"
                       key={value}
                       aria-pressed={duration === String(value)}
-                      onClick={() => changeDuration(value, Date.now())}
+                      onClick={() => {
+                        if (!durationRequired && duration === String(value)) setDuration('');
+                        else changeDuration(value, Date.now());
+                      }}
                     >
                       {value}
                       {c.minutes}
@@ -784,7 +788,7 @@ function QuickEditor({
         )}
         <button
           className="button primary quick-confirm"
-          disabled={busy || !startIso || (durationNeeded && !endedAt)}
+          disabled={busy || !startIso || (durationNeeded && durationRequired && !endedAt)}
           aria-busy={pending}
         >
           {mode === 'start' ? (
