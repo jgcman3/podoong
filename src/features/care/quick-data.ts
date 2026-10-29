@@ -45,7 +45,7 @@ export async function loadQuickTimeline(
         .select('*')
         .eq('child_id', context.child.id)
         .or(
-          `and(occurred_at.gte.${lower},occurred_at.lt.${upper}),and(service.eq.sleep,occurred_at.lt.${upper},ended_at.gte.${lower}),and(service.eq.sleep,ended_at.is.null)`,
+          `and(occurred_at.gte.${lower},occurred_at.lt.${upper}),and(service.eq.sleep,occurred_at.lt.${upper},ended_at.gte.${lower}),and(service.eq.sleep,ended_at.is.null),and(timer_started.eq.true,ended_at.is.null),and(kind.in.(daycare,kindergarten),attendance_status.is.null,ended_at.is.null),and(service.eq.activity,occurred_at.lt.${upper},ended_at.gte.${lower})`,
         )
         .order('occurred_at', { ascending: false })
         .order('id')
@@ -67,22 +67,27 @@ export async function loadQuickTimeline(
   const growthIds = child
     .filter((r) => r.service === 'growth')
     .map((r) => r.id);
-  if (growthIds.length) {
+  const photoRecordIds = child
+    .filter((r) => r.service === 'growth' || r.kind === 'gift')
+    .map((r) => r.id);
+  if (photoRecordIds.length) {
     const [photos, shares] = await Promise.all([
       context.db
         .from('child_record_photos')
         .select('id,record_id')
         .eq('child_id', context.child.id)
-        .in('record_id', growthIds),
-      context.db
-        .from('growth_diary_shares')
-        .select('record_id,same_birth_date,everyone')
-        .in('record_id', growthIds),
+        .in('record_id', photoRecordIds),
+      growthIds.length
+        ? context.db
+            .from('growth_diary_shares')
+            .select('record_id,same_birth_date,everyone')
+            .in('record_id', growthIds)
+        : Promise.resolve({ data: [], error: null }),
     ]);
     if (shares.error) throw new Error('Diary privacy unavailable');
     if (photos.error) throw new Error('Diary photos unavailable');
     for (const entry of timeline) {
-      if (entry.service === 'growth') {
+      if (entry.service === 'growth' || entry.kind === 'gift') {
         const share = shares.data.find((row) => row.record_id === entry.id);
         entry.isPrivate = !share?.same_birth_date && !share?.everyone;
         entry.photoIds = photos.data

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/data';
 import { feedingRecordSchema } from './feeding-schema';
 import { childRecordSchema } from '@/features/child-care/schema';
+import { stageGiftPhoto } from '@/features/received/gift-photo';
 export type QuickSaveState = {
   status: 'idle' | 'saved' | 'error';
   error?: string;
@@ -80,7 +81,7 @@ export async function saveQuickCare(
     input.startedAt = instant;
     input.occurredAt = instant;
   }
-  const { db } = await requireUser(v.locale);
+  const { db, user } = await requireUser(v.locale);
   let error: { code?: string; message: string } | null = null;
   if (v.mode === 'stop') {
     if (!v.version || !['sleep', 'feeding', 'activity'].includes(v.source))
@@ -124,7 +125,10 @@ export async function saveQuickCare(
         r.ended_at ||
         r.version !== v.version ||
         (v.source === 'activity' &&
-          !['daycare', 'kindergarten'].includes(r.kind))
+          !(
+            ['daycare', 'kindergarten'].includes(r.kind) ||
+            (['play', 'tummy'].includes(r.kind) && r.timer_started)
+          ))
       )
         return { status: 'error', error: 'conflict' };
       const result = await db.rpc('save_child_record', {
@@ -136,6 +140,7 @@ export async function saveQuickCare(
           kind: r.kind,
           occurred_at: r.occurred_at,
           ended_at: new Date().toISOString(),
+          timer_started: r.timer_started,
           note: r.note,
           timezone: r.record_timezone,
         },
@@ -179,53 +184,126 @@ export async function saveQuickCare(
             (parsed.data.endedAt || v.version !== null)))) ||
       ((v.source === 'diaper' ||
         (v.source === 'activity' &&
-          !['daycare', 'kindergarten'].includes(parsed.data.kind))) &&
+          !['daycare', 'kindergarten', 'play', 'tummy'].includes(
+            parsed.data.kind,
+          ))) &&
         v.mode !== 'record')
     )
       return { status: 'error', error: 'invalid' };
     const r = parsed.data;
     if (
-      ['daycare', 'kindergarten'].includes(r.kind) &&
-      ((v.mode === 'record' && !r.endedAt) ||
+      ['daycare', 'kindergarten', 'play', 'tummy'].includes(r.kind) &&
+      ((v.mode === 'record' &&
+        ['daycare', 'kindergarten'].includes(r.kind) &&
+        !r.endedAt) ||
         (v.mode === 'start' && (r.endedAt || v.version !== null)))
     )
       return { status: 'error', error: 'invalid' };
-    const result = await db.rpc('save_child_record', {
-      p_id: r.id,
-      p_child: r.childId,
-      p_service: r.service,
-      p_version: v.version,
-      p_data: {
-        kind: r.kind,
-        temperature_c:
-          r.service === 'activity' && r.kind === 'temperature'
-            ? r.temperature
-            : null,
-        medicine_name:
-          r.service === 'activity' && r.kind === 'medication' ? r.medicine : '',
-        dose_amount:
-          r.service === 'activity' && r.kind === 'medication' ? r.dose : null,
-        dose_unit:
-          r.service === 'activity' && r.kind === 'medication'
-            ? r.doseUnit
-            : null,
-        duration_minutes:
-          r.service === 'activity' && ['bath', 'play', 'tummy'].includes(r.kind)
-            ? r.activityDuration
-            : null,
-        title: r.service === 'activity' && r.kind === 'hospital' ? r.title : '',
-        occurred_at: r.occurredAt,
-        ended_at:
-          r.service === 'sleep' || ['daycare', 'kindergarten'].includes(r.kind)
-            ? r.endedAt
-            : null,
-        stool_color: r.color || null,
-        stool_texture: r.texture || null,
-        note: r.note,
-        timezone: r.timezone,
-      },
-    });
-    error = result.error;
+    if (
+      r.service === 'activity' &&
+      (r.kind === 'gift' || r.kind === 'allowance')
+    ) {
+      const photos = form
+        .getAll('giftPhoto')
+        .filter((file): file is File => file instanceof File && file.size > 0);
+      const removed = String(form.get('removeGiftPhoto') ?? '');
+      if (
+        photos.length > 1 ||
+        (removed && !z.uuid().safeParse(removed).success) ||
+        (r.kind !== 'gift' && (photos.length || removed))
+      )
+        return { status: 'error', error: 'invalid' };
+      let staged: Awaited<ReturnType<typeof stageGiftPhoto>> | undefined;
+      if (photos.length) {
+        const allowed = await db.rpc('can_write_child', { cid: r.childId });
+        if (allowed.error || !allowed.data)
+          return { status: 'error', error: 'readonly' };
+        try {
+          staged = await stageGiftPhoto(photos[0], user.id, r.childId, r.id);
+        } catch {
+          return { status: 'error', error: 'photo' };
+        }
+      }
+      const result = await db.rpc('save_received_record', {
+        p_id: r.id,
+        p_child: r.childId,
+        p_version: v.version,
+        p_data: {
+          kind: r.kind,
+          title: r.title,
+          sender_name: r.sender,
+          received_amount: r.receivedAmount,
+          received_currency: r.currency,
+          occurred_at: r.occurredAt,
+          timezone: r.timezone,
+          gift_photo: staged?.metadata ?? null,
+          remove_photo_id: removed || null,
+        },
+      });
+      error = result.error;
+      if (staged) {
+        const attached = await db
+          .from('child_record_photos')
+          .select('id')
+          .eq('id', staged.metadata.id)
+          .eq('record_id', r.id)
+          .maybeSingle();
+        if (!attached.error) {
+          if (attached.data) error = null;
+          else await staged.cleanup();
+        }
+      }
+    } else {
+      const result = await db.rpc('save_child_record', {
+        p_id: r.id,
+        p_child: r.childId,
+        p_service: r.service,
+        p_version: v.version,
+        p_data: {
+          kind: r.kind,
+          temperature_c:
+            r.service === 'activity' && r.kind === 'temperature'
+              ? r.temperature
+              : null,
+          medicine_name:
+            r.service === 'activity' && r.kind === 'medication'
+              ? r.medicine
+              : '',
+          dose_amount:
+            r.service === 'activity' && r.kind === 'medication' ? r.dose : null,
+          dose_unit:
+            r.service === 'activity' && r.kind === 'medication'
+              ? r.doseUnit
+              : null,
+          duration_minutes:
+            r.service === 'activity' &&
+            ['bath', 'play', 'tummy'].includes(r.kind) &&
+            !(
+              ['play', 'tummy'].includes(r.kind) &&
+              (v.mode === 'start' || r.endedAt)
+            )
+              ? r.activityDuration
+              : null,
+          title:
+            r.service === 'activity' && r.kind === 'hospital' ? r.title : '',
+          occurred_at: r.occurredAt,
+          timer_started:
+            r.service === 'activity' &&
+            ['play', 'tummy'].includes(r.kind) &&
+            (v.mode === 'start' || Boolean(r.endedAt)),
+          ended_at:
+            r.service === 'sleep' ||
+            ['daycare', 'kindergarten', 'play', 'tummy'].includes(r.kind)
+              ? r.endedAt
+              : null,
+          stool_color: r.color || null,
+          stool_texture: r.texture || null,
+          note: r.note,
+          timezone: r.timezone,
+        },
+      });
+      error = result.error;
+    }
   }
   if (error)
     return {

@@ -1,3 +1,6 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { Timer } from '@/features/care/timer';
 import { describe, it, expect } from 'vitest';
 import { feedingRecordSchema } from '@/features/care/feeding-schema';
 import {
@@ -217,4 +220,40 @@ describe('date-only vaccinations in care history', () => {
       0,
     );
   });
+});
+
+describe('activity timer identity', () => {
+  it('treats only explicitly started play and tummy records as running', () => {
+    const base = {
+      service: 'activity',
+      kind: 'play',
+      occurred_at: '2026-10-29T01:00:00Z',
+      ended_at: null,
+      version: 1,
+      duration_minutes: null,
+    };
+    const rows = [
+      { ...base, id: 'legacy', timer_started: false, duration_minutes: 10 },
+      { ...base, id: 'running', timer_started: true },
+      {
+        ...base,
+        id: 'finished',
+        timer_started: true,
+        ended_at: '2026-10-29T01:10:00Z',
+      },
+    ] as Row<'child_records'>[];
+    const entries = quickTimeline([], rows);
+    expect(entries.find((e) => e.id === 'legacy')?.running).toBe(false);
+    expect(entries.find((e) => e.id === 'running')?.running).toBe(true);
+    expect(entries.find((e) => e.id === 'finished')?.running).toBe(false);
+    expect(durationMinutes(entries.find((e) => e.id === 'finished')!)).toBe(10);
+  });
+});
+
+it('shows sleep timers at hour and minute precision without seconds', () => {
+  const markup = renderToStaticMarkup(
+    createElement(Timer, { start: '2026-10-29T01:00:00Z', showSeconds: false }),
+  );
+  expect(markup).toContain('00:00');
+  expect(markup).not.toContain('00:00:00');
 });

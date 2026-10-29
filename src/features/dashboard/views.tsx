@@ -1,4 +1,5 @@
 import { DeveloperRequestForm } from '@/features/developer-requests/form';
+import { AppearanceSettings } from '@/components/appearance';
 import { RelationshipField } from '@/features/family/relationship-field';
 import { relationshipLabel } from '@/features/family/relationship';
 import { saveRelationship } from '@/features/family/actions';
@@ -26,6 +27,8 @@ import {
   ChevronRight,
   Bell,
   MessageSquarePlus,
+  Palette,
+  FileText,
 } from 'lucide-react';
 import { ConfirmButton } from '@/components/confirm-button';
 import type { CareContext } from '@/lib/data';
@@ -736,6 +739,17 @@ export async function ChildAccount({
         </details>
         <details
           className="panel account-settings-section"
+          open={panel === 'appearance'}
+        >
+          <summary>
+            <Palette size={18} />
+            <span>{ko ? '화면 설정' : 'Appearance settings'}</span>
+            <ChevronRight size={16} />
+          </summary>
+          <AppearanceSettings locale={locale} />
+        </details>
+        <details
+          className="panel account-settings-section"
           open={panel === 'account'}
         >
           <summary>
@@ -769,6 +783,37 @@ export async function ChildAccount({
             locale={locale}
             initialId={crypto.randomUUID()}
           />
+        </details>
+        <details
+          className="panel account-settings-section"
+          open={panel === 'service'}
+        >
+          <summary>
+            <FileText size={18} />
+            <span>{ko ? '서비스 정보' : 'Service information'}</span>
+            <ChevronRight size={16} />
+          </summary>
+          <div className="account-service-links">
+            {[
+              ['terms', ko ? '서비스 이용약관' : 'Terms of Service'],
+              ['privacy', ko ? '개인정보 처리방침' : 'Privacy Policy'],
+              ['community', ko ? '동네 생활 운영정책' : 'Community Policy'],
+            ].map(([key, label]) => (
+              <Link
+                key={key}
+                prefetch={false}
+                href={`/${locale}/legal/${key}?child=${child.id}`}
+              >
+                <span>{label}</span>
+                <small>{ko ? '검토 중' : 'Draft'}</small>
+                <ChevronRight size={16} />
+              </Link>
+            ))}
+            <p className="small muted">
+              {ko ? '운영자 정경철' : 'Operator: Jeong Gyeongcheol'} ·{' '}
+              <a href="mailto:jgcman3@gmail.com">jgcman3@gmail.com</a>
+            </p>
+          </div>
         </details>
         {editableChildren.length > 0 && (
           <>

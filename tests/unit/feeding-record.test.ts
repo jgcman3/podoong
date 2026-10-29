@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   endFromDuration,
+  endFromClock,
   feedingKinds,
   quickFeedingKinds,
   isFeedingKind,
@@ -31,5 +32,21 @@ describe('feeding time input', () => {
     expect(isFeedingKind('meal')).toBe(false);
     expect(isFeedingKind('pump')).toBe(false);
     expect(isFeedingKind('expressed')).toBe(false);
+  });
+});
+
+describe('sleep end clock', () => {
+  it('resolves overnight end times to the following day without seconds', () => {
+    expect(endFromClock('2026-10-28T22:00', '08:15')).toBe(
+      new Date('2026-10-29T08:15').toISOString(),
+    );
+    expect(endFromClock('2026-10-29T08:00', '10:30')).toBe(
+      new Date('2026-10-29T10:30').toISOString(),
+    );
+  });
+  it('keeps cleared or invalid time fields empty instead of throwing', () => {
+    expect(endFromClock('', '08:00')).toBe('');
+    expect(endFromClock('invalid', '08:00')).toBe('');
+    expect(endFromClock('2026-10-29T08:00', '')).toBe('');
   });
 });

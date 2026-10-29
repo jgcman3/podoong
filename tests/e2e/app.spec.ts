@@ -6232,8 +6232,8 @@ test('diary photo removal supports saved photos and cancellation', async ({page,
 });
 
 
-test('insights defaults to daily and notification settings save inside the child account', async ({page,context}) => {
- const {child,owner} = await childCareFamily(context);
+test('insights defaults to daily and feeding reminders appear inside the child account', async ({page,context}) => {
+ const {child} = await childCareFamily(context);
  await page.setViewportSize({width:390,height:844});
  await page.goto(`/ko/insights?child=${child}`);
  await expect(page.locator('.insight-daily-pattern')).toBeVisible();
@@ -6241,11 +6241,9 @@ test('insights defaults to daily and notification settings save inside the child
  await page.goto(`/ko/account?child=${child}`);
  await page.locator('summary').filter({hasText:'알림 설정'}).click();
  const settings = page.locator('details').filter({has:page.locator('summary').filter({hasText:'알림 설정'})});
- await settings.locator('input[name=hour]').fill('10');
- await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
- await expect(page).toHaveURL(/account\?panel=notifications/);
- await expect(settings.locator('input[name=hour]')).toHaveValue('10');
- expect((await admin.from('notification_preferences').select('delivery_hour').eq('user_id',owner).single()).data?.delivery_hour).toBe(10);
+ await expect(settings.getByRole('heading',{name:'다음 먹이기 알림',exact:true})).toBeVisible();
+ await settings.getByRole('button',{name:'4시간',exact:true}).click();
+ await expect(settings.getByRole('button',{name:'4시간',exact:true})).toHaveAttribute('aria-pressed','true');
  await expect(page.getByRole('status')).toHaveCount(0);
  await page.screenshot({path:'/tmp/podung-account-settings.png',fullPage:true});
 });
@@ -6263,7 +6261,7 @@ test('child settings match on desktop and Safari mobile with aligned date inputs
   await nav.getByRole('link',{name:'돌봄 아이',exact:true}).click();
   await expect(page).toHaveURL(/account/);
   await expect(page.getByRole('heading',{name:'아이와 설정'})).toHaveCount(0);
-  const labels = ['언어 설정','계정 설정','알림 설정','개발자에게 요청하기','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용'];
+  const labels = ['언어 설정','화면 설정','계정 설정','알림 설정','개발자에게 요청하기','서비스 정보','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용'];
   await expect(page.locator('.account-settings-section > summary > span')).toHaveText(labels);
   await page.locator('summary').filter({hasText:'계정 설정'}).click();
   await expect(page.locator('.account-signed-in')).toContainText('Care test');
@@ -6301,7 +6299,7 @@ test('caregivers can switch children without administrator settings or service s
     for (const width of [390,1440]) {
       await memberPage.setViewportSize({width,height:900});
       await memberPage.goto(`/ko/account?child=${own.child}&panel=child`);
-      await expect(memberPage.locator('.account-settings-section > summary > span')).toHaveText(['언어 설정','계정 설정','알림 설정','개발자에게 요청하기']);
+      await expect(memberPage.locator('.account-settings-section > summary > span')).toHaveText(['언어 설정','화면 설정','계정 설정','알림 설정','개발자에게 요청하기','서비스 정보']);
       await expect(memberPage.locator('.account-admin-badge')).toHaveCount(0);
       await expect(memberPage.locator('#child-info,#add-child')).toHaveCount(0);
       await expect(memberPage.locator('.account-child-list a')).toHaveCount(2);
@@ -6494,6 +6492,12 @@ test('local life requests count once per family and persist on revisit',async({p
  await expect(page.getByRole('heading',{name:'동네 생활',exact:true})).toBeVisible();
  const card=page.locator('.neighborhood-join');
  await expect(card).toContainText('0/10 가족 신청');
+ await expect(page.locator('.community-hub-card')).toHaveCount(3);
+ await expect(page.getByText('10가족 신청 시 오픈 예정',{exact:true})).toHaveCount(3);
+ const cards=page.locator('.community-hub-card');
+ const first=(await cards.nth(0).boundingBox())!,second=(await cards.nth(1).boundingBox())!;
+ expect(Math.round(second.y-first.y-first.height)).toBe(12);
+ await page.screenshot({path:'/tmp/podung-local-life-compact.png',fullPage:true,caret:'initial'});
  await card.getByRole('button',{name:'우리 동네 신청하기',exact:true}).click();
  await expect(card).toContainText('1/10 가족 신청');
  await expect(card.getByRole('button',{name:'신청 완료',exact:true})).toBeDisabled();
@@ -6550,4 +6554,187 @@ test('account page accepts developer requests without navigating away',async({pa
  expect(saved.data).toEqual({category:'bug',body:'모바일 화면 개선 테스트 요청',status:'received'});
  await form.getByLabel('요청 내용').fill('두 번째 기능 제안');
  await expect(form.getByRole('button',{name:'요청 보내기',exact:true})).toBeEnabled();
+});
+
+test('appearance preference switches dark mode and persists through navigation and reload', async ({page,context})=>{
+ test.setTimeout(120000);
+ const {child}=await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/account?child=${child}&panel=appearance`);
+ const mode=page.getByRole('group',{name:'화면 모드',exact:true});
+ await mode.getByRole('button',{name:'어둡게',exact:true}).click();
+ await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+ await page.reload();
+ await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+ await page.goto(`/ko/today?child=${child}`);
+ await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+ expect(await page.locator('body').evaluate(e=>getComputedStyle(e).backgroundColor)).toBe('rgb(20, 26, 35)');
+ await page.locator('.quick-grid').getByRole('button',{name:'분유',exact:true}).click();
+ const sheet=page.locator('dialog.quick-composer');await expect(sheet).toBeVisible();
+ expect(await sheet.evaluate(e=>getComputedStyle(e).backgroundColor)).not.toBe('rgb(255, 255, 255)');
+ await sheet.getByRole('button',{name:'취소',exact:true}).click();
+ for(const section of ['calendar','insights','community/diaries','community']) {
+   await page.goto(`/ko/${section}?child=${child}`);
+   await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+   if(section==='insights')await page.screenshot({path:'/tmp/podung-insights-dark-mobile.png',fullPage:true});
+ }
+ await page.setViewportSize({width:1440,height:1000});
+ await page.goto(`/ko/today?child=${child}`);await page.screenshot({path:'/tmp/podung-today-dark-desktop.png',fullPage:true});
+ await page.goto(`/ko/account?child=${child}&panel=appearance`);
+ await page.emulateMedia({colorScheme:'dark'});
+ await page.getByRole('group',{name:'화면 모드',exact:true}).getByRole('button',{name:'기기 설정',exact:true}).click();
+ await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+ await page.emulateMedia({colorScheme:'light'});
+ await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+ await page.getByRole('group',{name:'화면 모드',exact:true}).getByRole('button',{name:'밝게',exact:true}).click();
+ await page.reload();await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+});
+
+test('gifts and allowance save in quick sheets and appear in child-scoped insight lists',async({page,context})=>{
+ test.setTimeout(120000);
+ const {child,owner}=await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/today?child=${child}`);
+ const quick=page.locator('.quick-grid'),sheet=page.locator('dialog.quick-composer');
+ const gift=quick.getByRole('button',{name:'선물',exact:true});await gift.scrollIntoViewIfNeeded();await gift.click();
+ await expect(sheet).toBeVisible();await sheet.getByRole('textbox',{name:'준 사람',exact:true}).fill('할머니');await sheet.getByRole('textbox',{name:'선물 이름',exact:true}).fill('첫 그림책');
+ await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ const giftRow=page.locator('.quick-color-gift.quick-timeline-entry').filter({hasText:'첫 그림책'});await expect(giftRow).toContainText('할머니');await giftRow.click();
+ await expect(sheet.getByRole('textbox',{name:'선물 이름',exact:true})).toHaveValue('첫 그림책');await sheet.getByRole('textbox',{name:'선물 이름',exact:true}).fill('할머니의 그림책');await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ const allowance=quick.getByRole('button',{name:'용돈',exact:true});await allowance.scrollIntoViewIfNeeded();await allowance.click();
+ await sheet.getByRole('textbox',{name:'준 사람',exact:true}).fill('이모');await sheet.getByRole('spinbutton',{name:'받은 금액',exact:true}).fill('12000');await sheet.getByRole('combobox',{name:'통화',exact:true}).selectOption('KRW');await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ const saved=await admin.from('child_records').select('kind,title,sender_name,received_amount,received_currency').eq('child_id',child).in('kind',['gift','allowance']);expect(saved.error).toBeNull();expect(saved.data).toHaveLength(2);expect(saved.data).toContainEqual({kind:'allowance',title:'',sender_name:'이모',received_amount:12000,received_currency:'KRW'});
+ const olderAt=new Date(Date.now()-86400000).toISOString();
+ const older=Array.from({length:21},(_,i)=>({id:crypto.randomUUID(),child_id:child,service:'activity',kind:'gift',title:`이전 선물 ${i+1}`,sender_name:'친구',occurred_at:olderAt,record_timezone:'Asia/Seoul',created_by:owner,updated_by:owner}));
+ expect((await admin.from('child_records').insert(older)).error).toBeNull();
+ await page.goto(`/ko/insights?child=${child}`);await page.getByRole('button',{name:'선물·용돈',exact:true}).click();
+ const gifts=page.getByRole('region',{name:'받은 선물',exact:true}),cash=page.getByRole('region',{name:'받은 용돈',exact:true});await expect(gifts).toContainText('할머니의 그림책');await expect(gifts).toContainText('할머니');await expect(cash).toContainText('12,000');await expect(cash).toContainText('이모');
+ await expect(gifts.locator('li')).toHaveCount(1);
+ const friends=gifts.locator('.gift-sender-group').filter({has:page.locator('summary strong',{hasText:'친구'})});
+ await friends.locator('summary').click();await expect(friends.locator('li')).toHaveCount(20);
+ await friends.getByRole('button',{name:'더 보기',exact:true}).click();await expect(gifts.locator('li')).toHaveCount(22);
+ expect((await gifts.locator('.received-row-copy strong').allTextContents()).sort()).toEqual(['할머니의 그림책',...older.map(r=>r.title)].sort());
+ await expect(gifts.getByRole('button',{name:'더 보기',exact:true})).toHaveCount(0);
+ await expect(page.locator('.insight-kind-rail')).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.goto(`/en/insights?child=${child}&pattern=received`);await expect(page.getByRole('region',{name:'Gifts received'})).toContainText('할머니의 그림책');
+ await page.screenshot({path:'/tmp/podung-received-mobile.png',fullPage:true});
+ await page.goto(`/ko/account?child=${child}&panel=appearance`);await page.getByRole('group',{name:'화면 모드',exact:true}).getByRole('button',{name:'어둡게',exact:true}).click();
+ await page.goto(`/ko/insights?child=${child}&pattern=received`);await page.screenshot({path:'/tmp/podung-received-dark-mobile.png',fullPage:true});
+});
+
+test('gift photo is previewed, stored privately, replaced and removed with its record',async({page,context})=>{
+ test.setTimeout(120000);
+ const {child}=await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/today?child=${child}`);
+ const sheet=page.locator('dialog.quick-composer');
+ const gift=page.locator('.quick-grid').getByRole('button',{name:'선물',exact:true});
+ await gift.scrollIntoViewIfNeeded();await gift.click();
+ await sheet.getByRole('textbox',{name:'준 사람',exact:true}).fill('할아버지');
+ await sheet.getByRole('textbox',{name:'선물 이름',exact:true}).fill('곰 인형');
+ const png=await sharp({create:{width:160,height:120,channels:3,background:'#f4b88a'}}).png().toBuffer();
+ const upload=async()=>sheet.getByLabel('선물 사진 추가',{exact:true}).setInputFiles({name:'gift.png',mimeType:'image/png',buffer:png});
+ await upload();await expect(sheet.getByRole('img',{name:'선물 사진',exact:true})).toBeVisible();
+ await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ const record=await admin.from('child_records').select('id').eq('child_id',child).eq('kind','gift').single();expect(record.error).toBeNull();
+ async function photos(){const result=await admin.from('child_record_photos').select('id,path,variants_ready').eq('record_id',record.data!.id);expect(result.error).toBeNull();for(const photo of result.data??[])createdChildPhotos.push(photo.path,`${photo.path}.display-v1-480.webp`,`${photo.path}.display-v1-1600.webp`);return result.data!;}
+ const first=await photos();expect(first).toHaveLength(1);expect(first[0].variants_ready).toBe(true);
+ const image=await page.request.get(`/api/care/photos/${first[0].id}?size=480`);expect(image.status()).toBe(200);expect(image.headers()['content-type']).toContain('image/webp');
+ const anonymous=await context.browser()!.newContext();const response=await anonymous.request.get(`http://127.0.0.1:3188/api/care/photos/${first[0].id}?size=480`);expect([401,404]).toContain(response.status());await anonymous.close();
+ const row=page.locator('.quick-color-gift.quick-timeline-entry').filter({hasText:'곰 인형'});await row.click();await expect(sheet.getByRole('img',{name:'선물 사진',exact:true})).toBeVisible();
+ await upload();await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ const second=await photos();expect(second).toHaveLength(1);expect(second[0].id).not.toBe(first[0].id);
+ await page.goto(`/ko/insights?child=${child}&pattern=received`);await expect(page.getByRole('region',{name:'받은 선물',exact:true}).getByRole('img',{name:'곰 인형',exact:true})).toBeVisible();
+ await page.screenshot({path:'/tmp/podung-gift-photo-mobile.png',fullPage:true,caret:'initial'});
+ await page.goto(`/ko/today?child=${child}`);await page.locator('.quick-color-gift.quick-timeline-entry').filter({hasText:'곰 인형'}).click();
+ await sheet.getByRole('button',{name:'선물 사진 제거',exact:true}).click();await sheet.getByRole('button',{name:'취소',exact:true}).click();expect(await photos()).toHaveLength(1);
+ await row.click();await sheet.getByRole('button',{name:'선물 사진 제거',exact:true}).click();await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});expect(await photos()).toHaveLength(0);
+});
+
+test('service documents are readable from account settings and retain the child on return',async({page,context})=>{
+ const {child}=await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/account?child=${child}&panel=service`);
+ await page.getByRole('link',{name:/이용약관/}).click();
+ await expect(page.getByRole('heading',{name:'서비스 이용약관',exact:true})).toBeVisible();await expect(page.locator('main')).toContainText('검토용 초안');await expect(page.locator('main')).toContainText('정경철');
+ await page.getByRole('link',{name:'돌아가기',exact:true}).click();await expect(page).toHaveURL(new RegExp(`account\\?panel=service&child=${child}`));
+ await page.getByRole('link',{name:/개인정보 처리방침/}).click();await expect(page.getByRole('heading',{name:'개인정보 처리방침',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:'/tmp/podung-legal-mobile.png',fullPage:true,caret:'initial'});
+ const anonymous=await context.browser()!.newContext();const reader=await anonymous.newPage();await reader.goto('http://127.0.0.1:3188/en/legal/terms');await expect(reader.getByRole('heading',{name:'Terms of Service',exact:true})).toBeVisible();await expect(reader.locator('main')).toContainText('Draft');await anonymous.close();
+});
+
+test('sleep editing supports ten hours and preserves a duration beyond the quick presets',async({page,context})=>{
+ const {child,owner}=await childCareFamily(context);
+ const start=new Date(Date.now()-12*3600000).toISOString();
+ const id=crypto.randomUUID();
+ expect((await admin.from('child_records').insert({id,child_id:child,service:'sleep',kind:'night',occurred_at:start,ended_at:new Date(Date.parse(start)+9*3600000+17*60000+43500).toISOString(),record_timezone:'Asia/Seoul',created_by:owner,updated_by:owner})).error).toBeNull();
+ await page.setViewportSize({width:390,height:844});await page.goto(`/ko/today?child=${child}`);
+ const row=page.locator(`.quick-timeline-entry[data-record-id="${id}"]`);
+ const target=await row.count()?row:page.locator('.quick-color-sleep.quick-timeline-entry').first();await target.click();
+ const sheet=page.locator('dialog.quick-composer');
+ const end=new Date(Math.floor(Date.parse(start)/60000)*60000+615*60000);
+ const endClock=`${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`;
+ await expect(sheet.getByRole('spinbutton')).toHaveCount(0);
+ await sheet.getByLabel('종료 시각',{exact:true}).fill(endClock);
+ await expect(sheet.locator('.quick-sleep-total')).toContainText('10시간 15분');
+ await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ const saved=await admin.from('child_records').select('occurred_at,ended_at').eq('id',id).single();expect(saved.error).toBeNull();expect(Date.parse(saved.data!.ended_at!)-Date.parse(saved.data!.occurred_at)).toBe(615*60000);
+ await target.click();await expect(sheet.getByLabel('종료 시각',{exact:true})).toHaveValue(endClock);await expect(sheet.locator('.quick-sleep-total')).toContainText('10시간 15분');
+ await page.screenshot({path:'/tmp/podung-sleep-end-mobile.png',fullPage:true,caret:'initial'});
+});
+
+test('feeding reminders opt in per device, save interval and quiet hours, and can be disabled',async({page,context})=>{
+ const {child,owner}=await childCareFamily(context);
+ await context.grantPermissions(['notifications']);
+ await page.addInitScript(()=>{
+  Object.defineProperty(Notification,'permission',{get:()=> 'granted'});
+  Notification.requestPermission=async()=> 'granted';
+  PushManager.prototype.getSubscription=async()=>null;
+  PushManager.prototype.subscribe=async()=>({toJSON:()=>({endpoint:'https://fcm.googleapis.com/fcm/send/local-browser-fixture',keys:{p256dh:'B'.repeat(87),auth:'A'.repeat(22)}}),unsubscribe:async()=>true}) as unknown as PushSubscription;
+ });
+ await page.setViewportSize({width:390,height:844});await page.goto(`/ko/account?child=${child}&panel=notifications`);
+ const settings=page.locator('.feeding-push-settings');await expect(settings.getByRole('heading',{name:'다음 먹이기 알림',exact:true})).toBeVisible();
+ await settings.getByRole('button',{name:'4시간',exact:true}).click();await settings.getByRole('button',{name:'이 기기에서 알림 켜기',exact:true}).click();
+ await expect(settings.getByRole('button',{name:'이 기기 알림 끄기',exact:true})).toBeVisible({timeout:15000});
+ const prefs=await admin.from('notification_preferences').select('feeding_enabled,feeding_interval_minutes,quiet_start').eq('user_id',owner).single();expect(prefs.data).toMatchObject({feeding_enabled:true,feeding_interval_minutes:240,quiet_start:'22:00:00'});
+ expect((await admin.from('web_push_subscriptions').select('id').eq('user_id',owner)).data).toHaveLength(1);
+ const sw=await page.request.get('/sw.js');expect(sw.status()).toBe(200);expect(await sw.text()).toContain("self.addEventListener('push'");
+ await page.reload();await settings.getByRole('button',{name:'2시간',exact:true}).click();await settings.getByRole('checkbox',{name:'밤에는 쉬기 (22:00–07:00)',exact:true}).uncheck();await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
+ await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_interval_minutes').eq('user_id',owner).single()).data?.feeding_interval_minutes).toBe(120);
+ await expect(page.getByRole('status')).toHaveCount(0);
+ await page.screenshot({path:'/tmp/podung-feeding-reminder-mobile.png',fullPage:true,caret:'initial'});
+ await settings.getByRole('button',{name:'이 기기 알림 끄기',exact:true}).click();await expect(settings.getByRole('button',{name:'이 기기에서 알림 켜기',exact:true})).toBeVisible();
+ expect((await admin.from('web_push_subscriptions').select('id').eq('user_id',owner)).data).toHaveLength(0);
+});
+
+test('feeding reminder settings explain HTTPS and iPhone installation requirements before asking permission',async({page,context})=>{
+ const {child}=await childCareFamily(context);
+ await page.addInitScript(()=>Object.defineProperty(window,'isSecureContext',{value:false}));
+ await page.goto(`/ko/account?child=${child}&panel=notifications`);await expect(page.locator('.feeding-push-settings')).toContainText('HTTPS 주소');await expect(page.getByRole('button',{name:'이 기기에서 알림 켜기',exact:true})).toBeDisabled();
+ const iphone=await context.newPage();await iphone.addInitScript(()=>Object.defineProperty(navigator,'userAgent',{value:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)'}));
+ await iphone.goto(`/ko/account?child=${child}&panel=notifications`);await expect(iphone.locator('.feeding-push-settings')).toContainText('홈 화면에 추가');await expect(iphone.getByRole('button',{name:'이 기기에서 알림 켜기',exact:true})).toBeDisabled();await iphone.close();
+});
+
+test('play and tummy time can start, survive reload and stop without changing legacy records',async({page,context})=>{
+ const {child,owner}=await childCareFamily(context);
+ const legacy=crypto.randomUUID();expect((await admin.from('child_records').insert({id:legacy,child_id:child,service:'activity',kind:'play',duration_minutes:10,occurred_at:new Date().toISOString(),record_timezone:'Asia/Seoul',created_by:owner,updated_by:owner})).error).toBeNull();
+ await page.setViewportSize({width:390,height:844});await page.goto(`/ko/today?child=${child}`);
+ const sheet=page.locator('dialog.quick-composer'),quick=page.locator('.quick-grid');
+ await expect(page.locator('.quick-running')).toHaveCount(0);
+ for(const [label,kind] of [['놀이','play'],['터미타임','tummy']]){
+  const button=quick.getByRole('button',{name:label,exact:true});await button.scrollIntoViewIfNeeded();await button.click();
+  await expect(sheet.getByRole('button',{name:'시작하기',exact:true})).toBeEnabled();await expect(sheet.getByText('방금 먹였어요',{exact:true})).toHaveCount(0);
+  await sheet.getByRole('button',{name:'시작하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+  const saved=await admin.from('child_records').select('id,timer_started,ended_at').eq('child_id',child).eq('kind',kind).eq('timer_started',true).single();expect(saved.error).toBeNull();expect(saved.data!.ended_at).toBeNull();
+  await page.reload();const running=page.locator('.quick-running').filter({hasText:label});await expect(running).toBeVisible();
+  await running.getByRole('button',{name:'기록 종료',exact:true}).click();await sheet.getByRole('button',{name:'기록 종료',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+  const ended=await admin.from('child_records').select('occurred_at,ended_at,timer_started,duration_minutes').eq('id',saved.data!.id).single();expect(ended.error).toBeNull();expect(ended.data!.timer_started).toBe(true);expect(ended.data!.ended_at).not.toBeNull();expect(ended.data!.duration_minutes).toBeNull();
+ }
+ const play=quick.getByRole('button',{name:'놀이',exact:true});await play.scrollIntoViewIfNeeded();await play.click();
+ await sheet.getByRole('button',{name:'이미 마쳤어요',exact:true}).click();await sheet.getByRole('button',{name:'3분',exact:true}).click();await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ const completed=await admin.from('child_records').select('occurred_at,ended_at').eq('child_id',child).eq('kind','play').eq('timer_started',true);expect(completed.error).toBeNull();expect(completed.data!.some(record=>record.ended_at&&Date.parse(record.ended_at)-Date.parse(record.occurred_at)===180000)).toBe(true);
+ const old=await admin.from('child_records').select('timer_started,duration_minutes,ended_at').eq('id',legacy).single();expect(old.data).toEqual({timer_started:false,duration_minutes:10,ended_at:null});
 });

@@ -1,6 +1,8 @@
 import { dateInTimeZone } from '@/lib/domain';
 import type { Row } from '@/lib/db';
 export type QuickKind =
+  | 'gift'
+  | 'allowance'
   | 'breast'
   | 'formula'
   | 'solids'
@@ -87,6 +89,7 @@ export function quickTimeline(
       .join(' · '),
     running:
       (r.service === 'sleep' ||
+        r.timer_started ||
         (['daycare', 'kindergarten'].includes(r.kind) &&
           !r.attendance_status)) &&
       !r.ended_at,

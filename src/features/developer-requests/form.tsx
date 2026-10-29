@@ -29,6 +29,15 @@ export function DeveloperRequestForm({
   );
   return (
     <form action={action} className="form-stack developer-request-form">
+      <p className="small muted">
+        {ko
+          ? '2026년생 딸을 키우는 아빠 개발자가 육아 틈틈이 만들고 있어요.'
+          : 'I’m a developer and a dad to a daughter born in 2026, building Podung between parenting moments.'}
+        <br />
+        {ko
+          ? '필요한 기능을 편하게 알려주세요. 작은 기능은 당일에도 만들어드릴게요!'
+          : 'Tell me what would help. Small features could be ready the same day!'}
+      </p>
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="id" value={id} />
       <label>

@@ -43,6 +43,7 @@ const ko = {
   readonly: '조회 권한으로 이용 중이에요.',
   recordNote: '다음 기록도 이 화면에서 바로 남길 수 있어요.',
   errors: {
+    photo: '사진을 확인한 뒤 다시 시도해 주세요.',
     invalid: '선택한 양과 시간을 확인해주세요.',
     conflict: '다른 가족이 먼저 변경했어요. 닫고 기록을 다시 확인해주세요.',
     readonly: '이 아이의 기록을 작성할 권한이 없어요.',
@@ -96,6 +97,7 @@ const en: typeof ko = {
   readonly: 'You have read-only access.',
   recordNote: 'Stay here to add the next record.',
   errors: {
+    photo: 'Check the photo and try again.',
     invalid: 'Check the selected amount and time.',
     conflict:
       'Another caregiver changed this record. Close and check it again.',

@@ -182,3 +182,78 @@ describe('daily care validation', () => {
     ).toBe(false);
   });
 });
+
+describe('received gifts and allowance', () => {
+  it('requires a giver and gift name', () => {
+    const record = childRecordSchema.parse({
+      ...base,
+      service: 'activity',
+      kind: 'gift',
+      sender: '할머니',
+      title: '첫 그림책',
+    });
+    expect(record).toMatchObject({
+      sender: '할머니',
+      title: '첫 그림책',
+      receivedAmount: null,
+    });
+    expect(
+      childRecordSchema.safeParse({
+        ...base,
+        service: 'activity',
+        kind: 'gift',
+        title: '그림책',
+      }).success,
+    ).toBe(false);
+    expect(
+      childRecordSchema.safeParse({
+        ...base,
+        service: 'activity',
+        kind: 'gift',
+        sender: '할머니',
+      }).success,
+    ).toBe(false);
+  });
+  it('keeps allowance currency separate and rejects invalid amounts', () => {
+    const record = childRecordSchema.parse({
+      ...base,
+      service: 'activity',
+      kind: 'allowance',
+      sender: '아빠',
+      receivedAmount: '10000',
+      currency: 'KRW',
+    });
+    expect(record).toMatchObject({ receivedAmount: 10000, currency: 'KRW' });
+    expect(
+      childRecordSchema.parse({
+        ...base,
+        service: 'activity',
+        kind: 'allowance',
+        sender: '아빠',
+        receivedAmount: '10000000000.03',
+        currency: 'KRW',
+      }).receivedAmount,
+    ).toBe(10000000000.03);
+    for (const receivedAmount of ['', '0', '-1', '1.001'])
+      expect(
+        childRecordSchema.safeParse({
+          ...base,
+          service: 'activity',
+          kind: 'allowance',
+          sender: '아빠',
+          receivedAmount,
+          currency: 'KRW',
+        }).success,
+      ).toBe(false);
+    expect(
+      childRecordSchema.safeParse({
+        ...base,
+        service: 'activity',
+        kind: 'allowance',
+        sender: '아빠',
+        receivedAmount: '10',
+        currency: 'INVALID',
+      }).success,
+    ).toBe(false);
+  });
+});

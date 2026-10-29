@@ -5,14 +5,20 @@ import { useState, type CSSProperties } from 'react';
 import { Plus, Minus } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import type { Row } from '@/lib/db';
+import { receivedCurrencies } from '@/features/received/model';
+import { GiftPhotoField } from '@/features/received/gift-photo-field';
 export function ActivityFields({
   kind,
   locale,
   record,
+  photoId,
+  hideDuration = false,
 }: {
   kind: string;
   locale: Locale;
   record?: Row<'child_records'>;
+  photoId?: string;
+  hideDuration?: boolean;
 }) {
   const ko = locale === 'ko';
 
@@ -26,6 +32,72 @@ export function ActivityFields({
   const preserveDose = medicine === record?.medicine_name;
   return (
     <div className="activity-fields">
+      {(kind === 'gift' || kind === 'allowance') && (
+        <div className="received-fields">
+          <label>
+            <QuickFieldTitle>{ko ? '준 사람' : 'From'}</QuickFieldTitle>
+            <input
+              name="sender"
+              maxLength={100}
+              defaultValue={record?.sender_name ?? ''}
+              required
+            />
+          </label>
+          {kind === 'gift' ? (
+            <label>
+              <QuickFieldTitle>
+                {ko ? '선물 이름' : 'Gift name'}
+              </QuickFieldTitle>
+              <input
+                name="title"
+                maxLength={200}
+                defaultValue={record?.title ?? ''}
+                required
+              />
+            </label>
+          ) : (
+            <div className="received-money-input">
+              <label>
+                <QuickFieldTitle>{ko ? '받은 금액' : 'Amount'}</QuickFieldTitle>
+                <input
+                  name="receivedAmount"
+                  type="number"
+                  inputMode="decimal"
+                  min="0.01"
+                  max="999999999999.99"
+                  step="0.01"
+                  defaultValue={record?.received_amount ?? ''}
+                  required
+                />
+              </label>
+              <label>
+                <QuickFieldTitle>{ko ? '통화' : 'Currency'}</QuickFieldTitle>
+                <select
+                  name="currency"
+                  defaultValue={
+                    record?.received_currency ?? (ko ? 'KRW' : 'USD')
+                  }
+                >
+                  {Array.from(
+                    new Set(
+                      [record?.received_currency, ...receivedCurrencies].filter(
+                        (v): v is string => Boolean(v),
+                      ),
+                    ),
+                  ).map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
+          {kind === 'gift' && (
+            <GiftPhotoField locale={locale} photoId={photoId} />
+          )}
+        </div>
+      )}
       {kind === 'temperature' && (
         <div className="quick-amount-picker">
           <div className="quick-amount-heading">
@@ -103,7 +175,7 @@ export function ActivityFields({
           />
         </>
       )}
-      {['bath', 'play', 'tummy'].includes(kind) && (
+      {!hideDuration && ['bath', 'play', 'tummy'].includes(kind) && (
         <fieldset className="quick-duration quick-activity-duration">
           <legend>
             <QuickFieldTitle>

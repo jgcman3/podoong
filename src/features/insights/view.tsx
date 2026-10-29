@@ -11,6 +11,11 @@ import { resolveWeek } from './model';
 import { loadInsights } from './data';
 import { RecordInsights } from './record-insights';
 import { InsightsNavigation } from './navigation';
+import {
+  loadReceivedRecords,
+  loadReceivedOverview,
+} from '@/features/received/data';
+import { ReceivedLists } from '@/features/received/lists';
 export async function Insights({
   context,
   locale,
@@ -31,6 +36,35 @@ export async function Insights({
   const selected = selectedKinds(rawKind),
     start = resolveWeek(rawWeek, context.today),
     interval = rawInterval === 'week' ? 'week' : 'day';
+  if (pattern === 'received') {
+    const overview = await loadReceivedOverview(context);
+    const [gifts, allowance] = await Promise.all([
+      overview.gifts.length
+        ? loadReceivedRecords(
+            context,
+            'gift',
+            undefined,
+            overview.gifts[0].sender_name,
+          )
+        : Promise.resolve({ items: [], hasMore: false }),
+      loadReceivedRecords(context, 'allowance'),
+    ]);
+    return (
+      <InsightsNavigation selected={selected}>
+        <div className="insights-page">
+          <InsightTabs mode={pattern} locale={locale} />
+          <ReceivedLists
+            key={context.child.id}
+            childId={context.child.id}
+            locale={locale}
+            gifts={gifts}
+            overview={overview}
+            allowance={allowance}
+          />
+        </div>
+      </InsightsNavigation>
+    );
+  }
   if (pattern === 'curve' || pattern === 'milestones') {
     let content;
     if (pattern === 'curve') {

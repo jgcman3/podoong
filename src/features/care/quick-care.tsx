@@ -1,5 +1,6 @@
 'use client';
 import { QuickFieldTitle } from './quick-field-title';
+import { QuickTimeField } from './quick-time-field';
 import { ActivityRail } from './activity-rail';
 import {
   careIcons as icons,
@@ -32,7 +33,7 @@ import type { Locale } from '@/lib/domain';
 import { dateInTimeZone } from '@/lib/domain';
 import { kindLabel } from '@/features/child-care/copy';
 import { Timer } from './timer';
-import { endFromDuration } from './feeding-record';
+import { endFromDuration, endFromClock } from './feeding-record';
 import { saveQuickCare, type QuickSaveState } from './quick-actions';
 import {
   localDateInput,
@@ -47,6 +48,7 @@ import { DayBrowser } from './day-browser';
 import { ActivityFields } from './activity-fields';
 import { activityKinds } from '@/features/child-care/schema';
 import { quickCopy } from './quick-copy';
+import { receivedMoney } from '@/features/received/model';
 const mobileQuery = '(max-width: 900px)';
 function subscribeMobile(change: () => void) {
   const query = window.matchMedia(mobileQuery);
@@ -204,7 +206,10 @@ export function QuickCare({
                             : 'Attending'
                           : c.running}
                       </strong>
-                      <Timer start={e.startedAt} />
+                      <Timer
+                        start={e.startedAt}
+                        showSeconds={e.service !== 'sleep'}
+                      />
                     </div>
                     {writable ? (
                       <button
@@ -271,11 +276,20 @@ export function QuickCare({
                       );
                       const duration = durationMinutes(e);
                       const summary = [
+                        e.childRecord?.sender_name ?? '',
+                        e.childRecord?.received_amount != null &&
+                        e.childRecord.received_currency
+                          ? receivedMoney(
+                              e.childRecord.received_amount,
+                              e.childRecord.received_currency,
+                              locale,
+                            )
+                          : '',
                         e.amount !== null
                           ? `${new Intl.NumberFormat(locale).format(e.amount)} ${e.unit}`
                           : '',
                         duration !== null
-                          ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(duration)} ${c.minutes}`
+                          ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(e.service === 'sleep' ? Math.floor(duration) : duration)} ${c.minutes}`
                           : '',
                         e.dose != null
                           ? `${e.dose}${locale === 'ko' ? '차' : ' dose'}`
@@ -462,13 +476,16 @@ function QuickEditor({
     kind as (typeof activityKinds)[number],
   );
   const childcare = kind === 'daycare' || kind === 'kindergarten';
+  const timedActivity = kind === 'play' || kind === 'tummy';
+  const timed = childcare || timedActivity;
+  const sleepEditing = kind === 'sleep' && Boolean(active?.endedAt);
   const diaper = kind === 'diaper' || kind === 'stool';
   const [mode, setMode] = useState<'start' | 'record' | 'stop'>(
     active?.running
       ? 'stop'
       : active
         ? 'record'
-        : kind === 'breast' || kind === 'sleep' || childcare
+        : kind === 'breast' || kind === 'sleep' || timed
           ? 'start'
           : 'record',
   );
@@ -477,8 +494,17 @@ function QuickEditor({
     localDateInput(active?.startedAt ?? new Date().toISOString()),
   );
   const [timeEdited, setTimeEdited] = useState(Boolean(active));
+  const [sleepEnd, setSleepEnd] = useState(() =>
+    localDateInput(active?.endedAt ?? new Date().toISOString()),
+  );
   const [duration, setDuration] = useState(
-    active?.endedAt ? String(durationMinutes(active)) : '',
+    active?.endedAt
+      ? String(
+          kind === 'sleep'
+            ? Math.floor(durationMinutes(active) ?? 0)
+            : durationMinutes(active),
+        )
+      : String(active?.childRecord?.duration_minutes ?? ''),
   );
   const [amount, setAmount] = useState(
     active
@@ -514,13 +540,18 @@ function QuickEditor({
     active?.childRecord?.record_timezone ??
     Intl.DateTimeFormat().resolvedOptions().timeZone;
   const startIso =
-    active && (mode === 'stop' || start === localDateInput(active.startedAt))
+    active &&
+    !sleepEditing &&
+    (mode === 'stop' || start === localDateInput(active.startedAt))
       ? active.startedAt
       : start && Number.isFinite(new Date(start).getTime())
         ? new Date(start).toISOString()
         : '';
-  const endedAt =
-    mode === 'record' && (feed || kind === 'sleep' || childcare)
+  const endedAt = sleepEditing
+    ? sleepEnd && Date.parse(sleepEnd) >= Date.parse(startIso)
+      ? new Date(sleepEnd).toISOString()
+      : ''
+    : mode === 'record' && (feed || kind === 'sleep' || timed)
       ? endFromDuration(startIso, duration)
       : '';
   const title = shortLabels(locale)[kind];
@@ -540,7 +571,7 @@ function QuickEditor({
   };
   const durationRequired = kind === 'breast' || kind === 'sleep' || childcare;
   const durationNeeded =
-    mode === 'record' && (feed || kind === 'sleep' || childcare);
+    mode === 'record' && !sleepEditing && (feed || kind === 'sleep' || timed);
   return (
     <form action={action} className="quick-editor-form" aria-label={title}>
       <header
@@ -572,7 +603,7 @@ function QuickEditor({
         name="useCurrentTime"
         value={String(
           !timeEdited &&
-            (mode === 'start' || diaper || (activity && !childcare)),
+            (mode === 'start' || diaper || (activity && !timed)),
         )}
       />
       <input type="hidden" name="id" value={id} />
@@ -614,45 +645,48 @@ function QuickEditor({
           <div className="quick-stop-view">
             <span className="quick-live-dot" />
             <p>{c.running}</p>
-            <Timer start={active!.startedAt} />
+            <Timer start={active!.startedAt} showSeconds={kind !== 'sleep'} />
             <p className="small muted">{c.shared}</p>
           </div>
         ) : (
           <>
-            {!active &&
-              (kind === 'breast' || kind === 'sleep' || childcare) && (
-                <div className="quick-mode" role="group" aria-label={title}>
-                  {(['start', 'record'] as const).map((value) => (
-                    <button
-                      type="button"
-                      key={value}
-                      aria-pressed={mode === value}
-                      onClick={() => {
-                        setMode(value);
-                        setDuration('');
-                        if (!timeEdited)
-                          setStart(localDateInput(new Date().toISOString()));
-                      }}
-                    >
-                      {childcare
-                        ? value === 'start'
-                          ? locale === 'ko'
-                            ? '지금 등원해요'
-                            : 'Starting now'
-                          : locale === 'ko'
-                            ? '귀가했어요'
-                            : 'Already back'
-                        : value === 'start'
-                          ? kind === 'sleep'
-                            ? c.sleepNow
-                            : c.startNow
-                          : kind === 'sleep'
-                            ? c.recordSleep
+            {!active && (kind === 'breast' || kind === 'sleep' || timed) && (
+              <div className="quick-mode" role="group" aria-label={title}>
+                {(['start', 'record'] as const).map((value) => (
+                  <button
+                    type="button"
+                    key={value}
+                    aria-pressed={mode === value}
+                    onClick={() => {
+                      setMode(value);
+                      setDuration('');
+                      if (!timeEdited)
+                        setStart(localDateInput(new Date().toISOString()));
+                    }}
+                  >
+                    {childcare
+                      ? value === 'start'
+                        ? locale === 'ko'
+                          ? '지금 등원해요'
+                          : 'Starting now'
+                        : locale === 'ko'
+                          ? '귀가했어요'
+                          : 'Already back'
+                      : value === 'start'
+                        ? kind === 'sleep'
+                          ? c.sleepNow
+                          : c.startNow
+                        : kind === 'sleep'
+                          ? c.recordSleep
+                          : timedActivity
+                            ? locale === 'ko'
+                              ? '이미 마쳤어요'
+                              : 'Already finished'
                             : c.recordAfter}
-                    </button>
-                  ))}
-                </div>
-              )}
+                  </button>
+                ))}
+              </div>
+            )}
             {kind === 'sleep' && (
               <div
                 className="quick-choices"
@@ -699,6 +733,8 @@ function QuickEditor({
                 kind={kind}
                 locale={locale}
                 record={active?.childRecord}
+                photoId={active?.photoIds?.[0]}
+                hideDuration={timedActivity}
               />
             )}
             {feed && kind !== 'breast' && (
@@ -731,15 +767,21 @@ function QuickEditor({
                         : 'Time spent'
                       : kind === 'sleep'
                         ? c.sleepDuration
-                        : c.duration}
+                        : timedActivity
+                          ? locale === 'ko'
+                            ? '소요 시간 (선택)'
+                            : 'Duration (optional)'
+                          : c.duration}
                   </QuickFieldTitle>
                 </legend>
                 <div className="quick-choices">
-                  {(childcare
-                    ? [60, 120, 180, 240, 300, 360, 480]
-                    : kind === 'sleep'
-                      ? [15, 30, 45, 60, 90, 120, 180]
-                      : [5, 10, 15, 20, 30, 45, 60]
+                  {(timedActivity
+                    ? [3, 5, 10, 15, 20, 30, 60]
+                    : childcare
+                      ? [60, 120, 180, 240, 300, 360, 480]
+                      : kind === 'sleep'
+                        ? [30, 60, 90, 120, 480, 600, 720]
+                        : [5, 10, 15, 20, 30, 45, 60]
                   ).map((value) => (
                     <button
                       type="button"
@@ -751,12 +793,65 @@ function QuickEditor({
                         else changeDuration(value, Date.now());
                       }}
                     >
-                      {value}
-                      {c.minutes}
+                      {kind === 'sleep' && value >= 60 && value % 60 === 0
+                        ? `${value / 60}${locale === 'ko' ? '시간' : 'h'}`
+                        : `${value}${c.minutes}`}
                     </button>
                   ))}
                 </div>
-                {kind === 'sleep' && <p>{c.sleepHelp}</p>}
+                {kind === 'sleep' && (
+                  <div className="quick-sleep-duration">
+                    <label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
+                        aria-label={
+                          locale === 'ko'
+                            ? '잠잔 시간 (시간)'
+                            : 'Sleep duration (hours)'
+                        }
+                        value={
+                          duration ? Math.floor(Number(duration) / 60) : ''
+                        }
+                        onChange={(event) =>
+                          changeDuration(
+                            Number(event.target.value) * 60 +
+                              (Number(duration || 0) % 60),
+                            Date.now(),
+                          )
+                        }
+                      />
+                      <span>{locale === 'ko' ? '시간' : 'hours'}</span>
+                    </label>
+                    <label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        step="1"
+                        inputMode="numeric"
+                        aria-label={
+                          locale === 'ko'
+                            ? '잠잔 시간 (분)'
+                            : 'Sleep duration (minutes)'
+                        }
+                        value={
+                          duration ? Math.floor(Number(duration) % 60) : ''
+                        }
+                        onChange={(event) =>
+                          changeDuration(
+                            Math.floor(Number(duration || 0) / 60) * 60 +
+                              Number(event.target.value),
+                            Date.now(),
+                          )
+                        }
+                      />
+                      <span>{locale === 'ko' ? '분' : 'minutes'}</span>
+                    </label>
+                  </div>
+                )}
               </fieldset>
             )}
             <div className="quick-time-edit">
@@ -764,7 +859,7 @@ function QuickEditor({
                 <QuickFieldTitle>
                   {diaper
                     ? c.diaperTime
-                    : childcare
+                    : timed
                       ? locale === 'ko'
                         ? '시작 시각'
                         : 'Start time'
@@ -793,7 +888,7 @@ function QuickEditor({
                     aria-label={
                       diaper
                         ? c.diaperTime
-                        : childcare
+                        : timed
                           ? locale === 'ko'
                             ? '시작 시각'
                             : 'Start time'
@@ -822,11 +917,17 @@ function QuickEditor({
                       const date = (
                         start || localDateInput(new Date().toISOString())
                       ).slice(0, 10);
-                      setStart(
-                        event.target.value
-                          ? `${date}T${event.target.value}`
-                          : '',
-                      );
+                      const nextStart = event.target.value
+                        ? `${date}T${event.target.value}`
+                        : '';
+                      setStart(nextStart);
+                      if (sleepEditing) {
+                        const nextEnd = endFromClock(
+                          nextStart,
+                          sleepEnd.slice(11, 16),
+                        );
+                        setSleepEnd(nextEnd ? localDateInput(nextEnd) : '');
+                      }
                       setTimeEdited(true);
                     }}
                     required
@@ -834,6 +935,25 @@ function QuickEditor({
                 </span>
               </label>
             </div>
+            {sleepEditing && (
+              <>
+                <QuickTimeField
+                  label={locale === 'ko' ? '종료 시각' : 'End time'}
+                  value={sleepEnd}
+                  locale={locale}
+                  onChange={(value) => {
+                    const next = endFromClock(start, value);
+                    setSleepEnd(next ? localDateInput(next) : '');
+                  }}
+                />
+                <p className="quick-sleep-total">
+                  {locale === 'ko' ? '잠잔 시간' : 'Sleep duration'} ·{' '}
+                  {endedAt
+                    ? `${Math.floor((Date.parse(endedAt) - Date.parse(startIso)) / 3600000)}${c.hours} ${Math.floor((Date.parse(endedAt) - Date.parse(startIso)) / 60000) % 60}${c.minutes}`
+                    : '--'}
+                </p>
+              </>
+            )}
           </>
         )}
       </fieldset>
@@ -866,7 +986,8 @@ function QuickEditor({
           disabled={
             busy ||
             !startIso ||
-            (durationNeeded && durationRequired && !endedAt)
+            (durationNeeded && durationRequired && !endedAt) ||
+            (sleepEditing && !endedAt)
           }
           aria-busy={pending}
         >

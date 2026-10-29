@@ -221,14 +221,14 @@ isOneToOne: false
                   ]
                 },"child_records": {
                   Row: {
-                    "attendance_status": string | null,"author_relationship": Database["public"]['Enums']["caregiver_relationship"] | null,"child_id": string,"created_at": string,"created_by": string | null,"dose_amount": number | null,"dose_unit": string | null,"duration_minutes": number | null,"ended_at": string | null,"head_cm": number | null,"height_cm": number | null,"id": string,"kind": string,"medicine_name": string,"note": string,"occurred_at": string,"record_timezone": string,"service": string,"stool_color": string | null,"stool_texture": string | null,"temperature_c": number | null,"title": string,"updated_at": string,"updated_by": string | null,"version": number,"weight_kg": number | null
+                    "attendance_status": string | null,"author_relationship": Database["public"]['Enums']["caregiver_relationship"] | null,"child_id": string,"created_at": string,"created_by": string | null,"dose_amount": number | null,"dose_unit": string | null,"duration_minutes": number | null,"ended_at": string | null,"head_cm": number | null,"height_cm": number | null,"id": string,"kind": string,"medicine_name": string,"note": string,"occurred_at": string,"received_amount": number | null,"received_currency": string | null,"record_timezone": string,"sender_name": string | null,"service": string,"stool_color": string | null,"stool_texture": string | null,"temperature_c": number | null,"timer_started": boolean,"title": string,"updated_at": string,"updated_by": string | null,"version": number,"weight_kg": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "attendance_status"?: string | null,"author_relationship"?: Database["public"]['Enums']["caregiver_relationship"] | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"dose_amount"?: number | null,"dose_unit"?: string | null,"duration_minutes"?: number | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id": string,"kind": string,"medicine_name"?: string,"note"?: string,"occurred_at": string,"record_timezone": string,"service": string,"stool_color"?: string | null,"stool_texture"?: string | null,"temperature_c"?: number | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
+                    "attendance_status"?: string | null,"author_relationship"?: Database["public"]['Enums']["caregiver_relationship"] | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"dose_amount"?: number | null,"dose_unit"?: string | null,"duration_minutes"?: number | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id": string,"kind": string,"medicine_name"?: string,"note"?: string,"occurred_at": string,"received_amount"?: number | null,"received_currency"?: string | null,"record_timezone": string,"sender_name"?: string | null,"service": string,"stool_color"?: string | null,"stool_texture"?: string | null,"temperature_c"?: number | null,"timer_started"?: boolean,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
                   }
                   Update: {
-                    "attendance_status"?: string | null,"author_relationship"?: Database["public"]['Enums']["caregiver_relationship"] | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"dose_amount"?: number | null,"dose_unit"?: string | null,"duration_minutes"?: number | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id"?: string,"kind"?: string,"medicine_name"?: string,"note"?: string,"occurred_at"?: string,"record_timezone"?: string,"service"?: string,"stool_color"?: string | null,"stool_texture"?: string | null,"temperature_c"?: number | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
+                    "attendance_status"?: string | null,"author_relationship"?: Database["public"]['Enums']["caregiver_relationship"] | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"dose_amount"?: number | null,"dose_unit"?: string | null,"duration_minutes"?: number | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id"?: string,"kind"?: string,"medicine_name"?: string,"note"?: string,"occurred_at"?: string,"received_amount"?: number | null,"received_currency"?: string | null,"record_timezone"?: string,"sender_name"?: string | null,"service"?: string,"stool_color"?: string | null,"stool_texture"?: string | null,"temperature_c"?: number | null,"timer_started"?: boolean,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
                   }
                   Relationships: [
                     {
@@ -771,6 +771,52 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"feeding_push_config": {
+                  Row: {
+                    "public_key": string,"singleton": boolean,"token_secret_id": string,"updated_at": string,"worker_url": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "public_key": string,"singleton"?: boolean,"token_secret_id": string,"updated_at"?: string,"worker_url": string
+                  }
+                  Update: {
+                    "public_key"?: string,"singleton"?: boolean,"token_secret_id"?: string,"updated_at"?: string,"worker_url"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },"feeding_push_deliveries": {
+                  Row: {
+                    "attempts": number,"child_id": string,"id": string,"lease_token": string | null,"leased_until": string | null,"record_id": string,"scheduled_at": string,"sent_at": string | null,"status": string,"subscription_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts"?: number,"child_id": string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"record_id": string,"scheduled_at": string,"sent_at"?: string | null,"status"?: string,"subscription_id": string
+                  }
+                  Update: {
+                    "attempts"?: number,"child_id"?: string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"record_id"?: string,"scheduled_at"?: string,"sent_at"?: string | null,"status"?: string,"subscription_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "feeding_push_deliveries_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "children"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "feeding_push_deliveries_record_id_fkey"
+      columns: ["record_id"]
+isOneToOne: false
+      referencedRelation: "care_records"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "feeding_push_deliveries_subscription_id_fkey"
+      columns: ["subscription_id"]
+isOneToOne: false
+      referencedRelation: "web_push_subscriptions"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"global_residence_places": {
                   Row: {
                     "city": string,"city_key": string | null,"country_code": string,"id": string,"locality": string,"locality_key": string | null,"province": string,"province_key": string | null
@@ -1159,6 +1205,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"web_push_subscriptions": {
+                  Row: {
+                    "auth_key": string,"created_at": string,"endpoint": string,"id": string,"locale": string,"p256dh": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "auth_key": string,"created_at"?: string,"endpoint": string,"id"?: string,"locale": string,"p256dh": string,"user_id": string
+                  }
+                  Update: {
+                    "auth_key"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"locale"?: string,"p256dh"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "web_push_subscriptions_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -1229,6 +1295,11 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"claim_feeding_push":
+{ Args: { "p_token": string }; Returns: {
+              "auth_key": string,"child_id": string,"endpoint": string,"id": string,"lease_token": string,"locale": string,"p256dh": string
+            }[]
+                           },
 "community_author_visible":
 { Args: { "p_author": string }; Returns: boolean
                            },
@@ -1260,6 +1331,9 @@ isOneToOne: false
                            },
 "complete_child_photo_variants":
 { Args: { "p_photo": string }; Returns: undefined
+                           },
+"configure_feeding_push":
+{ Args: { "p_public_key": string,"p_worker_url": string }; Returns: undefined
                            },
 "create_family_with_child":
 { Args: { "p_birth_date": string,"p_child_name": string,"p_family_name": string,"p_relationship": Database["public"]['Enums']["caregiver_relationship"],"p_sex": string }; Returns: string
@@ -1299,6 +1373,12 @@ isOneToOne: false
               "content_type": string,"path": string,"variants_ready": boolean
             }[]
                            },
+"dispatch_feeding_push":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"enable_feeding_push":
+{ Args: { "p_interval": number,"p_locale": string,"p_quiet": boolean,"p_subscription": Json }; Returns: string
+                           },
 "export_child_data":
 { Args: { "p_child": string }; Returns: Json
                            },
@@ -1307,8 +1387,19 @@ isOneToOne: false
               "caregivers": Json,"family": Json,"members": Json,"owner": boolean,"writable": boolean
             }[]
                            },
+"feeding_push_candidates":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "child_id": string,"record_id": string,"scheduled_at": string,"subscription_id": string
+            }[]
+                           },
 "finish_data_operation":
 { Args: { "p_job": string,"p_lease": string,"p_success": boolean }; Returns: undefined
+                           },
+"finish_feeding_push":
+{ Args: { "p_id": string,"p_lease": string,"p_result": string }; Returns: undefined
+                           },
+"get_feeding_push_config":
+{ Args: Record<PropertyKey, never>; Returns: string
                            },
 "global_place_options":
 { Args: { "p_city": string,"p_country": string,"p_province": string }; Returns: {
@@ -1413,7 +1504,23 @@ isOneToOne: false
 "read_notification":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"received_allowance_totals":
+{ Args: { "p_child": string }; Returns: {
+              "currency": string,"is_total": boolean,"sender_name": string,"total_amount": string,"total_count": number
+            }[]
+                           },
+"received_gift_senders":
+{ Args: { "p_child": string }; Returns: {
+              "latest_at": string,"sender_name": string,"total_count": number
+            }[]
+                           },
+"register_feeding_push":
+{ Args: { "p_auth": string,"p_endpoint": string,"p_locale": string,"p_p256dh": string }; Returns: string
+                           },
 "remove_child_record_photo":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"remove_feeding_push":
 { Args: { "p_id": string }; Returns: undefined
                            },
 "reorder_diary_photos":
@@ -1470,6 +1577,9 @@ isOneToOne: false
 "save_family_residence_region":
 { Args: { "p_country_code"?: string,"p_family": string,"p_region_code": string,"p_version": number }; Returns: undefined
                            },
+"save_feeding_push_preferences":
+{ Args: { "p_enabled": boolean,"p_interval": number,"p_quiet": boolean }; Returns: undefined
+                           },
 "save_feeding_record":
 { Args: { "p_amount_g": number,"p_amount_ml": number,"p_child_id": string,"p_ended_at": string,"p_food_name": string,"p_id": string,"p_kind": string,"p_note": string,"p_started_at": string,"p_timezone": string,"p_version"?: number }; Returns: string
                            },
@@ -1484,6 +1594,9 @@ isOneToOne: false
                            },
 "save_notification_preferences":
 { Args: { "p_event": boolean,"p_feeding": boolean,"p_frequency": number,"p_hour": number,"p_interval": number,"p_quiet_end": string,"p_quiet_start": string,"p_snooze_minutes"?: number,"p_task": boolean }; Returns: undefined
+                           },
+"save_received_record":
+{ Args: { "p_child": string,"p_data": Json,"p_id": string,"p_version"?: number }; Returns: string
                            },
 "save_task":
 { Args: { "p_assignee_id": string,"p_child_id": string,"p_due_date": string,"p_id": string,"p_service": string,"p_status": string,"p_title": string }; Returns: string
@@ -1517,6 +1630,9 @@ isOneToOne: false
                            },
 "valid_meal_times":
 { Args: { "times": (string)[] }; Returns: boolean
+                           },
+"validate_feeding_push":
+{ Args: { "p_id": string,"p_lease": string }; Returns: boolean
                            },
 "vote_daily_poll":
 { Args: { "p_id": string,"p_option": number }; Returns: undefined

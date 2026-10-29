@@ -14,6 +14,7 @@ export function ActivityRail({
   multiple = false,
   popup = false,
   pending = false,
+  kinds = careKinds,
 }: {
   locale: Locale;
   leading?: ReactNode;
@@ -25,6 +26,7 @@ export function ActivityRail({
   multiple?: boolean;
   popup?: boolean;
   pending?: boolean;
+  kinds?: readonly (typeof careKinds)[number][];
 }) {
   const drag = useRef<{
     x: number;
@@ -86,7 +88,7 @@ export function ActivityRail({
       }}
     >
       {leading}
-      {careKinds.map((kind) => {
+      {kinds.map((kind) => {
         const Icon = careIcons[kind],
           active = selected.includes(kind);
         return (

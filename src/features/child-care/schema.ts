@@ -10,6 +10,8 @@ const amount = (max: number) =>
     .default('')
     .transform((value) => (value === '' ? null : value));
 export const activityKinds = [
+  'gift',
+  'allowance',
   'daycare',
   'kindergarten',
   'bath',
@@ -44,6 +46,29 @@ const base = z.object({
   note: z.string().max(2000).default(''),
   attendance: z.enum(['', 'arrival', 'departure']).default(''),
   title: z.string().trim().max(200).default(''),
+  sender: z.string().trim().max(100).default(''),
+  receivedAmount: z
+    .union([
+      z.literal(''),
+      z
+        .string()
+        .trim()
+        .max(40)
+        .regex(/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/),
+      z.number(),
+    ])
+    .default('')
+    .transform((value) => (value === '' ? null : Number(value)))
+    .refine(
+      (value) =>
+        value === null ||
+        (value > 0 &&
+          value <= 999999999999.99 &&
+          Number(value.toFixed(2)) === value),
+    ),
+  currency: z
+    .union([z.literal(''), z.string().regex(/^[A-Z]{3}$/)])
+    .default(''),
   temperature: amount(45),
   medicine: z.string().trim().max(200).default(''),
   dose: amount(10000),
@@ -92,6 +117,20 @@ export const childRecordSchema = z
       kind: z.enum(activityKinds),
     }),
   ])
+  .refine(
+    (v) =>
+      v.service !== 'activity' ||
+      v.kind !== 'gift' ||
+      (v.sender.length > 0 && v.title.length > 0),
+  )
+  .refine(
+    (v) =>
+      v.service !== 'activity' ||
+      v.kind !== 'allowance' ||
+      (v.sender.length > 0 &&
+        v.receivedAmount !== null &&
+        v.currency.length === 3),
+  )
   .refine(
     (v) =>
       v.service !== 'activity' ||

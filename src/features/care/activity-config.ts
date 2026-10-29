@@ -16,9 +16,13 @@ import {
   Utensils,
   Moon,
   Ruler,
+  Gift,
+  Wallet,
 } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 export const careIcons = {
+  gift: Gift,
+  allowance: Wallet,
   breast: BreastIcon,
   formula: Milk,
   solids: Utensils,
@@ -54,6 +58,8 @@ export const careKinds = [
   'tummy',
   'daycare',
   'kindergarten',
+  'gift',
+  'allowance',
 ] as const;
 export const careLabels = (locale: Locale) =>
   locale === 'ko'
@@ -75,6 +81,8 @@ export const careLabels = (locale: Locale) =>
         play: '놀이',
         tummy: '터미타임',
         growth: '성장',
+        gift: '선물',
+        allowance: '용돈',
       }
     : {
         breast: 'Breast',
@@ -94,4 +102,6 @@ export const careLabels = (locale: Locale) =>
         play: 'Play',
         tummy: 'Tummy time',
         growth: 'Growth',
+        gift: 'Gift',
+        allowance: 'Allowance',
       };

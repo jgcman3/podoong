@@ -1,5 +1,7 @@
 import type { Locale } from '@/lib/domain';
 const ko = {
+  gift: '선물',
+  allowance: '용돈',
   sleep: '수면',
   diaper: '기저귀·배변',
   growth: '성장·발달',
@@ -72,6 +74,8 @@ const ko = {
   privacy: '아이를 함께 돌보는 가족에게 공유됩니다.',
 };
 const en: typeof ko = {
+  gift: 'Gift',
+  allowance: 'Allowance',
   sleep: 'Sleep',
   diaper: 'Diapers & bowel movements',
   growth: 'Growth & development',

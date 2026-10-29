@@ -10,6 +10,7 @@ const tabs = [
   ['curve', '성장곡선', 'Growth'],
   ['milestones', '마일스톤', 'Milestones'],
   ['guide', '가이드', 'Guide'],
+  ['received', '선물·용돈', 'Gifts'],
 ] as const;
 
 export function InsightTabs({

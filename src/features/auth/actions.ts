@@ -1,4 +1,6 @@
 'use server';
+import { cookies } from 'next/headers';
+import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { createClient, configured } from '@/lib/supabase/server';
 import { isLocale, safeReturnPath, type Locale } from '@/lib/domain';
@@ -51,6 +53,13 @@ export async function socialLogin(form: FormData) {
 export async function logout(form: FormData) {
   const locale = form.get('locale') === 'en' ? 'en' : 'ko';
   const { db } = await requireUser(locale);
+  const jar = await cookies(),
+    device = z.uuid().safeParse(jar.get('podung-push-device')?.value);
+  if (device.success) {
+    const stopped = await db.rpc('remove_feeding_push', { p_id: device.data });
+    if (stopped.error) redirect(`/${locale}/account?error=generic`);
+  }
+  jar.delete('podung-push-device');
   const { error } = await db.auth.signOut();
   if (error) redirect(`/${locale}/settings?error=generic`);
   redirect(`/${locale}/login`);

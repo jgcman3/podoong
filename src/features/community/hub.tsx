@@ -110,8 +110,8 @@ export async function CommunityHub({
       </div>
       <p className="small muted">
         {ko
-          ? '우리 동네 10개 가족이 신청하면 세 기능이 함께 열려요. 가족당 한 번만 집계돼요.'
-          : 'All three features open when 10 local families request their neighborhood. Each family counts once.'}
+          ? '우리 동네 10가족이 신청하면 세 기능이 함께 오픈될 예정이에요. 가족당 한 번만 집계돼요.'
+          : 'All three features are planned to open when 10 local families request their neighborhood. Each family counts once.'}
       </p>
       {!status.data[0]?.opened && (
         <div className="panel neighborhood-join">
@@ -200,7 +200,9 @@ export async function CommunityHub({
                       </Link>
                     ) : (
                       <small>
-                        {ko ? '10가족 신청 시 오픈' : 'Opens with 10 families'}
+                        {ko
+                          ? '10가족 신청 시 오픈 예정'
+                          : 'Planned to open with 10 families'}
                       </small>
                     )}
                   </div>
