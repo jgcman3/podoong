@@ -5,10 +5,12 @@ import { requireUser } from '@/lib/data';
 import { feedingRecordSchema } from './feeding-schema';
 import { childRecordSchema } from '@/features/child-care/schema';
 import { stageGiftPhoto } from '@/features/received/gift-photo';
+import { quickTimeline, type QuickEntry } from './quick-model';
 export type QuickSaveState = {
   status: 'idle' | 'saved' | 'error';
   error?: string;
   id?: string;
+  entry?: QuickEntry;
 };
 export async function deleteQuickCare(input: {
   locale: string;
@@ -320,5 +322,19 @@ export async function saveQuickCare(
     };
   revalidatePath(`/${v.locale}/today`);
   revalidatePath(`/${v.locale}/insights`);
+  if (v.source === 'sleep') {
+    const saved = await db
+      .from('child_records')
+      .select('*')
+      .eq('id', v.id)
+      .eq('child_id', v.childId)
+      .single();
+    if (!saved.error && saved.data)
+      return {
+        status: 'saved',
+        id: v.id,
+        entry: quickTimeline([], [saved.data])[0],
+      };
+  }
   return { status: 'saved', id: v.id };
 }

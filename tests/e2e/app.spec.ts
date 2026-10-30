@@ -6642,7 +6642,7 @@ test('service documents are readable from account settings and retain the child 
 
 test('sleep editing supports ten hours and preserves a duration beyond the quick presets',async({page,context})=>{
  const {child,owner}=await childCareFamily(context);
- const start=new Date(Date.now()-12*3600000).toISOString();
+ const start=completedSeoulDay().now.toISOString();
  const id=crypto.randomUUID();
  expect((await admin.from('child_records').insert({id,child_id:child,service:'sleep',kind:'night',occurred_at:start,ended_at:new Date(Date.parse(start)+9*3600000+17*60000+43500).toISOString(),record_timezone:'Asia/Seoul',created_by:owner,updated_by:owner})).error).toBeNull();
  await page.setViewportSize({width:390,height:844});await page.goto(`/ko/today?child=${child}`);
@@ -6654,10 +6654,16 @@ test('sleep editing supports ten hours and preserves a duration beyond the quick
  await expect(sheet.getByRole('spinbutton')).toHaveCount(0);
  await sheet.getByLabel('종료 시각',{exact:true}).fill(endClock);
  await expect(sheet.locator('.quick-sleep-total')).toContainText('10시간 15분');
+ let releaseHistory!: () => void;
+ const historyGate = new Promise<void>(resolve => { releaseHistory = resolve; });
+ await page.route('**/api/care/history?**', async route => { await historyGate; await route.continue(); });
+ try {
  await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const saved=await admin.from('child_records').select('occurred_at,ended_at').eq('id',id).single();expect(saved.error).toBeNull();expect(Date.parse(saved.data!.ended_at!)-Date.parse(saved.data!.occurred_at)).toBe(615*60000);
  await target.click();await expect(sheet.getByLabel('종료 시각',{exact:true})).toHaveValue(endClock);await expect(sheet.locator('.quick-sleep-total')).toContainText('10시간 15분');
+ await expect(target).toContainText('10시간 15분');
  await page.screenshot({ caret: 'initial',path:'/tmp/podung-sleep-end-mobile.png',fullPage:true});
+ } finally { releaseHistory(); }
 });
 
 test('feeding reminders opt in per device, save interval and quiet hours, and can be disabled',async({page,context})=>{

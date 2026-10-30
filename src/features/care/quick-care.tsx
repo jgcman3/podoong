@@ -83,6 +83,7 @@ export function QuickCare({
   } | null>(null);
   const [historyRevision, setHistoryRevision] = useState(0);
   const [busy, setBusy] = useState(false);
+  const savedEntries = useRef(new Map<string, QuickEntry>());
   const dialog = useRef<HTMLDialogElement>(null);
   const mobile = useSyncExternalStore(
     subscribeMobile,
@@ -134,17 +135,23 @@ export function QuickCare({
           ?.focus({ preventScroll: true });
     }
   }, [selection, mobile]); // Keep the same editor and its values when the viewport changes.
+  const currentEntry = (record: QuickEntry) => {
+    const saved = savedEntries.current.get(`${record.source}:${record.id}`);
+    return saved && saved.version > record.version ? saved : record;
+  };
   const open = (kind: QuickKind, record?: QuickEntry) => {
+    const candidate =
+      record ??
+      active.find((e) =>
+        kind === 'sleep' ? e.service === 'sleep' : e.kind === kind,
+      );
     setSelection({
       kind,
-      active:
-        record ??
-        active.find((e) =>
-          kind === 'sleep' ? e.service === 'sleep' : e.kind === kind,
-        ),
+      active: candidate ? currentEntry(candidate) : undefined,
     });
   };
-  const completed = () => {
+  const completed = (entry?: QuickEntry) => {
+    if (entry) savedEntries.current.set(`${entry.source}:${entry.id}`, entry);
     setBusy(false);
     setHistoryRevision((value) => value + 1);
     setSelection(null);
@@ -249,7 +256,7 @@ export function QuickCare({
               <>
                 {history.length ? (
                   <ol className="quick-timeline">
-                    {history.map((e) => {
+                    {history.map(currentEntry).map((e) => {
                       const iconKey =
                         e.service === 'feeding' || e.service === 'activity'
                           ? e.kind
@@ -460,7 +467,7 @@ type QuickEditorProps = {
   active?: QuickEntry;
   initialAmount: number | null;
   close: () => void;
-  completed: () => void;
+  completed: (entry?: QuickEntry) => void;
   onPending: (pending: boolean) => void;
 };
 function QuickEditor({
@@ -536,7 +543,7 @@ function QuickEditor({
   useEffect(() => {
     if (state.status === 'saved' && !notified.current) {
       notified.current = true;
-      completed();
+      completed(state.entry);
     }
   }, [state, completed]);
   const timezone =
