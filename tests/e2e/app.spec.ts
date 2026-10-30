@@ -5749,7 +5749,7 @@ test('child bottom navigation opens a main page with child selection and setting
   await expect(page.locator('.bottom-child-picker, .family-menu-scrim')).toHaveCount(0);
   await expect(page.locator('.mobile-child-link')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('.account-child-list > a')).toHaveCount(2);
-  await expect(page.locator('.account-settings-section > summary > span')).toHaveText(['언어 설정','화면 설정','계정 설정','알림 설정','개발자에게 요청하기','서비스 정보','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용']);
+  await expect(page.locator('.account-settings-section > summary > span')).toHaveText(['기존 가족에 참여하기','언어 설정','화면 설정','계정 설정','알림 설정','개발자에게 요청하기','서비스 정보','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용']);
   await page.locator('summary').filter({hasText:'아이 설정'}).click();
   await page.locator('.account-child-list').getByRole('link', { name: /둘째/ }).click();
   await expect(page).toHaveURL(new RegExp(`child=${second!.id}`));
@@ -6142,7 +6142,7 @@ test('child settings match on desktop and Safari mobile with aligned date inputs
   await nav.getByRole('link',{name:'돌봄 아이',exact:true}).click();
   await expect(page).toHaveURL(/account/);
   await expect(page.getByRole('heading',{name:'아이와 설정'})).toHaveCount(0);
-  const labels = ['언어 설정','화면 설정','계정 설정','알림 설정','개발자에게 요청하기','서비스 정보','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용'];
+  const labels = ['기존 가족에 참여하기','언어 설정','화면 설정','계정 설정','알림 설정','개발자에게 요청하기','서비스 정보','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용'];
   await expect(page.locator('.account-settings-section > summary > span')).toHaveText(labels);
   await page.locator('summary').filter({hasText:'계정 설정'}).click();
   await expect(page.locator('.account-signed-in')).toContainText('Care test');
@@ -6180,7 +6180,7 @@ test('caregivers can switch children without administrator settings or service s
     for (const width of [390,1440]) {
       await memberPage.setViewportSize({width,height:900});
       await memberPage.goto(`/ko/account?child=${own.child}&panel=child`);
-      await expect(memberPage.locator('.account-settings-section > summary > span')).toHaveText(['언어 설정','화면 설정','계정 설정','알림 설정','개발자에게 요청하기','서비스 정보']);
+      await expect(memberPage.locator('.account-settings-section > summary > span')).toHaveText(['기존 가족에 참여하기','언어 설정','화면 설정','계정 설정','알림 설정','개발자에게 요청하기','서비스 정보']);
       await expect(memberPage.locator('.account-admin-badge')).toHaveCount(0);
       await expect(memberPage.locator('#child-info,#add-child')).toHaveCount(0);
       await expect(memberPage.locator('.account-child-list a')).toHaveCount(2);
