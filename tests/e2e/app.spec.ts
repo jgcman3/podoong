@@ -1032,7 +1032,7 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   await expect(page.getByLabel('아이와 나의 관계')).toHaveAttribute('required','');
   await page.getByLabel('아이와 나의 관계').selectOption('father');
   await page.getByRole('button', { name: '우리 가족 시작하기' }).click();
-  await expect(page).toHaveURL(/\/ko\/install/);
+  await expect(page).toHaveURL(/\/ko\/install\?.*ready=1/);
   await page.getByRole('link', { name: '포둥 시작하기' }).click();
   await expect(page).toHaveURL(/\/ko\/today/);
   await expect(page.locator('.topbar-child-info strong')).toHaveText('포근이');
@@ -1130,7 +1130,7 @@ test('mobile onboarding advances one field at a time and preserves input across 
     await page.getByLabel('가족 이름').fill('모바일 둥지');
     for (let index = 0; index < 6; index++) await next.click();
     await page.getByRole('button', { name: '우리 가족 시작하기', exact: true }).click();
-    await expect(page).toHaveURL(/\/ko\/install\?child=/);
+    await expect(page).toHaveURL(/\/ko\/install\?.*ready=1/);
     await page.getByRole('link', { name: '포둥 시작하기' }).click();
     await expect(page).toHaveURL(/\/ko\/today\?child=/);
     const child = new URL(page.url()).searchParams.get('child')!;
@@ -1189,7 +1189,7 @@ test('signup agreements support refusal and preserve the English invitation flow
     await invited.locator('select[name=relationship]').selectOption('maternal_aunt');
     await invited.locator('input[name=confirm]').check();
     await invited.getByRole('button',{name:'Join family',exact:true}).click();
-    await expect(invited).toHaveURL(new RegExp(`/en/install\\?child=${own.child}`));
+    await expect(invited).toHaveURL(new RegExp(`/en/install\\?child=${own.child}.*ready=1`));
     await invited.getByRole('link',{name:'Start using podoong',exact:true}).click();
     await expect(invited).toHaveURL(new RegExp(`/en/today\\?child=${own.child}`));
     expect((await admin.from('signup_agreements').select('interface_locale').eq('user_id',invitedUser)).data?.every(row=>row.interface_locale==='en')).toBe(true);
@@ -6339,6 +6339,8 @@ test('invited caregiver must select relationship and diaries retain author relat
     await memberPage.getByLabel('아이와의 관계').selectOption('maternal_aunt');
     await memberPage.getByRole('checkbox').check();
     await memberPage.locator('form button[type=submit], form button.button.primary').click();
+    await expect(memberPage).toHaveURL(/\/install\?.*ready=1/);
+    await memberPage.getByRole('link',{name:'포둥 시작하기',exact:true}).click();
     await expect(memberPage).toHaveURL(/today/);
     expect((await admin.from('family_members').select('relationship').eq('family_id',own.family).eq('user_id',member).single()).data?.relationship).toBe('maternal_aunt');
     await memberPage.goto(`/ko/community/diaries?child=${own.child}`);
