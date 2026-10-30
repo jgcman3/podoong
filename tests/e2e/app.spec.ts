@@ -882,7 +882,6 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   await expect(agree).toBeDisabled();
   await page.getByRole('checkbox',{name:'[필수] 가입 개인정보 수집·이용에 동의합니다',exact:true}).check();
   await expect(agree).toBeEnabled();
-  await page.screenshot({path:'/private/tmp/podoong-signup-consent-mobile.png',caret:'initial',fullPage:true});
   await agree.click();
   await expect(page.getByLabel('보호자 이름')).toBeVisible();
   const agreements = await admin.from('signup_agreements').select('kind,version,accepted_at,interface_locale').eq('user_id',user);

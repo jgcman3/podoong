@@ -31,15 +31,17 @@ UI는 소셜 로그인만 제공합니다. 테스트가 만드는 임시 비밀�
 
 ### 같은 공유기의 다른 기기에서 접속
 
-`127.0.0.1`은 각 기기 자신이므로 다른 기기에서는 앱을 실행하는 컴퓨터의 내부 IP를 사용합니다. `npm run dev`는 이 컴퓨터에서만 접속하는 기본 실행입니다. 내부 IP는 macOS에서 `ipconfig getifaddr en0`으로 확인합니다.
+`127.0.0.1`은 각 기기 자신입니다. 같은 공유기의 다른 기기에서 소셜 로그인까지 시험하려면 Mac의 로컬 호스트 이름을 사용합니다. macOS에서 `scutil --get LocalHostName`으로 확인한 이름 뒤에 `.local`을 붙입니다. `npm run dev`는 이 컴퓨터에서만 접속하는 기본 실행입니다.
 
-기존 서버를 중지한 뒤 아래처럼 공유기용 실행을 시작합니다. 예시 IP는 2026-10-14 확인한 주소이며 네트워크가 바뀌면 다시 확인합니다.
+기존 서버를 중지한 뒤 아래처럼 공유기용 실행을 시작합니다. `your-mac`은 실제 호스트 이름의 소문자 표기로 바꿉니다.
 
 ```sh
-NEXT_PUBLIC_SITE_URL=http://192.168.45.96:3187 npm run dev:lan
+NEXT_PUBLIC_SITE_URL=http://your-mac.local:3187 npm run dev:lan
 ```
 
-다른 기기의 브라우저에서도 `http://192.168.45.96:3187`로 접속합니다. Supabase의 Authentication → URL Configuration → Redirect URLs에 `http://192.168.45.96:3187/auth/callback**`를 추가해야 소셜 로그인 후 해당 기기로 돌아옵니다. Supabase 제공자 콜백 URL은 기존 것을 사용합니다. 기기마다 별도로 로그인하며 같은 계정 또는 가족 접근 권한을 사용하면 같은 DB 자료를 볼 수 있습니다. 위 실행은 `.env.local`을 변경하지 않고 실행 프로세스의 앱 주소만 바꿉니다. 개발 요청 허용 호스트도 해당 주소로 제한합니다.
+다른 기기의 브라우저에서도 `http://your-mac.local:3187`로 접속합니다. 개발 Supabase의 Authentication → URL Configuration → Redirect URLs에 `http://your-mac.local:3187/auth/callback**`를 추가합니다. 로그인 시작과 복귀는 같은 호스트를 사용해야 인증 쿠키가 유지됩니다. Supabase 제공자 콜백 URL은 기존 것을 사용합니다. 기기마다 별도로 로그인하며 같은 계정 또는 가족 접근 권한을 사용하면 같은 DB 자료를 볼 수 있습니다. 위 실행은 `.env.local`을 변경하지 않고 실행 프로세스의 앱 주소만 바꿉니다.
+
+2026-10-30 확인: `192.168.*` 주소는 허용 목록에 있어도 Supabase 인증에서 거절되어 Site URL로 복귀했습니다. `.local` 주소로 바꾸어 복귀가 유지됨을 확인했습니다. 로컬 호스트 이름이 해석되지 않는 기기는 개발 사이트에서 확인합니다. 이 Mac에서만 시험할 때는 앱 주소와 허용 목록 모두 `http://127.0.0.1:3187`로 맞추어도 됩니다.
 
 공식 안내: [Next.js 실행 호스트](https://nextjs.org/docs/app/api-reference/cli/next), [Supabase 로그인 복귀 주소](https://supabase.com/docs/guides/auth/redirect-urls).
 
