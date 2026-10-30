@@ -1,0 +1,61 @@
+name: Deployment access
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, develop, feat/quick-care-experience]
+    paths: [.github/workflows/deployment-access.yml]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify hosting and both database projects without deploying
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = ['VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_PROJECT_ID', 'SUPABASE_ACCESS_TOKEN'];
+          for (const key of required) {
+            if (!process.env[key]) throw new Error(`Missing GitHub setting: ${key}`);
+          }
+          async function check(label, url, token, validate = () => true) {
+            const response = await fetch(url, {
+              headers: { Authorization: `Bearer ${token}` },
+              signal: AbortSignal.timeout(30000),
+            });
+            if (!response.ok) {
+              console.error(`${label}: HTTP ${response.status}`);
+              process.exitCode = 1;
+              return;
+            }
+            if (!validate(await response.json())) {
+              console.error(`${label}: unexpected resource`);
+              process.exitCode = 1;
+              return;
+            }
+            console.log(`${label}: access verified`);
+          }
+          const team = encodeURIComponent(process.env.VERCEL_ORG_ID);
+          const project = encodeURIComponent(process.env.VERCEL_PROJECT_ID);
+          await check('Vercel podoong', `https://api.vercel.com/v9/projects/${project}?teamId=${team}`,
+            process.env.VERCEL_TOKEN, data => data.id === process.env.VERCEL_PROJECT_ID && data.name === 'podoong');
+          for (const [name, ref] of [
+            ['development', 'aacmsohijybjiyidfzgy'],
+            ['production', 'atdyjsxfxlhwxmxgtnte'],
+          ]) {
+            const base = `https://api.supabase.com/v1/projects/${ref}`;
+            await check(`Supabase ${name} project`, base, process.env.SUPABASE_ACCESS_TOKEN,
+              data => data.id === ref);
+            await check(`Supabase ${name} connection pooling`, `${base}/config/pooler`, process.env.SUPABASE_ACCESS_TOKEN);
+            await check(`Supabase ${name} Edge Functions`, `${base}/functions`, process.env.SUPABASE_ACCESS_TOKEN);
+          }
+          NODE
