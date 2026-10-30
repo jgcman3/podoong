@@ -3,6 +3,7 @@ import { useState, useSyncExternalStore, useTransition } from 'react';
 import { Bell, BellOff } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import { saveFeedingPush, disableFeedingPush } from './push-actions';
+import { DeviceGuide } from '@/components/device-guide';
 function capability() {
   if (!window.isSecureContext) return 'https';
   const ios =
@@ -37,18 +38,21 @@ export function FeedingPushSettings({
   initialDevice,
   initialInterval,
   initialQuiet,
+  initialMode,
 }: {
   locale: Locale;
   publicKey: string | null;
   initialDevice: string | null;
   initialInterval: number;
   initialQuiet: boolean;
+  initialMode: 'interval' | 'yesterday' | 'off';
 }) {
   const ko = locale === 'ko',
     status = useSyncExternalStore(subscribe, capability, () => 'checking');
   const [device, setDevice] = useState(initialDevice),
     [interval, setInterval] = useState(initialInterval),
     [quiet, setQuiet] = useState(initialQuiet),
+    [mode, setMode] = useState(initialMode),
     [error, setError] = useState(false),
     [pending, start] = useTransition();
   const available = status === 'ready' && !!publicKey;
@@ -103,6 +107,7 @@ export function FeedingPushSettings({
           locale,
           interval,
           quiet,
+          mode,
           subscription: subscription.toJSON(),
         });
         if (!('id' in result)) {
@@ -121,7 +126,7 @@ export function FeedingPushSettings({
     start(async () => {
       setError(false);
       try {
-        const result = await saveFeedingPush({ locale, interval, quiet });
+        const result = await saveFeedingPush({ locale, interval, quiet, mode });
         setError(!!result.error);
       } catch {
         setError(true);
@@ -149,38 +154,76 @@ export function FeedingPushSettings({
     <div className="feeding-push-settings">
       <h3>
         <Bell size={18} />
-        {ko ? '다음 먹이기 알림' : 'Next feeding reminder'}
+        {ko ? '식사 알림' : 'Feeding reminders'}
       </h3>
       <p className="small muted">
-        {ko
-          ? '마지막 모유·분유·이유식 기록부터 설정한 시간이 지나면 한 번 알려드려요.'
-          : 'One reminder after your chosen interval from the latest breast milk, formula or solids record.'}
+        {mode === 'yesterday'
+          ? ko
+            ? '어제 모유·분유·이유식을 먹은 시각에 지난 기록을 알려드려요. 최근 90분 안에 먹였다면 알리지 않아요.'
+            : 'A reference to yesterday’s breastfeed, formula or solids at the same local time. Skipped if a feed was recorded in the past 90 minutes.'
+          : mode === 'off'
+            ? ko
+              ? '식사 알림을 받지 않아요.'
+              : 'Feeding reminders are off.'
+            : ko
+              ? '마지막 모유·분유·이유식 기록부터 설정한 시간이 지나면 한 번 알려드려요.'
+              : 'One reminder after your chosen interval from the latest breast milk, formula or solids record.'}
       </p>
       <fieldset disabled={pending}>
-        <legend>{ko ? '알림 간격' : 'Reminder interval'}</legend>
-        <div className="quick-choices feeding-push-intervals">
-          {[120, 180, 240, 300, 360].map((minutes) => (
+        <legend>{ko ? '알림 기준' : 'Reminder mode'}</legend>
+        <div
+          className="quick-choices feeding-push-modes"
+          role="group"
+          aria-label={ko ? '알림 기준' : 'Reminder mode'}
+        >
+          {(['interval', 'yesterday', 'off'] as const).map((value, i) => (
             <button
-              key={minutes}
+              key={value}
               type="button"
-              aria-pressed={interval === minutes}
-              onClick={() => setInterval(minutes)}
+              aria-pressed={mode === value}
+              onClick={() => setMode(value)}
             >
-              {minutes / 60}
-              {ko ? '시간' : 'h'}
+              {ko
+                ? ['간격 기준', '어제 식사 시간', '끄기'][i]
+                : ['Interval', 'Yesterday', 'Off'][i]}
             </button>
           ))}
         </div>
-        <label className="notification-setting-toggle">
-          <input
-            type="checkbox"
-            checked={quiet}
-            onChange={(e) => setQuiet(e.target.checked)}
-          />
-          {ko ? '밤에는 쉬기 (22:00–07:00)' : 'Quiet at night (22:00–07:00)'}
-        </label>
+        {mode === 'interval' && (
+          <>
+            <span className="feeding-push-interval-label">
+              {ko ? '알림 간격' : 'Reminder interval'}
+            </span>
+            <div className="quick-choices feeding-push-intervals">
+              {[120, 180, 240, 300, 360].map((minutes) => (
+                <button
+                  key={minutes}
+                  type="button"
+                  aria-pressed={interval === minutes}
+                  onClick={() => setInterval(minutes)}
+                >
+                  {minutes / 60}
+                  {ko ? '시간' : 'h'}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {mode !== 'off' && (
+          <label className="notification-setting-toggle">
+            <input
+              type="checkbox"
+              checked={quiet}
+              onChange={(e) => setQuiet(e.target.checked)}
+            />
+            {ko ? '밤에는 쉬기 (22:00–07:00)' : 'Quiet at night (22:00–07:00)'}
+          </label>
+        )}
       </fieldset>
-      {problem && <p className="small feeding-push-availability">{problem}</p>}
+      {problem && mode !== 'off' && (
+        <p className="small feeding-push-availability">{problem}</p>
+      )}
+      <DeviceGuide locale={locale} purpose="notifications" />
       {error && (
         <p role="alert" className="small">
           {ko
@@ -189,23 +232,21 @@ export function FeedingPushSettings({
         </p>
       )}
       <div className="feeding-push-buttons">
-        {device ? (
+        {device || mode === 'off' ? (
           <>
-            <button
-              className="button"
-              disabled={pending || !available}
-              onClick={save}
-            >
+            <button className="button" disabled={pending} onClick={save}>
               {ko ? '설정 저장' : 'Save settings'}
             </button>
-            <button
-              className="button secondary"
-              disabled={pending}
-              onClick={disconnect}
-            >
-              <BellOff size={16} />
-              {ko ? '이 기기 알림 끄기' : 'Turn off on this device'}
-            </button>
+            {device && (
+              <button
+                className="button secondary"
+                disabled={pending}
+                onClick={disconnect}
+              >
+                <BellOff size={16} />
+                {ko ? '이 기기 알림 끄기' : 'Turn off on this device'}
+              </button>
+            )}
           </>
         ) : (
           <button

@@ -8430,6 +8430,18 @@ html[data-standalone] :is(input, select, textarea) {
 .feeding-push-settings { --quick-accent: var(--brown); }
 .feeding-push-settings .notification-setting-toggle { display: flex; align-items: center; gap: 8px; min-height: 44px; }
 .feeding-push-settings .notification-setting-toggle input { flex: none; width: 20px; height: 20px; min-height: 20px; margin: 0; accent-color: var(--brown); }
+.feeding-push-modes { display: grid; grid-template-columns: 1fr 1fr .7fr; gap: 6px; margin-bottom: 16px; }
+.feeding-push-modes button { min-height: 44px; padding-inline: 5px; }
+.feeding-push-interval-label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 8px; }
+.device-guide { margin-top: 16px; color: var(--muted); font-size: 12px; }
+.device-guide summary { min-height: 44px; display: flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 600; }
+.device-guide summary::after { content: '+'; margin-left: auto; font-size: 18px; }
+.device-guide[open] summary::after { content: '−'; }
+.device-guide h4 { color: var(--ink); font-size: 13px; margin: 14px 0 7px; }
+.device-guide ol { padding-left: 20px; line-height: 1.8; }
+.device-guide li + li { margin-top: 7px; }
+.device-guide > p { font-size: 11px; margin: 12px 0 0; }
+.install-app-dialog { overflow-y: auto; }
 
 .podung-admin { min-height:100dvh; background:var(--bg); }
 .admin-header { height:76px; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:0 32px; background:var(--surface); border-bottom:1px solid var(--line); }

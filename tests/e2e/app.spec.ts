@@ -676,6 +676,60 @@ test('vaccination plans, completion history, official guidance and readonly acce
   ).toHaveLength(0);
 });
 
+test('public introduction explains the service on mobile and preserves invitation links across languages', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/ko');
+  await expect(page.getByRole('heading', { name: '함께 돌보는, 포근한 둥지' })).toBeVisible();
+  await expect(page.locator('main')).toContainText('예시 화면');
+  await expect(page.locator('main')).toContainText('기록이 쌓이면, 우리 아이가 더 잘 보여요.');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const preview = page.locator('[aria-label="인사이트 미리보기 선택"]');
+  for (const label of ['주간패턴', '통계', '성장곡선', '마일스톤', '가이드', '선물·용돈', '하루패턴']) {
+    await preview.getByRole('button', {name:label,exact:true}).click();
+    await expect(preview.getByRole('button', {name:label,exact:true})).toHaveAttribute('aria-pressed','true');
+  }
+  await expect(page.locator('main')).toContainText('같은 D+의 하루는');
+  await expect(page.locator('main')).toContainText('어제 이 시간에 분유 먹었어요');
+  const examples = page.locator('img[alt*="예시 아이 일러스트"]');
+  await expect(examples).toHaveCount(2);
+  for (const image of await examples.all()) {
+    await image.scrollIntoViewIfNeeded();
+    await expect.poll(() => image.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  }
+  expect(await examples.nth(0).getAttribute('src')).not.toBe(await examples.nth(1).getAttribute('src'));
+  const closing = page.getByRole('heading', {name:'오늘부터, 함께 돌봐요.',exact:true}).locator('..');
+  const install = closing.getByRole('button', {name:'앱으로 설치',exact:true});
+  await install.scrollIntoViewIfNeeded();
+  const mainBox = (await closing.getByRole('link', {name:'포둥 시작하기',exact:true}).boundingBox())!;
+  const installBox = (await install.boundingBox())!;
+  expect(installBox.y - mainBox.y - mainBox.height).toBeGreaterThanOrEqual(12);
+  await install.click();
+  const installation = page.getByRole('dialog', {name:'앱으로 설치',exact:true});
+  expect(await installation.evaluate(node=>node.parentElement?.tagName)).toBe('BODY');
+  await installation.getByRole('button', {name:'다음 단계',exact:true}).click();
+  await expect(installation.getByRole('img', {name:'2단계 메뉴 위치를 표시한 안내용 재현 화면',exact:true})).toBeVisible();
+  await installation.getByRole('button', {name:'확인',exact:true}).click();
+  const invitation = '/ko/invite/' + 'a'.repeat(64);
+  await page.goto('/ko/intro?next=' + encodeURIComponent(invitation));
+  await page.getByRole('link', { name: 'English', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Care together. Grow closer.' })).toBeVisible();
+  await page.getByRole('link', { name: 'Start with podoong', exact: true }).first().click();
+  await expect(page).toHaveURL(/\/en\/login/);
+  expect(new URL(page.url()).searchParams.get('next')).toBe(invitation.replace('/ko/', '/en/'));
+  await page.getByRole('link', { name: 'Explore podoong', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/intro/);
+  await page.goto('/en/intro?next=https://evil.test');
+  expect(await page.getByRole('link', { name: 'Start with podoong', exact: true }).first().getAttribute('href')).toBe('/en/login?next=%2Fen%2Ftoday');
+});
+
+test('returning families skip the introduction while the preview remains accessible', async ({ page, context }) => {
+  await childCareFamily(context);
+  await page.goto('/ko');
+  await expect(page).toHaveURL(/\/ko\/today/);
+  await page.goto('/ko/intro');
+  await expect(page.getByRole('heading', { name: '함께 돌보는, 포근한 둥지' })).toBeVisible();
+});
+
 test('signed-out users see three social choices and preserve safe invitation routes', async ({
   page,
 }) => {
@@ -4886,13 +4940,13 @@ test('home screen install exposes manifest, manual guidance and browser installa
     page.locator('meta[name="mobile-web-app-capable"]'),
   ).toHaveAttribute('content', 'yes');
   const install = page.getByRole('button', {
-    name: '홈 화면에 추가',
+    name: '앱으로 설치',
     exact: true,
   });
   await install.click();
-  const guide = page.getByRole('dialog', { name: '홈 화면에 추가' });
+  const guide = page.getByRole('dialog', { name: '앱으로 설치' });
   await expect(guide).toBeVisible();
-  await expect(guide).toContainText('브라우저 메뉴');
+  await expect(guide).toContainText('페이지를 앱으로 설치');
   await guide.getByRole('button', { name: '확인' }).click();
   await expect(guide).not.toBeVisible();
   // Native browser prompts cannot be operated by Playwright; exercise the
@@ -4938,12 +4992,43 @@ test('iPhone home screen guidance works from account settings without a native i
   const guide = page.getByRole('dialog', { name: '홈 화면에 추가' });
   await expect(guide).toContainText('Safari');
   await expect(guide).toContainText('웹 앱으로 열기');
+  await expect(guide.getByRole('img', {name:'1단계 메뉴 위치를 표시한 안내용 재현 화면',exact:true})).toBeVisible();
+  await guide.getByRole('button', {name:'다음 단계',exact:true}).click();
+  await expect(guide.getByRole('img', {name:'2단계 메뉴 위치를 표시한 안내용 재현 화면',exact:true})).toBeVisible();
+  await guide.getByRole('button', {name:'다음 단계',exact:true}).click();
+  await expect(guide.getByRole('img', {name:'3단계 메뉴 위치를 표시한 안내용 재현 화면',exact:true})).toBeVisible();
+  await guide.getByRole('button', {name:'이전 단계',exact:true}).click();
   expect(
     await guide.evaluate((node) => node.scrollWidth <= node.clientWidth),
   ).toBe(true);
   await page.screenshot({ caret: 'initial', path: 'test-results/install-iphone-guide.png' });
   await guide.getByRole('button', { name: '확인' }).click();
   await expect(guide).not.toBeVisible();
+});
+
+test('Android and PC show platform-specific installation and notification guidance', async ({ page, context }) => {
+  const { child } = await childCareFamily(context);
+  for (const sample of [
+    { ua: 'Mozilla/5.0 (Linux; Android 16) Chrome/130.0 Mobile Safari/537.36', button: '홈 화면에 추가', platform: '안드로이드', install: 'Chrome에서', notification: '안드로이드의 Chrome 앱 알림' },
+    { ua: 'Mozilla/5.0 (Windows NT 10.0) Chrome/130.0 Safari/537.36 Edg/130', button: '앱으로 설치', platform: 'PC', install: 'Chrome 또는 Edge', notification: '운영체제의 브라우저' },
+    { ua: 'Mozilla/5.0 (Macintosh) Version/26.0 Safari/605.1', button: '앱으로 설치', platform: 'Mac · Safari', install: 'Dock에 추가', notification: '운영체제의 브라우저' },
+  ]) {
+    const target = await context.newPage();
+    await target.addInitScript(ua => Object.defineProperty(navigator, 'userAgent', {value: ua}), sample.ua);
+    await target.goto(`/ko/account?child=${child}`);
+    await target.getByRole('button', { name: sample.button, exact: true }).click();
+    const dialog = target.getByRole('dialog', {name: sample.button, exact: true});
+    await expect(dialog).toContainText(sample.platform);
+    await expect(dialog).toContainText(sample.install);
+    await dialog.getByRole('button', {name:'확인',exact:true}).click();
+    await target.goto(`/ko/account?child=${child}&panel=notifications`);
+    const guide = target.locator('.feeding-push-settings .device-guide');
+    await guide.locator('summary').click();
+    await expect(guide).toContainText('설치 없이도');
+    await expect(guide).toContainText(sample.notification);
+    await target.close();
+  }
+  await page.close();
 });
 
 test('past records edit in place, preserve hidden data and reject stale edits', async ({
@@ -6130,7 +6215,7 @@ test('insights defaults to daily and feeding reminders appear inside the child a
  await page.goto(`/ko/account?child=${child}`);
  await page.locator('summary').filter({hasText:'알림 설정'}).click();
  const settings = page.locator('details').filter({has:page.locator('summary').filter({hasText:'알림 설정'})});
- await expect(settings.getByRole('heading',{name:'다음 먹이기 알림',exact:true})).toBeVisible();
+ await expect(settings.getByRole('heading',{name:'식사 알림',exact:true})).toBeVisible();
  await settings.getByRole('button',{name:'4시간',exact:true}).click();
  await expect(settings.getByRole('button',{name:'4시간',exact:true})).toHaveAttribute('aria-pressed','true');
  await expect(page.getByRole('status')).toHaveCount(0);
@@ -6593,7 +6678,7 @@ test('feeding reminders opt in per device, save interval and quiet hours, and ca
   PushManager.prototype.subscribe=async()=>({toJSON:()=>({endpoint:'https://fcm.googleapis.com/fcm/send/local-browser-fixture',keys:{p256dh:'B'.repeat(87),auth:'A'.repeat(22)}}),unsubscribe:async()=>true}) as unknown as PushSubscription;
  });
  await page.setViewportSize({width:390,height:844});await page.goto(`/ko/account?child=${child}&panel=notifications`);
- const settings=page.locator('.feeding-push-settings');await expect(settings.getByRole('heading',{name:'다음 먹이기 알림',exact:true})).toBeVisible();
+ const settings=page.locator('.feeding-push-settings');await expect(settings.getByRole('heading',{name:'식사 알림',exact:true})).toBeVisible();
  await settings.getByRole('button',{name:'4시간',exact:true}).click();await settings.getByRole('button',{name:'이 기기에서 알림 켜기',exact:true}).click();
  await expect(settings.getByRole('button',{name:'이 기기 알림 끄기',exact:true})).toBeVisible({timeout:15000});
  const prefs=await admin.from('notification_preferences').select('feeding_enabled,feeding_interval_minutes,quiet_start').eq('user_id',owner).single();expect(prefs.data).toMatchObject({feeding_enabled:true,feeding_interval_minutes:240,quiet_start:'22:00:00'});
@@ -6603,6 +6688,16 @@ test('feeding reminders opt in per device, save interval and quiet hours, and ca
  await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_interval_minutes').eq('user_id',owner).single()).data?.feeding_interval_minutes).toBe(120);
  await expect(page.getByRole('status')).toHaveCount(0);
  await page.screenshot({ caret: 'initial',path:'/tmp/podung-feeding-reminder-mobile.png',fullPage:true});
+ await settings.getByRole('button',{name:'어제 식사 시간',exact:true}).click();
+ await expect(settings.getByRole('button',{name:'2시간',exact:true})).toHaveCount(0);
+ await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
+ await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_reference').eq('user_id',owner).single()).data?.feeding_reference).toBe('yesterday');
+ await page.reload();await expect(settings.getByRole('button',{name:'어제 식사 시간',exact:true})).toHaveAttribute('aria-pressed','true');
+ await settings.getByRole('button',{name:'끄기',exact:true}).click();await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
+ await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_enabled').eq('user_id',owner).single()).data?.feeding_enabled).toBe(false);
+ await page.reload();await expect(settings.getByRole('button',{name:'끄기',exact:true})).toHaveAttribute('aria-pressed','true');
+ await settings.getByRole('button',{name:'간격 기준',exact:true}).click();await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
+ await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_enabled,feeding_reference').eq('user_id',owner).single()).data).toMatchObject({feeding_enabled:true,feeding_reference:'interval'});
  await settings.getByRole('button',{name:'이 기기 알림 끄기',exact:true}).click();await expect(settings.getByRole('button',{name:'이 기기에서 알림 켜기',exact:true})).toBeVisible();
  expect((await admin.from('web_push_subscriptions').select('id').eq('user_id',owner)).data).toHaveLength(0);
  } finally {

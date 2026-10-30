@@ -1,0 +1,226 @@
+.trigger {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 9px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--intro-line, var(--line));
+  background: transparent;
+  color: var(--intro-muted, var(--muted));
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+.trigger:hover {
+  color: var(--intro-ink, var(--ink));
+  background: var(--intro-card, var(--surface));
+}
+.trigger svg {
+  width: 17px;
+  height: 17px;
+}
+.dialog:global(.install-app-dialog) {
+  width: min(480px, calc(100% - 28px));
+  max-height: calc(100dvh - 32px);
+  padding: 24px;
+  border-radius: 24px;
+  text-align: left;
+  font-family:
+    'Podung Round',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
+.dialog:global(.install-app-dialog) h2 {
+  font-size: 21px;
+  margin: 0;
+  line-height: 1.4;
+  letter-spacing: -0.5px;
+}
+.dialog:global(.install-app-dialog) > form {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  margin-top: 18px;
+}
+.dialog:global(.install-app-dialog) > form button {
+  min-height: 44px;
+  border-radius: 12px;
+  padding: 10px 21px;
+  font-size: 14px;
+}
+.dialog :global(.device-guide) {
+  margin-top: 8px;
+}
+.dialog :global(.device-guide) > summary {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.dialog :global(.device-guide) > summary::after {
+  display: none;
+}
+.dialog :global(.device-guide) > h4 {
+  margin: 8px 0 15px;
+  font-size: 14px;
+}
+.visualGuide {
+  width: 100%;
+  min-width: 0;
+}
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 13px;
+}
+.steps button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+}
+.steps button[aria-current='step'] {
+  border-color: var(--brown);
+  color: white;
+  background: var(--brown);
+}
+.step {
+  margin: 0;
+}
+.step[hidden] {
+  display: none;
+}
+.step > img,
+.permissionImage > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 13px;
+  border: 1px solid var(--line);
+}
+.step figcaption {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 0 10px;
+  min-height: 83px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.8;
+  word-break: keep-all;
+}
+.step figcaption strong {
+  color: var(--brown);
+  font-size: 12px;
+  padding-top: 1px;
+}
+.stepActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+.stepActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 42px;
+  padding: 8px 12px;
+  color: var(--brown);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 12px;
+}
+.stepActions button:last-child {
+  background: color-mix(in srgb, var(--brown) 8%, var(--surface));
+  border-color: transparent;
+}
+.stepActions button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.imageNote {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+  margin-top: 13px;
+}
+.notificationDetails {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 8px;
+}
+.notificationDetails > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13px;
+  color: var(--ink);
+  font-weight: 700;
+}
+.notificationDetails > summary::after {
+  content: '+';
+  margin-left: auto;
+  font-size: 17px;
+  font-weight: 400;
+}
+.notificationDetails[open] > summary::after {
+  content: '−';
+}
+.permissionImage {
+  margin: 12px 0 16px;
+}
+.permissionImage figcaption {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 9px;
+}
+@media (max-width: 400px) {
+  .dialog:global(.install-app-dialog) {
+    padding: 20px;
+  }
+  .step figcaption {
+    font-size: 12px;
+    min-height: 88px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trigger {
+    transition: none;
+  }
+}
+.dialog:global(.install-app-dialog)[open] {
+  display: flex;
+  flex-direction: column;
+}
+.dialogBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+.dialog:global(.install-app-dialog) > h2 {
+  flex: none;
+  margin-bottom: 8px;
+}
+.dialog:global(.install-app-dialog) > form {
+  flex: none;
+}
+.dialog :global(.device-guide) > summary {
+  min-height: 32px;
+}

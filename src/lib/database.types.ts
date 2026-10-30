@@ -897,14 +897,14 @@ isOneToOne: false
                   ]
                 },"feeding_push_deliveries": {
                   Row: {
-                    "attempts": number,"child_id": string,"id": string,"lease_token": string | null,"leased_until": string | null,"record_id": string,"scheduled_at": string,"sent_at": string | null,"status": string,"subscription_id": string
+                    "attempts": number,"child_id": string,"id": string,"lease_token": string | null,"leased_until": string | null,"record_id": string,"reference": string,"scheduled_at": string,"sent_at": string | null,"status": string,"subscription_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "attempts"?: number,"child_id": string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"record_id": string,"scheduled_at": string,"sent_at"?: string | null,"status"?: string,"subscription_id": string
+                    "attempts"?: number,"child_id": string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"record_id": string,"reference"?: string,"scheduled_at": string,"sent_at"?: string | null,"status"?: string,"subscription_id": string
                   }
                   Update: {
-                    "attempts"?: number,"child_id"?: string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"record_id"?: string,"scheduled_at"?: string,"sent_at"?: string | null,"status"?: string,"subscription_id"?: string
+                    "attempts"?: number,"child_id"?: string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"record_id"?: string,"reference"?: string,"scheduled_at"?: string,"sent_at"?: string | null,"status"?: string,"subscription_id"?: string
                   }
                   Relationships: [
                     {
@@ -1127,14 +1127,14 @@ isOneToOne: false
                   ]
                 },"notification_preferences": {
                   Row: {
-                    "delivery_hour": number,"event_enabled": boolean,"feeding_enabled": boolean,"feeding_interval_minutes": number,"frequency_minutes": number,"quiet_end": string,"quiet_start": string,"snooze_until": string | null,"task_enabled": boolean,"user_id": string
+                    "delivery_hour": number,"event_enabled": boolean,"feeding_enabled": boolean,"feeding_interval_minutes": number,"feeding_reference": string,"frequency_minutes": number,"quiet_end": string,"quiet_start": string,"snooze_until": string | null,"task_enabled": boolean,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"frequency_minutes"?: number,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id": string
+                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id": string
                   }
                   Update: {
-                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"frequency_minutes"?: number,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id"?: string
+                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1518,7 +1518,7 @@ isOneToOne: false
       } },
 "claim_feeding_push":
 { Args: { "p_token": string }; Returns: {
-              "auth_key": string,"child_id": string,"endpoint": string,"id": string,"lease_token": string,"locale": string,"p256dh": string
+              "auth_key": string,"child_id": string,"endpoint": string,"id": string,"lease_token": string,"locale": string,"meal_kind": string,"p256dh": string,"reference": string
             }[]
                            },
 "cleanup_admin_logs":
@@ -1610,6 +1610,9 @@ isOneToOne: false
 { Args: { "p_child": string }; Returns: {
               "caregivers": Json,"family": Json,"members": Json,"owner": boolean,"writable": boolean
             }[]
+                           },
+"feeding_reference_time":
+{ Args: { "p_started": string,"p_timezone": string }; Returns: string
                            },
 "feeding_push_candidates":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -1809,6 +1812,9 @@ isOneToOne: false
                            },
 "save_family_residence_region":
 { Args: { "p_country_code"?: string,"p_family": string,"p_region_code": string,"p_version": number }; Returns: undefined
+                           },
+"save_feeding_reminder":
+{ Args: { "p_interval": number,"p_locale"?: string,"p_mode": string,"p_quiet": boolean,"p_subscription"?: Json }; Returns: string
                            },
 "save_feeding_push_preferences":
 { Args: { "p_enabled": boolean,"p_interval": number,"p_quiet": boolean }; Returns: undefined

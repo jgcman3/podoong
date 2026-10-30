@@ -57,6 +57,9 @@ export default async function Login({
             </div>
           )}
           <div className="login-legal-links">
+            <Link href={`/${locale}/intro?next=${encodeURIComponent(next)}`}>
+              {locale === 'ko' ? '포둥 둘러보기' : 'Explore podoong'}
+            </Link>
             <Link
               href={`/${locale}/legal/terms?source=login&next=${encodeURIComponent(next)}`}
             >

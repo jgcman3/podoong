@@ -7,10 +7,25 @@ import {
   useId,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
-import { Download, Check, ChevronRight } from 'lucide-react';
+import {
+  Download,
+  Check,
+  ChevronRight,
+  PlusSquare,
+  AppWindow,
+} from 'lucide-react';
+import { createPortal } from 'react-dom';
 import type { Locale } from '@/lib/domain';
+import { DeviceGuide } from './device-guide';
+import { devicePlatform, type DevicePlatform } from '@/lib/device-platform';
+import styles from './install-app.module.css';
+
+const subscribeMounted = () => () => {};
+const clientMounted = () => true;
+const serverMounted = () => false;
 
 interface InstallPrompt extends Event {
   prompt(): Promise<void>;
@@ -19,7 +34,7 @@ interface InstallPrompt extends Event {
 type InstallState = {
   prompt: InstallPrompt | null;
   installed: boolean;
-  ios: boolean;
+  platform: DevicePlatform;
   secure: boolean;
   clearPrompt: () => void;
 };
@@ -54,7 +69,7 @@ export function InstallAppProvider({ children }: { children: ReactNode }) {
   const [prompt, setPrompt] = useState<InstallPrompt | null>(null);
   const [device, setDevice] = useState({
     installed: false,
-    ios: false,
+    platform: 'desktop' as DevicePlatform,
     secure: true,
   });
   useEffect(() => {
@@ -66,9 +81,11 @@ export function InstallAppProvider({ children }: { children: ReactNode }) {
           Boolean(
             (navigator as Navigator & { standalone?: boolean }).standalone,
           ),
-        ios:
-          /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
+        platform: devicePlatform(
+          navigator.userAgent,
+          navigator.platform,
+          navigator.maxTouchPoints,
+        ),
         secure: window.isSecureContext,
       });
     const frame = requestAnimationFrame(update);
@@ -102,20 +119,38 @@ export function InstallAppProvider({ children }: { children: ReactNode }) {
 export function InstallAppButton({
   locale,
   card = false,
+  variant = 'default',
 }: {
   locale: Locale;
   card?: boolean;
+  variant?: 'default' | 'intro';
 }) {
   const state = useContext(InstallContext);
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [busy, setBusy] = useState(false);
+  const mounted = useSyncExternalStore(
+    subscribeMounted,
+    clientMounted,
+    serverMounted,
+  );
   const ko = locale === 'ko';
   if (!state || state.installed) return null;
-  const title = ko ? '홈 화면에 추가' : 'Add to Home Screen';
+  const mobile = state.platform === 'ios' || state.platform === 'android';
+  const title = mobile
+    ? ko
+      ? '홈 화면에 추가'
+      : 'Add to Home Screen'
+    : ko
+      ? '앱으로 설치'
+      : 'Install app';
+  const showGuide = () => {
+    dialog.current?.showModal();
+    dialog.current?.querySelector('h2')?.focus({ preventScroll: true });
+  };
   const install = async () => {
     if (!state.prompt) {
-      dialog.current?.showModal();
+      showGuide();
       return;
     }
     setBusy(true);
@@ -123,7 +158,7 @@ export function InstallAppButton({
       await state.prompt.prompt();
       await state.prompt.userChoice;
     } catch {
-      dialog.current?.showModal();
+      showGuide();
     } finally {
       state.clearPrompt();
       setBusy(false);
@@ -133,9 +168,15 @@ export function InstallAppButton({
     <>
       <button
         type="button"
-        className={card ? 'service-card install-app-card' : 'button secondary'}
+        className={
+          variant === 'intro'
+            ? styles.trigger
+            : card
+              ? 'service-card install-app-card'
+              : 'button secondary'
+        }
         onClick={install}
-        disabled={busy}
+        disabled={busy || !mounted}
       >
         {card ? (
           <>
@@ -147,54 +188,40 @@ export function InstallAppButton({
           </>
         ) : (
           <>
-            <Download size={18} />
+            {mobile ? <PlusSquare size={18} /> : <AppWindow size={18} />}
             {title}
           </>
         )}
       </button>
-      <dialog
-        ref={dialog}
-        className="install-app-dialog"
-        aria-labelledby={titleId}
-      >
-        <h2 id={titleId}>{title}</h2>
-        {state.ios ? (
-          <ol>
-            <li>
-              {ko ? 'Safari에서 포둥을 열어요.' : 'Open podoong in Safari.'}
-            </li>
-            <li>
-              {ko
-                ? '공유 메뉴에서 ‘홈 화면에 추가’를 선택해요.'
-                : 'Choose “Add to Home Screen” in the Share menu.'}
-            </li>
-            <li>
-              {ko
-                ? '‘웹 앱으로 열기’가 보이면 켜고, ‘추가’를 눌러요.'
-                : 'If “Open as Web App” is shown, enable it, then tap Add.'}
-            </li>
-          </ol>
-        ) : (
-          <p>
-            {ko
-              ? '브라우저 메뉴의 ‘앱 설치’ 또는 ‘홈 화면에 추가’를 선택해주세요. 메뉴가 없다면 Chrome이나 Edge에서 열어주세요.'
-              : 'Choose “Install app” or “Add to Home Screen” in your browser menu. If unavailable, open this page in Chrome or Edge.'}
-          </p>
+      {mounted &&
+        createPortal(
+          <dialog
+            ref={dialog}
+            className={`install-app-dialog ${styles.dialog}`}
+            aria-labelledby={titleId}
+          >
+            <h2 id={titleId} tabIndex={-1}>
+              {title}
+            </h2>
+            <div className={styles.dialogBody}>
+              <DeviceGuide locale={locale} purpose="install" />
+              {!state.secure && (
+                <p className="install-app-notice">
+                  {ko
+                    ? '현재 HTTP 개발 주소에서는 바로 설치가 지원되지 않을 수 있어요. HTTPS 주소에서 다시 이용해주세요.'
+                    : 'Direct installation may be unavailable on this HTTP development address. Try again on the HTTPS site.'}
+                </p>
+              )}
+            </div>
+            <form method="dialog">
+              <button className="button primary">
+                <Check size={18} />
+                {ko ? '확인' : 'Done'}
+              </button>
+            </form>
+          </dialog>,
+          document.body,
         )}
-        {!state.secure && (
-          <p className="install-app-notice">
-            {ko
-              ? '현재 HTTP 개발 주소에서는 바로 설치가 지원되지 않을 수 있어요. HTTPS 주소에서 다시 이용해주세요.'
-              : 'Direct installation may be unavailable on this HTTP development address. Try again on the HTTPS site.'}
-          </p>
-        )}
-        <form method="dialog">
-          <button className="button primary">
-            <Check size={18} />
-            {ko ? '확인' : 'Done'}
-          </button>
-        </form>
-      </dialog>
     </>
   );
 }

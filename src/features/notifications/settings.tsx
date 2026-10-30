@@ -40,6 +40,13 @@ export async function NotificationSettings({
       publicKey={config.data}
       initialDevice={subscription.data?.id ?? null}
       initialInterval={prefs.data?.feeding_interval_minutes ?? 180}
+      initialMode={
+        prefs.data?.feeding_enabled === false
+          ? 'off'
+          : prefs.data?.feeding_reference === 'yesterday'
+            ? 'yesterday'
+            : 'interval'
+      }
       initialQuiet={
         !prefs.data || prefs.data.quiet_start !== prefs.data.quiet_end
       }

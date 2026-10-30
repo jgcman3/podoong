@@ -6,6 +6,7 @@ const inputSchema = z.object({
   locale: z.enum(['ko', 'en']),
   interval: z.number().int().min(30).max(1440),
   quiet: z.boolean(),
+  mode: z.enum(['interval', 'yesterday', 'off']),
   subscription: z
     .object({
       endpoint: z.url().max(2048),
@@ -21,14 +22,15 @@ export async function saveFeedingPush(input: unknown) {
   if (!parsed.success) return { error: true } as const;
   const value = parsed.data,
     { db } = await requireUser(value.locale);
-  if (value.subscription) {
-    const result = await db.rpc('enable_feeding_push', {
-      p_subscription: value.subscription,
-      p_interval: value.interval,
-      p_quiet: value.quiet,
-      p_locale: value.locale,
-    });
-    if (result.error) return { error: true } as const;
+  const result = await db.rpc('save_feeding_reminder', {
+    ...(value.subscription ? { p_subscription: value.subscription } : {}),
+    p_mode: value.mode,
+    p_interval: value.interval,
+    p_quiet: value.quiet,
+    p_locale: value.locale,
+  });
+  if (result.error) return { error: true } as const;
+  if (value.subscription && result.data) {
     (await cookies()).set('podung-push-device', result.data, {
       httpOnly: true,
       sameSite: 'lax',
@@ -38,12 +40,7 @@ export async function saveFeedingPush(input: unknown) {
     });
     return { id: result.data } as const;
   }
-  const result = await db.rpc('save_feeding_push_preferences', {
-    p_enabled: true,
-    p_interval: value.interval,
-    p_quiet: value.quiet,
-  });
-  return { error: Boolean(result.error) } as const;
+  return { error: false } as const;
 }
 export async function disableFeedingPush(locale: 'ko' | 'en') {
   if (!['ko', 'en'].includes(locale)) return { error: true };

@@ -16,6 +16,24 @@ const job = {
   child_id: 'child',
 };
 describe('feeding push delivery', () => {
+  it('describes yesterday as a past record rather than an instruction to feed', () => {
+    const ko = feedingPushPayload({
+      ...job,
+      reference: 'yesterday',
+      meal_kind: 'formula',
+    });
+    expect(ko.title).toBe('어제 이 시간에 분유 먹었어요');
+    expect(ko.body).toContain('어제의 기록');
+    expect(ko.tag).toBe('feeding:child');
+    const en = feedingPushPayload({
+      ...job,
+      locale: 'en',
+      reference: 'yesterday',
+      meal_kind: 'solids',
+    });
+    expect(en.title).toBe('Yesterday at this time: solids');
+    expect(en.url).toBe('/en/today?child=child');
+  });
   it('keeps private baby names and care amounts out of the lock screen payload', () => {
     expect(feedingPushPayload(job)).toEqual({
       title: '다음 먹이기 시간이에요',
