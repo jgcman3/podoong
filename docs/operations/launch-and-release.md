@@ -58,7 +58,7 @@ Vercel 한 프로젝트의 Preview 설정을 개발, Production 설정을 운영
 
 | 저장 위치                        | 항목                                                                                                                                                                                         |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GitHub Repository Variables      | `VERCEL_ORG_ID`, `VERCEL_TEAM_SLUG`, `VERCEL_PROJECT_ID`, `PODUNG_PRODUCTION_PROJECT_REF=atdyjsxfxlhwxmxgtnte`; 준비 완료 후 `DEPLOYMENTS_ENABLED=true`                                                          |
+| GitHub Repository Variables      | `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `PODUNG_PRODUCTION_PROJECT_REF=atdyjsxfxlhwxmxgtnte`; 준비 완료 후 `DEPLOYMENTS_ENABLED=true`                                                          |
 | 각 GitHub Environment Variables  | `SUPABASE_PROJECT_REF`: 각 환경의 프로젝트 ID                                                                                                                                                |
 | GitHub Repository Secrets        | `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`: CI 전용 배포 토큰                                                                                          |
 | 각 GitHub Environment Secrets    | `SUPABASE_SERVICE_ROLE_KEY`: 해당 환경의 서버 키 |
@@ -201,3 +201,10 @@ Actions용 전용 토큰 `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`은 사용자가
 사전 빌드 앱 `dpl_CJnFQAumrScYgcrgXVx2Y3vvFkTJ`는 Vercel Ready 상태로 생성됐지만 마지막 alias 명령에 팀 ID를 전달해 실패했다. CLI의 alias 명령에는 팀 slug를 사용하도록 `VERCEL_TEAM_SLUG=jgcman3` 변수를 추가했다. 이미 검증된 앱의 `dev.podoong.com` 연결을 CLI로 완료했다.
 
 Vercel 기본 인증이 개발 브랜치 도메인에도 적용되는 것을 확인해 개발 도메인 하나만 Deployment Protection Exception으로 등록했다. 전체 프로젝트 보호를 해제하지 않으며 앱의 Supabase 인증·가족 권한은 유지한다. 한국어 로그인 HTTPS 응답 200을 확인했고 두 언어·카카오 복귀 주소와 수정된 자동 배포의 재실행은 이어서 확인한다. 운영 도메인·운영 DB는 변경하지 않았다.
+
+
+### CI 도메인 연결의 API 전환 — 2026-10-30
+
+팀 slug를 사용해도 CI 토큰에서 alias CLI의 사용자 조회가 404로 실패했다. 앱·DB·함수 배포는 성공했고 도메인만 CLI 로그인이 있는 로컬에서 연결했다. 자동화에서는 사용자 조회를 하지 않는 팀 범위 REST API를 사용하도록 `assign-development-domain.mjs`로 대체한다. 이 스크립트는 develop 브랜치·지정 프로젝트·READY 상태·비운영 배포를 확인한 뒤 `dev.podoong.com` 하나만 연결한다. `VERCEL_TEAM_SLUG` 변수는 제거했다.
+
+실제 개발 주소의 한국어·영어·manifest HTTPS 200, 카카오 활성화, 개발 Supabase callback과 dev 도메인 복귀, 서버 서울 리전과 이미지 최종 로딩을 확인했다. 사용자가 실제 카카오 로그인을 완료했다고 확인했다. 기존 운영 DB는 읽기 전용 건수 조회로 아이·돌봄·성장일기·사진 메타데이터가 남아 있음을 확인했으며 운영 자료를 개발에 복사하거나 삭제하지 않았다.
