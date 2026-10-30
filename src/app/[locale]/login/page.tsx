@@ -46,7 +46,7 @@ export default async function Login({
           <Flash error={query.error} />
           <SocialButtons locale={locale} next={query.next} />
           {(!configured() ||
-            !['google', 'kakao', 'naver'].every((p) =>
+            !['google', 'kakao', 'naver'].some((p) =>
               (process.env.NEXT_PUBLIC_AUTH_PROVIDERS ?? '')
                 .split(',')
                 .includes(p),
@@ -56,6 +56,18 @@ export default async function Login({
               <p>{t('setupSub')}</p>
             </div>
           )}
+          <div className="login-legal-links">
+            <Link
+              href={`/${locale}/legal/terms?source=login&next=${encodeURIComponent(next)}`}
+            >
+              {locale === 'ko' ? '이용약관' : 'Terms'}
+            </Link>
+            <Link
+              href={`/${locale}/legal/privacy?source=login&next=${encodeURIComponent(next)}`}
+            >
+              {locale === 'ko' ? '개인정보 처리방침' : 'Privacy Policy'}
+            </Link>
+          </div>
           <div className="login-footer">{t('helpBody')}</div>
         </section>
       </div>

@@ -23,6 +23,70 @@ export type Database = {
           }
         },"public": {
           Tables: {
+      signup_agreements: {
+        Row: {
+          accepted_at: string;
+          interface_locale: string;
+          kind: string;
+          user_id: string;
+          version: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          accepted_at?: string;
+          interface_locale: string;
+          kind: string;
+          user_id: string;
+          version: string;
+        };
+        Update: {
+          accepted_at?: string;
+          interface_locale?: string;
+          kind?: string;
+          user_id?: string;
+          version?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'signup_agreements_kind_version_fkey';
+            columns: ['kind', 'version'];
+            isOneToOne: false;
+            referencedRelation: 'signup_document_versions';
+            referencedColumns: ['kind', 'version'];
+          },
+        ];
+      };
+      signup_document_versions: {
+        Row: {
+          document_locale: string;
+          is_current: boolean;
+          kind: string;
+          sha256: string | null;
+          snapshot: string;
+          status: string;
+          version: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          document_locale: string;
+          is_current?: boolean;
+          kind: string;
+          sha256?: never;
+          snapshot: string;
+          status?: string;
+          version: string;
+        };
+        Update: {
+          document_locale?: string;
+          is_current?: boolean;
+          kind?: string;
+          sha256?: never;
+          snapshot?: string;
+          status?: string;
+          version?: string;
+        };
+        Relationships: [];
+      };
             "admin_audit_log": {
                   Row: {
                     "action": string,"actor_id": string | null,"created_at": string,"details": NonNullable<Json>,"id": string,"subject_id": string
@@ -1331,6 +1395,20 @@ isOneToOne: false
                 }
           }
           Functions: {
+      accept_signup_agreements: {
+        Args: {
+          p_collection: boolean;
+          p_collection_version: string;
+          p_locale: string;
+          p_terms: boolean;
+          p_terms_version: string;
+        };
+        Returns: undefined;
+      };
+      has_signup_agreement: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
             "accept_invitation":
 { Args: { "p_relationship": Database["public"]['Enums']["caregiver_relationship"],"p_token": string }; Returns: string
                            },

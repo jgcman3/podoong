@@ -7,7 +7,13 @@ const related: Record<string, string> = {
   'community-policy.ko.md': 'community',
   'consent-notices.ko.md': 'consent',
 };
-function inline(text: string, locale: Locale, childId?: string): ReactNode[] {
+type ReturnTo = { source: 'signup' | 'login'; next: string };
+function inline(
+  text: string,
+  locale: Locale,
+  childId?: string,
+  returnTo?: ReturnTo,
+): ReactNode[] {
   return text
     .split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g)
     .filter(Boolean)
@@ -23,7 +29,7 @@ function inline(text: string, locale: Locale, childId?: string): ReactNode[] {
           return (
             <Link
               key={i}
-              href={`/${locale}/legal/${slug}${childId ? `?child=${childId}` : ''}`}
+              href={`/${locale}/legal/${slug}${returnTo ? `?source=${returnTo.source}&next=${encodeURIComponent(returnTo.next)}` : childId ? `?child=${childId}` : ''}`}
             >
               {link[1]}
             </Link>
@@ -43,10 +49,12 @@ export function LegalMarkdown({
   body,
   locale,
   childId,
+  returnTo,
 }: {
   body: string;
   locale: Locale;
   childId?: string;
+  returnTo?: ReturnTo;
 }) {
   return (
     <>
@@ -63,7 +71,11 @@ export function LegalMarkdown({
                 : heading[1].length === 3
                   ? 'h3'
                   : 'h4';
-            return <Tag key={index}>{inline(heading[2], locale, childId)}</Tag>;
+            return (
+              <Tag key={index}>
+                {inline(heading[2], locale, childId, returnTo)}
+              </Tag>
+            );
           }
           if (lines[0].startsWith('|') && lines.length > 2) {
             const rows = lines
@@ -80,7 +92,9 @@ export function LegalMarkdown({
                   <thead>
                     <tr>
                       {rows[0].map((cell, i) => (
-                        <th key={i}>{inline(cell, locale, childId)}</th>
+                        <th key={i}>
+                          {inline(cell, locale, childId, returnTo)}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -88,7 +102,9 @@ export function LegalMarkdown({
                     {rows.slice(1).map((row, r) => (
                       <tr key={r}>
                         {row.map((cell, c) => (
-                          <td key={c}>{inline(cell, locale, childId)}</td>
+                          <td key={c}>
+                            {inline(cell, locale, childId, returnTo)}
+                          </td>
                         ))}
                       </tr>
                     ))}
@@ -101,13 +117,15 @@ export function LegalMarkdown({
             return (
               <ul key={index}>
                 {lines.map((line, i) => (
-                  <li key={i}>{inline(line.slice(2), locale, childId)}</li>
+                  <li key={i}>
+                    {inline(line.slice(2), locale, childId, returnTo)}
+                  </li>
                 ))}
               </ul>
             );
           return (
             <p key={index}>
-              {inline(block.replace(/\n/g, ' '), locale, childId)}
+              {inline(block.replace(/\n/g, ' '), locale, childId, returnTo)}
             </p>
           );
         })}

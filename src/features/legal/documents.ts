@@ -1,6 +1,7 @@
 import 'server-only';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { createClient } from '@/lib/supabase/server';
 export const legalDocuments = {
   terms: {
     ko: '서비스 이용약관',
@@ -22,6 +23,11 @@ export const legalDocuments = {
     en: 'Consent Information',
     file: 'consent-notices.ko.md',
   },
+  'signup-privacy': {
+    ko: '가입 개인정보 수집·이용 안내',
+    en: 'Account Information Collection Notice',
+    file: 'signup-privacy.ko.md',
+  },
 } as const;
 export type LegalDocument = keyof typeof legalDocuments;
 export function isLegalDocument(value: string): value is LegalDocument {
@@ -32,6 +38,33 @@ export async function readLegalDocument(key: LegalDocument) {
     path.join(process.cwd(), 'docs/legal', legalDocuments[key].file),
     'utf8',
   );
+  return parseDocument(markdown);
+}
+
+export async function readSignupDocument(key: LegalDocument, version: string) {
+  const kind =
+    key === 'terms'
+      ? 'terms'
+      : key === 'signup-privacy'
+        ? 'account_collection'
+        : null;
+  if (!kind || !/^signup-[A-Za-z0-9.-]{1,80}$/.test(version)) return null;
+  const db = await createClient();
+  const result = await db
+    .from('signup_document_versions')
+    .select('snapshot,version')
+    .eq('kind', kind)
+    .eq('version', version)
+    .maybeSingle();
+  if (result.error) throw new Error('Signup document unavailable');
+  if (!result.data) return null;
+  return {
+    ...parseDocument(result.data.snapshot),
+    version: result.data.version,
+  };
+}
+
+function parseDocument(markdown: string) {
   const version = markdown.match(/^버전\s+([\d.]+)/m)?.[1] ?? '';
   const updated = markdown.match(/작성일\s*(\d{4}-\d{2}-\d{2})/)?.[1] ?? '';
   const body = markdown

@@ -2,11 +2,12 @@ import Link from 'next/link';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { z } from 'zod';
-import { isLocale } from '@/lib/domain';
+import { isLocale, safeReturnPath } from '@/lib/domain';
 import {
   isLegalDocument,
   legalDocuments,
   readLegalDocument,
+  readSignupDocument,
 } from '@/features/legal/documents';
 import { LegalMarkdown } from '@/features/legal/markdown';
 export const metadata = { robots: { index: false, follow: false } };
@@ -15,22 +16,44 @@ export default async function LegalPage({
   searchParams,
 }: {
   params: Promise<{ locale: string; document: string }>;
-  searchParams: Promise<{ child?: string }>;
+  searchParams: Promise<{
+    child?: string;
+    source?: string;
+    next?: string;
+    version?: string;
+  }>;
 }) {
   const { locale, document } = await params,
     query = await searchParams;
   if (!isLocale(locale) || !isLegalDocument(document)) notFound();
-  const ko = locale === 'ko',
-    doc = await readLegalDocument(document);
+  const ko = locale === 'ko';
+  const doc = query.version
+    ? await readSignupDocument(document, query.version)
+    : await readLegalDocument(document);
+  if (!doc) notFound();
   const child = z.uuid().safeParse(query.child);
-  const back = `/${locale}/account?panel=service${child.success ? `&child=${child.data}` : ''}`;
+  const returnTo: { source: 'signup' | 'login'; next: string } | undefined =
+    query.source === 'signup' || query.source === 'login'
+      ? { source: query.source, next: safeReturnPath(query.next, locale) }
+      : undefined;
+  const back = returnTo
+    ? `/${locale}/${returnTo.source === 'signup' ? 'onboarding' : 'login'}?next=${encodeURIComponent(returnTo.next)}`
+    : `/${locale}/account?panel=service${child.success ? `&child=${child.data}` : ''}`;
   return (
     <main className="legal-page">
       <header className="legal-toolbar">
         <Link href={back} aria-label={ko ? '돌아가기' : 'Back'}>
           <ArrowLeft size={21} />
         </Link>
-        <span>{ko ? '서비스 정보' : 'Service information'}</span>
+        <span>
+          {returnTo
+            ? ko
+              ? '가입 안내'
+              : 'Signup information'
+            : ko
+              ? '서비스 정보'
+              : 'Service information'}
+        </span>
       </header>
       <article className="panel legal-document" lang="ko">
         <div className="legal-heading">
@@ -45,13 +68,15 @@ export default async function LegalPage({
           {ko ? legalDocuments[document].ko : legalDocuments[document].en}
         </h1>
         <p className="legal-version">
-          v{doc.version} · {doc.updated}
+          {/^[\d.]+$/.test(doc.version) ? 'v' : ''}
+          {doc.version} · {doc.updated}
           {!ko ? ' · Korean original' : ''}
         </p>
         <LegalMarkdown
           body={doc.body}
           locale={locale}
           childId={child.success ? child.data : undefined}
+          returnTo={returnTo}
         />
       </article>
     </main>

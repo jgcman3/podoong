@@ -685,6 +685,11 @@ test('signed-out users see three social choices and preserve safe invitation rou
   expect(new URL(page.url()).searchParams.get('next')).toBe(
     invitation.replace('/ko/', '/en/'),
   );
+  await page.getByRole('link',{name:'Terms',exact:true}).click();
+  await page.getByRole('link',{name:'동의 안내',exact:true}).click();
+  await page.getByRole('link',{name:'Back',exact:true}).click();
+  await expect(page).toHaveURL(/\/en\/login/);
+  expect(new URL(page.url()).searchParams.get('next')).toBe(invitation.replace('/ko/','/en/'));
   await page.goto(
     '/auth/callback?locale=en&next=' +
       encodeURIComponent(invitation.replace('/ko/', '/en/')),
@@ -857,9 +862,34 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   page,
   context,
 }) => {
-  await signIn(context);
+  const user = await signIn(context);
   await page.goto('/ko/today');
   await expect(page).toHaveURL(/onboarding/);
+  await expect(page.getByLabel('보호자 이름')).toHaveCount(0);
+  const agree = page.getByRole('button', {name:'동의하고 계속하기',exact:true});
+  await expect(agree).toBeDisabled();
+  await page.getByRole('link', {name:'서비스 이용약관 전문 보기',exact:true}).click();
+  await expect(page).toHaveURL(/legal\/terms.*version=signup-/);
+  await expect(page.getByRole('heading',{name:'서비스 이용약관',exact:true})).toBeVisible();
+  await page.getByRole('link',{name:'돌아가기',exact:true}).click();
+  await expect(page).toHaveURL(/onboarding/);
+  await expect(page.getByLabel('보호자 이름')).toHaveCount(0);
+  for (const width of [320,390]) {
+    await page.setViewportSize({width,height:844});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  }
+  await page.getByRole('checkbox',{name:'[필수] 서비스 이용약관에 동의합니다',exact:true}).check();
+  await expect(agree).toBeDisabled();
+  await page.getByRole('checkbox',{name:'[필수] 가입 개인정보 수집·이용에 동의합니다',exact:true}).check();
+  await expect(agree).toBeEnabled();
+  await page.screenshot({path:'/private/tmp/podoong-signup-consent-mobile.png',caret:'initial',fullPage:true});
+  await agree.click();
+  await expect(page.getByLabel('보호자 이름')).toBeVisible();
+  const agreements = await admin.from('signup_agreements').select('kind,version,accepted_at,interface_locale').eq('user_id',user);
+  expect(agreements.error).toBeNull();
+  expect(agreements.data?.map(row=>row.kind).sort()).toEqual(['account_collection','terms']);
+  expect(agreements.data?.every(row=>row.accepted_at&&row.interface_locale==='ko'&&row.version==='signup-2026-10-30-draft.1')).toBe(true);
+  expect((await admin.from('profiles').select('id').eq('id',user)).data).toHaveLength(0);
   await page.getByLabel('보호자 이름').fill('테스트 보호자');
   await page.getByLabel('가족 이름').fill('테스트 둥지');
   await page.getByLabel('아이 이름 또는 닉네임').fill('포근이');
@@ -869,7 +899,6 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   await page.getByLabel('아이 태어난 날').fill('2026-10-01');
   await expect(page.getByLabel('아이와의 관계')).toHaveAttribute('required','');
   await page.getByLabel('아이와의 관계').selectOption('father');
-  await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: '우리 가족 시작하기' }).click();
   await expect(page).toHaveURL(/\/ko\/today/);
   await expect(page.locator('.topbar-child-info strong')).toHaveText('포근이');
@@ -879,6 +908,62 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   await page.getByLabel('아이 태어난 날').first().fill('2026-10-12');
   await page.locator('form').filter({ has: page.locator('input[name="birth"][value="2026-10-01"]') }).getByRole('button', { name: '저장하기' }).click();
   await expect(page.locator('.topbar-child-info')).toContainText('생후');
+});
+
+test('signup agreements support refusal and preserve the English invitation flow', async ({context, browser}) => {
+  const own = await childCareFamily(context);
+  const legacy = await context.newPage();
+  await legacy.goto('/ko/onboarding');
+  await expect(legacy.getByLabel('보호자 이름')).toHaveCount(0);
+  await legacy.locator('.signup-consent input[type=checkbox]').nth(0).check();
+  await legacy.locator('.signup-consent input[type=checkbox]').nth(1).check();
+  await legacy.getByRole('button',{name:'동의하고 계속하기',exact:true}).click();
+  await expect(legacy).toHaveURL(/\/ko\/today/);
+  expect((await admin.from('children').select('id').eq('family_id',own.family)).data).toHaveLength(1);
+  await legacy.close();
+  const token = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('hex');
+  const digest = Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))).toString('hex');
+  expect((await admin.from('invitations').insert({family_id:own.family,child_id:own.child,role:'editor',token_hash:digest,created_by:own.owner,expires_at:new Date(Date.now()+86400000).toISOString()})).error).toBeNull();
+  const next = `/en/invite/${token}`;
+  const declinedContext = await browser.newContext();
+  try {
+    const declinedUser = await signIn(declinedContext);
+    const declined = await declinedContext.newPage();
+    await declined.goto(`/en/onboarding?next=${encodeURIComponent(next)}`);
+    await declined.getByRole('button',{name:'Leave without agreeing',exact:true}).click();
+    await expect(declined).toHaveURL(/\/en\/login/);
+    expect((await admin.from('signup_agreements').select('kind').eq('user_id',declinedUser)).data).toHaveLength(0);
+    expect((await admin.from('profiles').select('id').eq('id',declinedUser)).data).toHaveLength(0);
+  } finally { await declinedContext.close(); }
+  const invitedContext = await browser.newContext({viewport:{width:320,height:740}});
+  try {
+    const invitedUser = await signIn(invitedContext);
+    const invited = await invitedContext.newPage();
+    await invited.goto(next);
+    await expect(invited.getByRole('heading',{name:'Start with podoong',exact:true})).toBeVisible();
+    await expect(invited.getByLabel('Caregiver name')).toHaveCount(0);
+    await invited.getByRole('link',{name:'Read the account information collection notice',exact:true}).click();
+    await expect(invited.getByRole('heading',{name:'Account Information Collection Notice',exact:true})).toBeVisible();
+    await expect(invited.locator('.legal-version')).toContainText('Korean original');
+    await invited.getByRole('link',{name:'Back',exact:true}).click();
+    await invited.getByRole('link',{name:'Privacy Policy',exact:true}).click();
+    await invited.getByRole('link',{name:'동의 문안',exact:true}).click();
+    await invited.getByRole('link',{name:'Back',exact:true}).click();
+    expect(new URL(invited.url()).searchParams.get('next')).toBe(next);
+    await invited.locator('.signup-consent input[type=checkbox]').nth(0).check();
+    await invited.locator('.signup-consent input[type=checkbox]').nth(1).check();
+    await invited.getByRole('button',{name:'Agree and continue',exact:true}).click();
+    await invited.getByLabel('Caregiver name').fill('Invited caregiver');
+    await expect(invited.locator('input[name=child]')).toHaveCount(0);
+    await invited.getByRole('button',{name:'Confirm invitation and join',exact:true}).click();
+    await expect(invited).toHaveURL(new RegExp(`/en/invite/${token}$`));
+    await invited.locator('select[name=relationship]').selectOption('maternal_aunt');
+    await invited.locator('input[name=confirm]').check();
+    await invited.getByRole('button',{name:'Confirm invitation and join',exact:true}).click();
+    await expect(invited).toHaveURL(new RegExp(`/en/today\\?child=${own.child}`));
+    expect((await admin.from('signup_agreements').select('interface_locale').eq('user_id',invitedUser)).data?.every(row=>row.interface_locale==='en')).toBe(true);
+    expect((await admin.from('children').select('id').eq('family_id',own.family)).data).toHaveLength(1);
+  } finally { await invitedContext.close(); }
 });
 
 test('responsive dashboard and current navigation remain within the viewport', async ({

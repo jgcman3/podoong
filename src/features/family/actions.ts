@@ -72,12 +72,14 @@ export async function saveFamilyResidence(form: FormData) {
 export async function onboard(form: FormData) {
   const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
   const { db, user } = await requireUser(locale);
+  const agreement = await db.rpc('has_signup_agreement');
+  if (agreement.error || !agreement.data)
+    redirect(`/${locale}/onboarding?error=invalid`);
   const parsed = z
     .object({
       family: z.string().trim().min(1).max(60),
       child: z.string().trim().min(1).max(60),
       name: z.string().trim().min(1).max(60),
-      consent: z.literal('on'),
       birth: birthDate,
       relationship:
         z.custom<import('./relationship').Relationship>(isRelationship),
@@ -122,7 +124,8 @@ export async function consentForInvite(form: FormData) {
   const { db, user } = await requireUser(locale);
   const name = String(form.get('name') ?? '').trim();
   const next = safeReturnPath(String(form.get('next')), locale);
-  if (!name || name.length > 60 || form.get('consent') !== 'on')
+  const agreement = await db.rpc('has_signup_agreement');
+  if (!name || name.length > 60 || agreement.error || !agreement.data)
     redirect(
       `/${locale}/onboarding?next=${encodeURIComponent(next)}&error=invalid`,
     );

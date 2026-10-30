@@ -7301,6 +7301,54 @@ html[data-standalone] :is(input, select, textarea) {
   font-weight: 400;
 }
 
+.signup-consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.signup-consent .signup-consent-row label {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.signup-consent-row input[type='checkbox'] {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--brown);
+}
+.signup-consent-row > a {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin-top: -8px;
+  font-size: 12px;
+  text-decoration: underline;
+}
+.signup-collection-summary {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.signup-collection-summary summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; }
+.signup-collection-summary[open] summary svg { transform: rotate(180deg); }
+.signup-collection-summary dl { margin: 12px 0; }
+.signup-collection-summary dl > div { margin-bottom: 10px; }
+.signup-collection-summary dt { font-weight: 600; }
+.signup-collection-summary dd { margin: 0; color: var(--muted); }
+.signup-privacy-link { font-size: 12px; text-decoration: underline; }
+.signup-decline { display: grid; margin-top: 12px; }
+.login-legal-links { display: flex; justify-content: center; gap: 16px; margin-top: 18px; font-size: 11px; color: var(--muted); }
 .quick-grid > .quick-diary-entry {
   display: contents;
 }
