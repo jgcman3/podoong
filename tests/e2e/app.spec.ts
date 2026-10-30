@@ -180,6 +180,15 @@ async function childCareFamily(context: BrowserContext) {
   return { owner, family: family.id, child };
 }
 
+function completedSeoulDay() {
+  // Recent records can straddle midnight; daily export fixtures need one
+  // completed local date containing every feeding and sleep interval.
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+  const now = new Date(`${today}T12:00:00+09:00`);
+  now.setUTCDate(now.getUTCDate() - 1);
+  return { now, day: now.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }) };
+}
+
 async function setFamilyResidence(family: string, code: string) {
   const region = await admin
     .from('residence_regions')
@@ -5898,8 +5907,7 @@ test('returning to today reuses its recent page without another data request', a
 
 test('diary composer attaches a daily pattern as a photo', async ({page, context}) => {
  const {child, owner} = await childCareFamily(context);
- const now = new Date();
- const day = now.toLocaleDateString('en-CA', {timeZone: 'Asia/Seoul'});
+ const {now, day} = completedSeoulDay();
  expect((await admin.from('care_records').insert({ id: crypto.randomUUID(), child_id: child, kind: 'formula', started_at: new Date(now.getTime() - 600000).toISOString(), ended_at: now.toISOString(), amount_ml: 120, created_by: owner, updated_by: owner })).error).toBeNull();
  expect((await admin.from('child_records').insert({id:crypto.randomUUID(),child_id:child,service:'diaper',kind:'dirty',occurred_at:now.toISOString(),record_timezone:'Asia/Seoul',created_by:owner,updated_by:owner})).error).toBeNull();
  await page.addInitScript(() => {
@@ -6675,11 +6683,13 @@ test('service admin resolves sanitized errors and loses access when its role is 
 
 test('diary composer attaches daily records alongside a pattern with the child age', async ({page, context}) => {
  const {child, owner} = await childCareFamily(context);
- const now = new Date(), day = now.toLocaleDateString('en-CA', {timeZone:'Asia/Seoul'});
+ const {now, day} = completedSeoulDay();
  expect((await admin.from('care_records').insert({id:crypto.randomUUID(),child_id:child,kind:'formula',started_at:new Date(now.getTime()-600000).toISOString(),amount_ml:140,created_by:owner,updated_by:owner})).error).toBeNull();
  expect((await admin.from('child_records').insert({id:crypto.randomUUID(),child_id:child,service:'diaper',kind:'dirty',occurred_at:now.toISOString(),record_timezone:'Asia/Seoul',created_by:owner,updated_by:owner})).error).toBeNull();
  expect((await admin.from('child_records').insert({id:crypto.randomUUID(),child_id:child,service:'sleep',kind:'nap',occurred_at:new Date(now.getTime()-7200000).toISOString(),ended_at:new Date(now.getTime()-3000000).toISOString(),record_timezone:'Asia/Seoul',created_by:owner,updated_by:owner})).error).toBeNull();
- await page.goto(`/ko/today?child=${child}`);await expect(page.locator('.quick-color-sleep.quick-timeline-entry').first()).toContainText('1시간 10분');
+ await page.goto(`/ko/today?child=${child}`);
+ await page.locator('.quick-history-loader').scrollIntoViewIfNeeded();
+ await expect(page.locator('.quick-color-sleep.quick-timeline-entry').first()).toContainText('1시간 10분');
  await page.addInitScript(() => {
   const original=CanvasRenderingContext2D.prototype.fillText;
   CanvasRenderingContext2D.prototype.fillText=function(text,x,y,maxWidth){
