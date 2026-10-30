@@ -18,7 +18,6 @@ import {
   Utensils,
 } from 'lucide-react';
 import { BrandImage } from '@/components/brand-image';
-import { InstallAppButton } from '@/components/install-app';
 import { careIcons, careLabels } from '@/features/care/activity-config';
 import { InsightPreview } from './insight-preview';
 import type { PatternCategory } from '@/features/insights/model';
@@ -551,7 +550,6 @@ export function Introduction({
           <p>{t.closingBody}</p>
           <div className={styles.closingActions}>
             {start()}
-            <InstallAppButton locale={locale} variant="intro" />
           </div>
         </section>
         <footer className={styles.footer}>

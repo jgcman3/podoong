@@ -4,13 +4,13 @@ import { notFound } from 'next/navigation';
 import { isLocale } from '@/lib/domain';
 import '../globals.css';
 import { InstallAppProvider } from '@/components/install-app';
-import type { Viewport } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import {
   AppearanceProvider,
   type ThemePreference,
 } from '@/components/appearance';
-export const metadata = {
+const baseMetadata: Metadata = {
   title: { default: '포둥 · podoong', template: '%s · podoong' },
   description: '가족과 함께 만드는 포근한 돌봄의 하루',
   manifest: '/manifest.webmanifest',
@@ -21,6 +21,18 @@ export const metadata = {
     apple: '/icons/podung-180.png?v=full-20261029',
   },
 };
+export async function generateMetadata() {
+  const token = (await cookies()).get('podoong-app-icon')?.value;
+  if (!token || !/^[a-f0-9]{64}$/.test(token)) return baseMetadata;
+  return {
+    ...baseMetadata,
+    manifest: `/api/app-manifest/${token}`,
+    icons: {
+      icon: `/api/app-icon/${token}/192`,
+      apple: `/api/app-icon/${token}/180`,
+    },
+  };
+}
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,

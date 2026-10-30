@@ -698,17 +698,7 @@ test('public introduction explains the service on mobile and preserves invitatio
   }
   expect(await examples.nth(0).getAttribute('src')).not.toBe(await examples.nth(1).getAttribute('src'));
   const closing = page.getByRole('heading', {name:'오늘부터, 함께 돌봐요.',exact:true}).locator('..');
-  const install = closing.getByRole('button', {name:'앱으로 설치',exact:true});
-  await install.scrollIntoViewIfNeeded();
-  const mainBox = (await closing.getByRole('link', {name:'포둥 시작하기',exact:true}).boundingBox())!;
-  const installBox = (await install.boundingBox())!;
-  expect(installBox.y - mainBox.y - mainBox.height).toBeGreaterThanOrEqual(12);
-  await install.click();
-  const installation = page.getByRole('dialog', {name:'앱으로 설치',exact:true});
-  expect(await installation.evaluate(node=>node.parentElement?.tagName)).toBe('BODY');
-  await installation.getByRole('button', {name:'다음 단계',exact:true}).click();
-  await expect(installation.getByRole('img', {name:'2단계 메뉴 위치를 표시한 안내용 재현 화면',exact:true})).toBeVisible();
-  await installation.getByRole('button', {name:'확인',exact:true}).click();
+  await expect(closing.getByRole('button', {name:/설치|홈 화면/})).toHaveCount(0);
   const invitation = '/ko/invite/' + 'a'.repeat(64);
   await page.goto('/ko/intro?next=' + encodeURIComponent(invitation));
   await page.getByRole('link', { name: 'English', exact: true }).click();
@@ -1042,6 +1032,8 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   await expect(page.getByLabel('아이와 나의 관계')).toHaveAttribute('required','');
   await page.getByLabel('아이와 나의 관계').selectOption('father');
   await page.getByRole('button', { name: '우리 가족 시작하기' }).click();
+  await expect(page).toHaveURL(/\/ko\/install/);
+  await page.getByRole('link', { name: '포둥 시작하기' }).click();
   await expect(page).toHaveURL(/\/ko\/today/);
   await expect(page.locator('.topbar-child-info strong')).toHaveText('포근이');
   const registeredChild = new URL(page.url()).searchParams.get('child')!;
@@ -1138,6 +1130,8 @@ test('mobile onboarding advances one field at a time and preserves input across 
     await page.getByLabel('가족 이름').fill('모바일 둥지');
     for (let index = 0; index < 6; index++) await next.click();
     await page.getByRole('button', { name: '우리 가족 시작하기', exact: true }).click();
+    await expect(page).toHaveURL(/\/ko\/install\?child=/);
+    await page.getByRole('link', { name: '포둥 시작하기' }).click();
     await expect(page).toHaveURL(/\/ko\/today\?child=/);
     const child = new URL(page.url()).searchParams.get('child')!;
     expect((await admin.from('children').select('name,birth_date,sex').eq('id', child).single()).data).toEqual({ name: '포근이', birth_date: '2026-10-01', sex: 'female' });
@@ -1195,6 +1189,8 @@ test('signup agreements support refusal and preserve the English invitation flow
     await invited.locator('select[name=relationship]').selectOption('maternal_aunt');
     await invited.locator('input[name=confirm]').check();
     await invited.getByRole('button',{name:'Join family',exact:true}).click();
+    await expect(invited).toHaveURL(new RegExp(`/en/install\\?child=${own.child}`));
+    await invited.getByRole('link',{name:'Start using podoong',exact:true}).click();
     await expect(invited).toHaveURL(new RegExp(`/en/today\\?child=${own.child}`));
     expect((await admin.from('signup_agreements').select('interface_locale').eq('user_id',invitedUser)).data?.every(row=>row.interface_locale==='en')).toBe(true);
     expect((await admin.from('children').select('id').eq('family_id',own.family)).data).toHaveLength(1);
@@ -4941,7 +4937,7 @@ test('home screen install exposes manifest, manual guidance and browser installa
     expect(response.headers()['content-type']).toContain('image/png');
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/ko/account?child=${child}`);
+  await page.goto(`/ko/install?child=${child}&ready=1`);
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
     'href',
     '/manifest.webmanifest',
@@ -4995,7 +4991,9 @@ test('iPhone home screen guidance works from account settings without a native i
   );
   const { child } = await childCareFamily(context);
   await page.setViewportSize({ width: 320, height: 740 });
-  await page.goto(`/ko/settings?child=${child}`);
+  await page.goto(`/ko/account?child=${child}`);
+  await page.getByRole('link', {name:'아이 사진으로 홈 화면에 추가',exact:true}).click();
+  await expect(page).toHaveURL(/ready=1/);
   await page
     .getByRole('button', { name: '홈 화면에 추가', exact: true })
     .click();
@@ -5025,7 +5023,7 @@ test('Android and PC show platform-specific installation and notification guidan
   ]) {
     const target = await context.newPage();
     await target.addInitScript(ua => Object.defineProperty(navigator, 'userAgent', {value: ua}), sample.ua);
-    await target.goto(`/ko/account?child=${child}`);
+    await target.goto(`/ko/install?child=${child}&ready=1`);
     await target.getByRole('button', { name: sample.button, exact: true }).click();
     const dialog = target.getByRole('dialog', {name: sample.button, exact: true});
     await expect(dialog).toContainText(sample.platform);
@@ -6841,4 +6839,46 @@ test('service admin legacy verification route redirects and logout blocks access
  await page.goto('/ko/admin/verify');await expect(page).toHaveURL(/\/ko\/admin$/);
  await page.getByRole('button',{name:'관리자 로그아웃',exact:true}).click();await expect(page).toHaveURL(/\/ko\/login/);
  await page.goto('/ko/admin');await expect(page).toHaveURL(/\/ko\/login/);await expect(page.locator('.admin-main')).toHaveCount(0);
+});
+
+test('personal child icon crops a photo, publishes install metadata and revokes old links', async ({page,context,browser}) => {
+  const {child} = await childCareFamily(context);
+  await page.setViewportSize({width:390,height:844});
+  await page.goto(`/ko/account?child=${child}`);
+  await page.getByRole('link',{name:'아이 사진으로 홈 화면에 추가',exact:true}).click();
+  await expect(page).toHaveURL(/ready=1/);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  const bytes = await sharp('public/brand/podung.png').resize(600,800,{fit:'contain',background:'#fff3e6'}).jpeg().toBuffer();
+  await page.locator('input[type=file]').setInputFiles({name:'child.jpg',mimeType:'image/jpeg',buffer:bytes});
+  await expect(page.getByRole('slider',{name:'확대'})).toBeVisible();
+  await page.getByRole('slider',{name:'확대'}).fill('1.5');
+  await page.getByRole('button',{name:'이 사진으로 적용',exact:true}).click();
+  await expect(page.locator('link[rel=manifest]')).toHaveAttribute('href',/\/api\/app-manifest\/[a-f0-9]{64}/);
+  await expect(page).toHaveURL(/ready=1/);
+  const manifestPath = (await page.locator('link[rel=manifest]').getAttribute('href'))!;
+  const {data:record} = await admin.from('child_app_icons').select('path').eq('child_id',child).single();
+  expect(record).toBeTruthy(); createdChildPhotos.push(record!.path);
+  const anonymous = await browser.newContext();
+  try {
+    const manifest = await (await anonymous.request.get(`http://127.0.0.1:3188${manifestPath}`)).json();
+    expect(manifest.id).toBe('/'); expect(manifest.start_url).toBe('/');
+    expect(JSON.stringify(manifest)).not.toContain(child);
+    const apple = (await page.locator('link[rel=apple-touch-icon]').getAttribute('href'))!;
+    for(const [path,size] of [[apple,180],...[...manifest.icons].map(icon=>[icon.src,Number(icon.sizes.split('x')[0])])] as Array<[string,number]>) {
+      const response = await anonymous.request.get(`http://127.0.0.1:3188${path}`);
+      expect(response.ok()).toBe(true);
+      const image = await sharp(await response.body()).metadata();
+      expect(image.width).toBe(size); expect(image.height).toBe(size); expect(image.exif).toBeUndefined();
+    }
+    await page.screenshot({path:test.info().outputPath('personal-icon-mobile.png'),fullPage:true});
+    await page.goto(`/ko/today?child=${child}`);
+    await expect(page.locator('link[rel=manifest]')).toHaveAttribute('href',manifestPath);
+    await page.goto(`/ko/install?child=${child}&ready=1`);
+    await page.getByRole('button',{name:'기본 아이콘으로',exact:true}).click();
+    await expect(page.locator('link[rel=manifest]')).toHaveAttribute('href','/manifest.webmanifest');
+    expect((await anonymous.request.get(`http://127.0.0.1:3188${apple}`)).status()).toBe(404);
+    expect((await anonymous.request.get(`http://127.0.0.1:3188${manifestPath}`)).status()).toBe(404);
+    await page.getByRole('link',{name:'포둥 시작하기',exact:true}).click();
+    await expect(page).toHaveURL(/\/ko\/today/);
+  } finally { await anonymous.close(); }
 });

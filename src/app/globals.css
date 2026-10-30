@@ -5499,7 +5499,7 @@ button.task-check:disabled {
   font-size: 16px;
   font-weight: 600;
 }
-.settings-install:not(:has(button)) {
+.settings-install:not(:has(button, a)) {
   display: none;
 }
 .install-app-dialog {

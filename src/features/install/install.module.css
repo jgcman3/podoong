@@ -1,0 +1,118 @@
+.page {
+  min-height: 100dvh;
+  padding: 32px 18px;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+}
+.card {
+  width: min(100%, 500px);
+  box-sizing: border-box;
+  background: var(--surface, #fff);
+  border-radius: 28px;
+  padding: clamp(24px, 5vw, 40px);
+  text-align: center;
+}
+.brand {
+  color: #aa805f;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.card h1 {
+  font-size: clamp(24px, 5vw, 30px);
+  line-height: 1.4;
+  margin: 16px 0 12px;
+}
+.card p {
+  line-height: 1.7;
+}
+.editor {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  margin: 24px 0;
+}
+.preview {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+.preview img,
+.preview canvas {
+  width: 112px;
+  height: 112px;
+  border-radius: 25px;
+  box-shadow: 0 8px 22px #805d3b18;
+}
+.preview strong {
+  font-size: 14px;
+}
+.upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 16px;
+  background: #fff3e6;
+  color: #805d3b;
+  cursor: pointer;
+  font-weight: 600;
+}
+.upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.upload:focus-within {
+  outline: 2px solid #805d3b;
+  outline-offset: 3px;
+}
+.adjust {
+  width: 100%;
+  display: grid;
+  gap: 14px;
+}
+.adjust label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+}
+.adjust input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  accent-color: #aa805f;
+}
+.reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+}
+.note {
+  display: block;
+  font-size: 12px;
+  color: var(--muted, #718096);
+  line-height: 1.6;
+}
+.actions {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0 12px;
+}
+.continue {
+  display: block;
+  padding: 14px;
+  border-radius: 16px;
+  background: #5468ad;
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+  margin: 24px 0 12px;
+}

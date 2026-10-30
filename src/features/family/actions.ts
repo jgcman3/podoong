@@ -111,7 +111,7 @@ export async function onboard(form: FormData) {
     p_relationship: v.relationship,
   });
   if (result.error) redirect(`/${locale}/onboarding?error=generic`);
-  redirect(`/${locale}/today?child=${result.data}`);
+  redirect(`/${locale}/install?child=${result.data}`);
 }
 
 export async function consentForInvite(form: FormData) {
@@ -207,6 +207,8 @@ export async function acceptInvite(form: FormData) {
     form.get('confirm') !== 'on'
   )
     redirect(`/${locale}/invite/${encodeURIComponent(token)}?error=invite`);
+  const previousChildren = await db.from('children').select('id').limit(1);
+  if (previousChildren.error) throw new Error('Family information unavailable');
   const { data, error } = await db.rpc('merge_family_from_invitation', {
     p_token: token,
     p_relationship: relationship,
@@ -220,7 +222,7 @@ export async function acceptInvite(form: FormData) {
     redirect(`/${locale}/invite/${token}?error=${reason}`);
   }
   revalidatePath(`/${locale}`, 'layout');
-  redirect(`/${locale}/today?child=${data}`);
+  redirect(`/${locale}/${previousChildren.data.length ? 'today' : 'install'}?child=${data}`);
 }
 
 export async function revoke(form: FormData) {

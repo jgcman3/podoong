@@ -12,7 +12,6 @@ import { NotificationSettings } from '@/features/notifications/settings';
 import { ChildIcon } from '@/components/child-icon';
 import { ChildSexField } from '@/features/family/sex-field';
 import residenceCountries from '@/features/family/countries.json';
-import { InstallAppButton } from '@/components/install-app';
 import { TaskCheckbox } from '@/features/care/task-checkbox';
 import { CalendarWorkspace } from '@/features/care/calendar-workspace';
 import Link from 'next/link';
@@ -924,7 +923,9 @@ export async function ChildAccount({
         <DataSettings context={context} locale={locale} panel={panel} />
       </div>
       <section className="panel settings-install">
-        <InstallAppButton locale={locale} />
+        <Link className="button secondary" href={`/${locale}/install?child=${context.child.id}`}>
+          {ko ? '아이 사진으로 홈 화면에 추가' : 'Install with your child’s photo'}
+        </Link>
       </section>
     </div>
   );
@@ -944,7 +945,9 @@ export async function Settings({
       )}
       {mode === 'all' && (
         <section className="panel settings-install">
-          <InstallAppButton locale={locale} />
+          <Link className="button secondary" href={`/${locale}/install?child=${context.child.id}`}>
+            {locale === 'ko' ? '아이 사진으로 홈 화면에 추가' : 'Install with your child’s photo'}
+          </Link>
         </section>
       )}
       {mode !== 'account' && (

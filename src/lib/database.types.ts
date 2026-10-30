@@ -23,6 +23,12 @@ export type Database = {
           }
         },"public": {
           Tables: {
+      child_app_icons: {
+        Row: { child_id: string; token: string; path: string; created_at: string };
+        Insert: { child_id: string; token: string; path: string; created_at?: string };
+        Update: { child_id?: string; token?: string; path?: string; created_at?: string };
+        Relationships: [];
+      };
       signup_agreements: {
         Row: {
           accepted_at: string;

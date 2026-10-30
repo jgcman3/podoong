@@ -119,11 +119,9 @@ export function InstallAppProvider({ children }: { children: ReactNode }) {
 export function InstallAppButton({
   locale,
   card = false,
-  variant = 'default',
 }: {
   locale: Locale;
   card?: boolean;
-  variant?: 'default' | 'intro';
 }) {
   const state = useContext(InstallContext);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -168,13 +166,7 @@ export function InstallAppButton({
     <>
       <button
         type="button"
-        className={
-          variant === 'intro'
-            ? styles.trigger
-            : card
-              ? 'service-card install-app-card'
-              : 'button secondary'
-        }
+        className={card ? 'service-card install-app-card' : 'button secondary'}
         onClick={install}
         disabled={busy || !mounted}
       >

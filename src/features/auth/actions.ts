@@ -60,6 +60,7 @@ export async function logout(form: FormData) {
     if (stopped.error) redirect(`/${locale}/account?error=generic`);
   }
   jar.delete('podung-push-device');
+  jar.delete('podoong-app-icon');
   const { error } = await db.auth.signOut();
   if (error) redirect(`/${locale}/settings?error=generic`);
   redirect(`/${locale}/login`);
