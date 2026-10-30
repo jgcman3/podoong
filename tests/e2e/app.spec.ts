@@ -2211,19 +2211,26 @@ test('calendar quick actions save hospital, vaccine, medication and tasks into o
   await expect(dialog).toBeVisible();
   await expect(actions).toBeHidden();
   await expect(dialog.locator('header button')).toHaveCount(0);
-  const cancelBox = await dialog
-    .getByRole('button', { name: '취소', exact: true })
-    .boundingBox();
-  const saveBox = await dialog
-    .getByRole('button', { name: '저장하기', exact: true })
-    .boundingBox();
-  expect(cancelBox!.x).toBeLessThan(saveBox!.x);
-  expect(Math.abs(cancelBox!.y - saveBox!.y)).toBeLessThan(3);
-  const titleBox = await dialog.locator('.quick-vaccine-choices').boundingBox();
-  for (const control of await dialog.locator('.quick-time-control').all()) {
-    const box = await control.boundingBox();
-    expect(Math.abs(box!.x - titleBox!.x)).toBeLessThan(2);
-    expect(Math.abs(box!.width - titleBox!.width)).toBeLessThan(2);
+  const sheetGeometry = await dialog.evaluate(node => {
+    const buttons = [...node.querySelectorAll('button')];
+    const cancel = buttons.find(button => button.textContent?.trim() === '취소')!.getBoundingClientRect();
+    const save = buttons.find(button => button.textContent?.trim() === '저장하기')!.getBoundingClientRect();
+    const title = node.querySelector('.quick-vaccine-choices')!.getBoundingClientRect();
+    return {
+      cancel: {x: cancel.x, y: cancel.y},
+      save: {x: save.x, y: save.y},
+      title: {x: title.x, width: title.width},
+      controls: [...node.querySelectorAll('.quick-time-control')].map(control => {
+        const box = control.getBoundingClientRect();
+        return {x: box.x, width: box.width};
+      }),
+    };
+  });
+  expect(sheetGeometry.cancel.x).toBeLessThan(sheetGeometry.save.x);
+  expect(Math.abs(sheetGeometry.cancel.y - sheetGeometry.save.y)).toBeLessThan(3);
+  for (const box of sheetGeometry.controls) {
+    expect(Math.abs(box.x - sheetGeometry.title.x)).toBeLessThan(2);
+    expect(Math.abs(box.width - sheetGeometry.title.width)).toBeLessThan(2);
   }
 
   expect(
@@ -6264,6 +6271,14 @@ test('sleep editing supports ten hours and preserves a duration beyond the quick
 
 test('feeding reminders opt in per device, save interval and quiet hours, and can be disabled',async({page,context})=>{
  const {child,owner}=await childCareFamily(context);
+ const config = await admin.from('feeding_push_config').select('singleton').maybeSingle();
+ expect(config.error).toBeNull();
+ const fixtureId = crypto.randomUUID();
+ if (!config.data) {
+  const setup = await admin.from('feeding_push_config').insert({ public_key:'B'.repeat(87), worker_url:'https://example.invalid', token_secret_id:fixtureId });
+  expect(setup.error).toBeNull();
+ }
+ try {
  await context.grantPermissions(['notifications']);
  await page.addInitScript(()=>{
   Object.defineProperty(Notification,'permission',{get:()=> 'granted'});
@@ -6284,6 +6299,9 @@ test('feeding reminders opt in per device, save interval and quiet hours, and ca
  await page.screenshot({ caret: 'initial',path:'/tmp/podung-feeding-reminder-mobile.png',fullPage:true});
  await settings.getByRole('button',{name:'이 기기 알림 끄기',exact:true}).click();await expect(settings.getByRole('button',{name:'이 기기에서 알림 켜기',exact:true})).toBeVisible();
  expect((await admin.from('web_push_subscriptions').select('id').eq('user_id',owner)).data).toHaveLength(0);
+ } finally {
+  if (!config.data) await admin.from('feeding_push_config').delete().eq('token_secret_id',fixtureId);
+ }
 });
 
 test('feeding reminder settings explain HTTPS and iPhone installation requirements before asking permission',async({page,context})=>{
