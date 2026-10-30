@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { hostname } from 'node:os';
 import createNextIntlPlugin from 'next-intl/plugin';
 const config: NextConfig = {
   distDir: process.env.PODUNG_E2E === '1' ? '.next-e2e' : '.next',
@@ -35,8 +36,9 @@ const config: NextConfig = {
     '127.0.0.1',
     'localhost',
     '192.168.45.85',
+    `${hostname().toLowerCase().replace(/\.local$/, '')}.local`,
     new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://127.0.0.1:3187')
-      .hostname,
+      .hostname.toLowerCase(),
   ],
   experimental: {
     staleTimes: { dynamic: 30, static: 30 },

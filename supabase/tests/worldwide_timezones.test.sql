@@ -1,0 +1,22 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set search_path=public,extensions;
+select no_plan();
+select ok(valid_iana_timezone(zone),zone||' is a supported international time zone')
+from unnest(array['UTC','Asia/Seoul','Pacific/Auckland','Pacific/Chatham','Asia/Kolkata','Asia/Kathmandu','America/St_Johns','Australia/Adelaide','Africa/Nairobi','America/Sao_Paulo','Europe/Paris']) zone;
+select is(valid_iana_timezone('Not/A_Zone'),false,'unknown IANA name is rejected');
+select is(valid_iana_timezone('+09:00'),false,'unlabelled fixed offset is rejected');
+insert into auth.users(id) values('f6300000-0000-4000-8000-000000000001');
+insert into profiles(id,display_name,consented_at) values('f6300000-0000-4000-8000-000000000001','Timezone fixture',now());
+insert into families(id,name) values('a6300000-0000-4000-8000-000000000001','Timezone fixture');
+insert into family_members(family_id,user_id,role,relationship) values('a6300000-0000-4000-8000-000000000001','f6300000-0000-4000-8000-000000000001','owner','mother');
+insert into children(id,family_id,name,birth_date,sex) values('b6300000-0000-4000-8000-000000000001','a6300000-0000-4000-8000-000000000001','Fixture child',current_date,'female');
+select set_config('request.jwt.claims','{"sub":"f6300000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+set local role authenticated;
+select lives_ok($$update profiles set timezone='Pacific/Auckland' where id=auth.uid()$$,'caregiver can save a newly supported zone');
+select is((select timezone from profiles where id=auth.uid()),'Pacific/Auckland','new zone persists');
+select throws_ok($$update profiles set timezone='Not/A_Zone' where id=auth.uid()$$,'23514',null,'database still rejects invalid profile zones');
+select lives_ok($$insert into child_meal_plans(child_id,timezone) values('b6300000-0000-4000-8000-000000000001','Asia/Kathmandu')$$,'feeding reminder plan accepts a non-hour international zone');
+select throws_ok($$update child_meal_plans set timezone='Not/A_Zone' where child_id='b6300000-0000-4000-8000-000000000001'$$,'23514',null,'invalid reminder zone is rejected');
+select * from finish();
+rollback;

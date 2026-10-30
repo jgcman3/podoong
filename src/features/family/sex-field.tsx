@@ -9,10 +9,10 @@ export function ChildSexField({
   const ko = locale === 'ko';
   return (
     <label>
-      {ko ? '성별' : 'Sex'}
+      {ko ? '아이 성별' : 'Child’s sex'}
       <select
         name="sex"
-        aria-label={ko ? '성별' : 'Sex'}
+        aria-label={ko ? '아이 성별' : 'Child’s sex'}
         required
         defaultValue={value}
       >

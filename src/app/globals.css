@@ -7348,6 +7348,20 @@ html[data-standalone] :is(input, select, textarea) {
 .signup-collection-summary dd { margin: 0; color: var(--muted); }
 .signup-privacy-link { font-size: 12px; text-decoration: underline; }
 .signup-decline { display: grid; margin-top: 12px; }
+.family-start-choices { display: grid; gap: 12px; margin-top: 24px; }
+.family-start-choices > a { display: flex; align-items: center; gap: 14px; padding: 18px 14px; border: 1px solid var(--line); border-radius: 16px; color: var(--ink); background: var(--surface); }
+.family-start-choices > a > span { display: grid; flex: 1; min-width: 0; gap: 4px; }
+.family-start-choices small { color: var(--muted); font-size: 12px; }
+.family-start-choices > a:hover { border-color: var(--brown); }
+.family-join-entry > p { margin: 0; }
+.family-join-entry input { min-width: 0; width: 100%; box-sizing: border-box; }
+.family-join-destination { display: grid; gap: 6px; padding: 16px; margin: 16px 0; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; }
+.family-join-destination strong { font-size: 20px; }
+.family-join-scope { padding: 16px 0; border-block: 1px solid var(--line); margin-bottom: 18px; }
+.family-join-scope h2 { font-size: 16px; margin: 0 0 12px; }
+.family-join-scope ul { padding-left: 20px; margin: 6px 0 12px; }
+.family-join-scope p, .family-join-guidance p { font-size: 13px; line-height: 1.65; }
+.family-join-review .text-link { display: inline-block; margin-top: 16px; }
 .login-legal-links { display: flex; justify-content: center; gap: 16px; margin-top: 18px; font-size: 11px; color: var(--muted); }
 .quick-grid > .quick-diary-entry {
   display: contents;

@@ -305,14 +305,14 @@ isOneToOne: false
                   ]
                 },"child_record_photos": {
                   Row: {
-                    "child_id": string,"content_type": string,"created_at": string,"id": string,"path": string,"record_id": string,"size_bytes": number,"sort_order": number,"uploaded_by": string,"variants_ready": boolean
+                    "child_id": string,"content_type": string,"created_at": string,"id": string,"path": string,"record_id": string,"size_bytes": number,"sort_order": number,"uploaded_by": string | null,"variants_ready": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "child_id": string,"content_type": string,"created_at"?: string,"id": string,"path": string,"record_id": string,"size_bytes": number,"sort_order"?: number,"uploaded_by": string,"variants_ready"?: boolean
+                    "child_id": string,"content_type": string,"created_at"?: string,"id": string,"path": string,"record_id": string,"size_bytes": number,"sort_order"?: number,"uploaded_by"?: string | null,"variants_ready"?: boolean
                   }
                   Update: {
-                    "child_id"?: string,"content_type"?: string,"created_at"?: string,"id"?: string,"path"?: string,"record_id"?: string,"size_bytes"?: number,"sort_order"?: number,"uploaded_by"?: string,"variants_ready"?: boolean
+                    "child_id"?: string,"content_type"?: string,"created_at"?: string,"id"?: string,"path"?: string,"record_id"?: string,"size_bytes"?: number,"sort_order"?: number,"uploaded_by"?: string | null,"variants_ready"?: boolean
                   }
                   Relationships: [
                     {
@@ -825,14 +825,14 @@ isOneToOne: false
                   ]
                 },"families": {
                   Row: {
-                    "created_at": string,"global_place_id": string | null,"id": string,"name": string,"residence_city": string | null,"residence_country_code": string | null,"residence_locality": string | null,"residence_province": string | null,"residence_region_code": string | null,"residence_updated_at": string | null,"residence_version": number
+                    "created_at": string,"global_place_id": string | null,"id": string,"name": string,"merged_into": string | null,"residence_city": string | null,"residence_country_code": string | null,"residence_locality": string | null,"residence_province": string | null,"residence_region_code": string | null,"residence_updated_at": string | null,"residence_version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"global_place_id"?: string | null,"id"?: string,"name": string,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_province"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
+                    "created_at"?: string,"global_place_id"?: string | null,"id"?: string,"name": string,"merged_into"?: string | null,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_province"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"global_place_id"?: string | null,"id"?: string,"name"?: string,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_province"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
+                    "created_at"?: string,"global_place_id"?: string | null,"id"?: string,"name"?: string,"merged_into"?: string | null,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_province"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
                   }
                   Relationships: [
                     {
@@ -1395,6 +1395,12 @@ isOneToOne: false
                 }
           }
           Functions: {
+      family_join_preview: { Args: { p_token: string }; Returns: Json };
+      valid_iana_timezone: { Args: { p_timezone: string }; Returns: boolean };
+      merge_family_from_invitation: {
+        Args: { p_token: string; p_relationship: Database['public']['Enums']['caregiver_relationship']; p_revision: string; p_confirmation: string };
+        Returns: string;
+      };
       accept_signup_agreements: {
         Args: {
           p_collection: boolean;

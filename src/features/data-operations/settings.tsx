@@ -66,6 +66,10 @@ export async function DataSettings({
         {children.map((child) => (
           <section className="account-danger-section" key={child.id}>
             <h3>{child.name}</h3>
+            <p className="small muted">{ko ? '아이 태어난 날' : 'Date of birth'} · {child.birth_date}</p>
+            <Link className="text-link" href={`/${locale}/today?child=${child.id}`}>
+              {ko ? '이 아이의 기록 확인하기' : 'Review this child’s records'}
+            </Link>
             <p>
               {ko
                 ? `${child.name}의 모든 기록·사진·일정과 공유 일기장이 삭제됩니다. 복구할 수 없습니다.`

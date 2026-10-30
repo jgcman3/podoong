@@ -11,7 +11,7 @@ export function BrandImage({ large = false }: { large?: boolean }) {
       width={large ? 220 : 70}
       height={large ? 220 : 70}
       sizes={large ? '220px' : '70px'}
-      placeholder="blur"
+      loading="eager"
     />
   );
 }

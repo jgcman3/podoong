@@ -43,6 +43,8 @@ NEXT_PUBLIC_SITE_URL=http://your-mac.local:3187 npm run dev:lan
 
 2026-10-30 확인: `192.168.*` 주소는 허용 목록에 있어도 Supabase 인증에서 거절되어 Site URL로 복귀했습니다. `.local` 주소로 바꾸어 복귀가 유지됨을 확인했습니다. 로컬 호스트 이름이 해석되지 않는 기기는 개발 사이트에서 확인합니다. 이 Mac에서만 시험할 때는 앱 주소와 허용 목록 모두 `http://127.0.0.1:3187`로 맞추어도 됩니다.
 
+개발 서버는 현재 컴퓨터의 `.local` 이름을 `allowedDevOrigins`에 포함합니다. `NEXT_PUBLIC_SITE_URL`이나 허용 호스트를 변경한 뒤에는 개발 서버를 재시작해야 합니다. 기존 프로세스는 환경변수가 갱신되어도 이전 호스트 설정을 유지할 수 있으며, 이 경우 휴대폰에서는 HTML만 보이고 버튼·단계 입력 초기화가 멈출 수 있습니다. 접속 호스트의 `/_next/hmr` 연결도 정상인지 확인합니다.
+
 공식 안내: [Next.js 실행 호스트](https://nextjs.org/docs/app/api-reference/cli/next), [Supabase 로그인 복귀 주소](https://supabase.com/docs/guides/auth/redirect-urls).
 
 ## 소셜 로그인 설정

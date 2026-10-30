@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
@@ -8,10 +7,10 @@ import { acceptSignupAgreements } from './signup-actions';
 import { logout } from '@/features/auth/actions';
 import { signupAgreementVersion } from './signup-model';
 
-function Continue({ ko, enabled }: { ko: boolean; enabled: boolean }) {
+function Continue({ ko }: { ko: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button className="button primary" disabled={!enabled || pending}>
+    <button className="button primary" disabled={pending}>
       {ko ? '동의하고 계속하기' : 'Agree and continue'}
     </button>
   );
@@ -25,8 +24,6 @@ export function SignupConsent({
   next: string;
 }) {
   const ko = locale === 'ko';
-  const [terms, setTerms] = useState(false),
-    [collection, setCollection] = useState(false);
   const link = (document: string, versioned = false) =>
     `/${locale}/legal/${document}?source=signup&next=${encodeURIComponent(next)}${versioned ? `&version=${signupAgreementVersion}` : ''}`;
   return (
@@ -53,8 +50,6 @@ export function SignupConsent({
               name="terms"
               type="checkbox"
               required
-              checked={terms}
-              onChange={(event) => setTerms(event.target.checked)}
             />
             <span>
               {ko
@@ -77,8 +72,6 @@ export function SignupConsent({
               name="collection"
               type="checkbox"
               required
-              checked={collection}
-              onChange={(event) => setCollection(event.target.checked)}
             />
             <span>
               {ko
@@ -148,7 +141,7 @@ export function SignupConsent({
             : 'Draft for development testing. Do not enter real personal information. This does not cover child information, health data or public diary sharing.'}
           {!ko && ' Full documents are currently provided in Korean.'}
         </p>
-        <Continue ko={ko} enabled={terms && collection} />
+        <Continue ko={ko} />
       </form>
       <form action={logout} className="signup-decline">
         <input type="hidden" name="locale" value={locale} />

@@ -1,6 +1,7 @@
 import { DeveloperRequestForm } from '@/features/developer-requests/form';
 import { AppearanceSettings } from '@/components/appearance';
 import { RelationshipField } from '@/features/family/relationship-field';
+import { FamilyJoinEntry } from '@/features/family/join-entry';
 import { relationshipLabel } from '@/features/family/relationship';
 import { saveRelationship } from '@/features/family/actions';
 import {
@@ -724,6 +725,14 @@ export async function ChildAccount({
             ))}
           </div>
         </section>
+        <details className="panel account-settings-section" open={panel === 'join'}>
+          <summary>
+            <Users size={18} />
+            <span>{ko ? '기존 가족에 참여하기' : 'Join an existing family'}</span>
+            <ChevronRight size={16} />
+          </summary>
+          <FamilyJoinEntry locale={locale} settings />
+        </details>
         <details
           className="panel account-settings-section"
           open={panel === 'language'}

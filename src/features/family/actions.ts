@@ -7,6 +7,7 @@ import { requireUser } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
 import { safeReturnPath } from '@/lib/domain';
 import { residenceSchema } from './residence-schema';
+import { isValidTimeZone } from '@/lib/timezones';
 const birthDate = z.iso
   .date()
   .refine(
@@ -84,13 +85,7 @@ export async function onboard(form: FormData) {
       relationship:
         z.custom<import('./relationship').Relationship>(isRelationship),
       sex: z.enum(['female', 'male']),
-      timezone: z.enum([
-        'Asia/Seoul',
-        'UTC',
-        'America/New_York',
-        'Europe/London',
-        'Asia/Tokyo',
-      ]),
+      timezone: z.string().min(1).max(100).refine(isValidTimeZone),
     })
     .safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect(`/${locale}/onboarding?error=invalid`);
@@ -208,15 +203,24 @@ export async function acceptInvite(form: FormData) {
   if (
     !isRelationship(relationship) ||
     !/^[a-f0-9]{64}$/.test(token) ||
+    !/^[a-f0-9]{64}$/.test(String(form.get('revision') ?? '')) ||
     form.get('confirm') !== 'on'
   )
     redirect(`/${locale}/invite/${encodeURIComponent(token)}?error=invite`);
-  const { data, error } = await db.rpc('accept_invitation', {
+  const { data, error } = await db.rpc('merge_family_from_invitation', {
     p_token: token,
     p_relationship: relationship,
+    p_revision: String(form.get('revision')),
+    p_confirmation: 'MERGE FAMILY',
   });
-  if (error) redirect(`/${locale}/invite/${token}?error=invite`);
-  redirect(`/${locale}/today?child=${data}&notice=saved`);
+  if (error) {
+    if (error.message.includes('reauthenticate'))
+      redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/invite/${token}`)}&error=reauth`);
+    const reason = error.code === '40001' ? 'changed' : error.code === '23514' ? 'blocked' : 'invite';
+    redirect(`/${locale}/invite/${token}?error=${reason}`);
+  }
+  revalidatePath(`/${locale}`, 'layout');
+  redirect(`/${locale}/today?child=${data}`);
 }
 
 export async function revoke(form: FormData) {
