@@ -1,7 +1,10 @@
 name: Checks
 on:
   push:
+    branches: [main, develop]
   pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -20,7 +23,7 @@ jobs:
       - run: npm run build
   integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,7 +34,7 @@ jobs:
       - run: npm run db:start
       - run: npm run env:local
       - run: npm run db:test
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -39,3 +42,78 @@ jobs:
           name: browser-failures
           path: test-results/
           retention-days: 7
+  deploy:
+    needs: [application, integration]
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') &&
+      vars.DEPLOYMENTS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+      url: ${{ github.ref_name == 'main' && 'https://podoong.com' || 'https://dev.podoong.com' }}
+    concurrency:
+      group: deploy-${{ github.ref_name }}
+      cancel-in-progress: false
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      PODUNG_PRODUCTION_PROJECT_REF: ${{ vars.PODUNG_PRODUCTION_PROJECT_REF }}
+      VERCEL_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Check deployment credentials
+        shell: bash
+        run: |
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID SUPABASE_ACCESS_TOKEN SUPABASE_SERVICE_ROLE_KEY SUPABASE_PROJECT_REF PODUNG_PRODUCTION_PROJECT_REF; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing deployment setting: $name"
+              exit 1
+            fi
+          done
+      - run: npm ci
+      - name: Pull hosting environment and check database boundary
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" == 'main' ]]; then
+            npx --yes vercel@65.7.0 pull --yes --environment=production --token="$VERCEL_TOKEN"
+            node --env-file=.vercel/.env.production.local scripts/check-release-environment.mjs
+          else
+            npx --yes vercel@65.7.0 pull --yes --environment=preview --git-branch=develop --token="$VERCEL_TOKEN"
+            node --env-file=.vercel/.env.preview.local scripts/check-release-environment.mjs
+          fi
+      - name: Build deployment before changing the database
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" == 'main' ]]; then
+            npx --yes vercel@65.7.0 build --prod --token="$VERCEL_TOKEN"
+          else
+            npx --yes vercel@65.7.0 build --token="$VERCEL_TOKEN"
+          fi
+      - name: Apply database migrations and deploy notification worker
+        shell: bash
+        run: |
+          npx supabase db push --project-ref "$SUPABASE_PROJECT_REF" --yes
+          npx supabase functions deploy feeding-push --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Deploy the tested build
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" == 'main' ]]; then
+            npx --yes vercel@65.7.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          else
+            npx --yes vercel@65.7.0 deploy --prebuilt --token="$VERCEL_TOKEN" > deployment-url.txt
+            deployment_url="$(cat deployment-url.txt)"
+            npx --yes vercel@65.7.0 alias set "$deployment_url" dev.podoong.com --scope="$VERCEL_ORG_ID" --token="$VERCEL_TOKEN"
+          fi
+      - name: Remove downloaded environment files
+        if: always()
+        run: rm -rf .vercel deployment-url.txt

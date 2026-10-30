@@ -2,7 +2,7 @@ name: Deployment access
 on:
   workflow_dispatch:
   push:
-    branches: [main, develop, feat/quick-care-experience]
+    branches: [main, develop]
     paths: [.github/workflows/deployment-access.yml]
 permissions:
   contents: read

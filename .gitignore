@@ -1,6 +1,8 @@
 node_modules/
 .next/
 .next-e2e/
+.vercel/
+deployment-url.txt
 .env*
 !.env.example
 coverage/
@@ -10,3 +12,6 @@ supabase/.temp/
 supabase/.branches/
 *.tsbuildinfo
 .DS_Store
+.vercel
+
+.secrets/
