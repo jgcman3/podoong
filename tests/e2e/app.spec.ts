@@ -4704,6 +4704,8 @@ test('compact mobile navigation switches children and opens language settings', 
   await expect(page.locator('.mobile-nav')).toBeHidden();
 });
 
+test.describe('quick feeding across midnight', () => {
+  test.use({timezoneId:'UTC'});
 test('quick feeding remembers each kind across days and allows direct start-time edits', async ({
   page,
   context,
@@ -4724,6 +4726,8 @@ test('quick feeding remembers each kind across days and allows direct start-time
     updated_by: owner,
   }));
   expect((await admin.from('care_records').insert(rows)).error).toBeNull();
+  const seoulDay = new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Seoul'});
+  await page.clock.setFixedTime(new Date(`${seoulDay}T01:55:00+09:00`));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/ko/today?child=${child}`);
   const quick = page.locator('.quick-care');
@@ -4791,7 +4795,11 @@ test('quick feeding remembers each kind across days and allows direct start-time
   expect(latest.error).toBeNull();
   expect(latest.data!.amount_ml).toBe(170);
   expect(new Date(latest.data!.started_at).toISOString()).toBe(start.iso);
-  await quick
+  await expect(quick.locator('.quick-timeline-entry').filter({hasText:'170 ml'})).toHaveCount(2);
+  const recordedDay = quick.locator('.quick-day-browser').filter({
+    has: page.locator(`.quick-timeline-heading time[datetime="${new Date(start.iso).toLocaleDateString('en-CA', {timeZone:'Asia/Seoul'})}"]`),
+  });
+  await recordedDay
     .locator('.quick-timeline-entry')
     .filter({ hasText: '170 ml' })
     .click();
@@ -4813,7 +4821,7 @@ test('quick feeding remembers each kind across days and allows direct start-time
   expect(edited.error).toBeNull();
   expect(edited.data!.amount_ml).toBe(200);
   expect(edited.data!.version).toBe(2);
-  await quick
+  await recordedDay
     .locator('.quick-timeline-entry')
     .filter({ hasText: '200 ml' })
     .click();
@@ -4823,6 +4831,8 @@ test('quick feeding remembers each kind across days and allows direct start-time
   await expect(
     quick.locator('.quick-timeline-entry').filter({ hasText: '200 ml' }),
   ).toHaveCount(0);
+});
+
 });
 
 test('quick record subtitles and control gaps stay consistent across mobile and desktop', async ({
