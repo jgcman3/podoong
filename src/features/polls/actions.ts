@@ -1,6 +1,7 @@
 'use server';
 import { randomUUID } from 'node:crypto';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireUser } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
@@ -77,6 +78,11 @@ export async function pollAction(form: FormData) {
       });
       failed = !!error;
     }
+  }
+  if (!failed) {
+    revalidatePath('/ko/polls');
+    revalidatePath('/en/polls');
+    if (operator) revalidatePath(path);
   }
   redirect(`${path}?${failed ? 'error=1' : 'notice=saved'}`);
 }

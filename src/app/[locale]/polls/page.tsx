@@ -119,7 +119,10 @@ export default async function Polls({
                   {t.total}: {results.total}
                 </p>
               )}
-              <form action={pollAction}>
+              <form
+                key={`${poll.id}:${own?.option_index ?? 'unanswered'}`}
+                action={pollAction}
+              >
                 <input type="hidden" name="locale" value={locale} />
                 <input type="hidden" name="action" value="vote" />
                 <input type="hidden" name="id" value={poll.id} />

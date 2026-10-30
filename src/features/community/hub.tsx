@@ -7,8 +7,8 @@ import type { Locale } from '@/lib/domain';
 const areas = [
   {
     key: 'boards',
-    ko: '육아맘 커뮤니티',
-    en: 'Neighborhood stories',
+    ko: '육아 소통',
+    en: 'Parenting chat',
     description: [
       '동네 부모들과 함께 나누는 이야기',
       'Connect with parents in your area',

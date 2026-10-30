@@ -24,7 +24,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: '포둥에서 전하는 성장일기',
     description: '소중한 하루를 함께 나눠요.',
-    images: ['/icons/podung-192.png'],
+    images: [
+      {
+        url: '/brand/podung.png',
+        width: 1254,
+        height: 1254,
+        alt: '포둥 · podoong',
+      },
+    ],
   },
 };
 export default async function SharedDiary({

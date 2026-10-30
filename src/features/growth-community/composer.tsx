@@ -1,6 +1,7 @@
 'use client';
 import { AttachmentPreview, type DiaryAttachment } from './attachment-preview';
 import { PatternAttachment } from './pattern-attachment';
+import { RecordAttachment } from './record-attachment';
 import { createRecordId } from '@/lib/record-id';
 import { useEffect, useRef, useState, useId, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
@@ -369,8 +370,8 @@ export function DiaryComposer({
                         if (attachments.length + files.length > 9) {
                           setError(
                             ko
-                              ? '사진은 하루 패턴을 포함해 최대 9장까지 올릴 수 있어요.'
-                              : 'Up to 9 photos, including daily patterns.',
+                              ? '사진은 하루 패턴·하루 기록을 포함해 최대 9장까지 올릴 수 있어요.'
+                              : 'Up to 9 photos, including daily patterns and records.',
                           );
                           return;
                         }
@@ -394,6 +395,22 @@ export function DiaryComposer({
                       setAttachments((items) => [
                         ...items,
                         { key: createRecordId(), file },
+                      ])
+                    }
+                    onBusy={setPatternBusy}
+                  />
+                  <RecordAttachment
+                    key={`records-${opened}`}
+                    child={child}
+                    locale={locale}
+                    remaining={9 - attachments.length}
+                    onChange={(files) =>
+                      setAttachments((items) => [
+                        ...items,
+                        ...files.map((file) => ({
+                          key: createRecordId(),
+                          file,
+                        })),
                       ])
                     }
                     onBusy={setPatternBusy}

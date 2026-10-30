@@ -1,4 +1,5 @@
 'use server';
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requireUser } from '@/lib/data';
@@ -38,6 +39,8 @@ export async function saveVaccination(form: FormData) {
     redirect(
       `/${locale}/vaccination/${v.version ? `${v.id}/edit` : 'new'}?child=${v.childId}&error=${result.error.message.includes('conflict') ? 'conflict' : result.error.code === '22023' ? 'invalid' : 'generic'}`,
     );
+  revalidatePath(`/${locale}/calendar`);
+  revalidatePath(`/${locale}/vaccinations`);
   if (calendar)
     redirect(
       `${calendarReturn(locale, v.childId, v.status === 'completed' ? v.completed : v.scheduled)}&notice=saved`,
@@ -52,6 +55,10 @@ export async function deleteVaccination(form: FormData) {
     redirect(`/${locale}/vaccinations?error=invalid`);
   const { db } = await requireUser(locale);
   const r = await db.rpc('delete_vaccination_record', { p_id: id.data });
+  if (!r.error) {
+    revalidatePath(`/${locale}/calendar`);
+    revalidatePath(`/${locale}/vaccinations`);
+  }
   if (form.get('returnTo') === 'calendar')
     redirect(
       `${calendarReturn(locale, child.data, form.get('calendarDay'))}&${r.error ? 'error=generic' : 'notice=saved'}`,

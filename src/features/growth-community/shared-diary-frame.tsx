@@ -3,7 +3,7 @@ import { SharedDiaryLanguage } from './shared-diary-language';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { BookHeart } from 'lucide-react';
-import { Nest } from '@/components/nest';
+import { BrandImage } from '@/components/brand-image';
 
 // Both the diary and its not-found boundary own this frame so direct visits
 // and client navigation receive the same typography and background.
@@ -19,8 +19,8 @@ export function SharedDiaryFrame({
       <main className="shared-diary-page">
         <header className="shared-diary-brand">
           <Link href={`/${ko ? 'ko' : 'en'}/login`}>
-            <Nest />
-            <strong>{ko ? '포둥' : 'Podung'}</strong>
+            <BrandImage />
+            <strong>{ko ? '포둥' : 'podoong'}</strong>
           </Link>
           <SharedDiaryLanguage ko={ko} />
         </header>

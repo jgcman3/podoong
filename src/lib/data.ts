@@ -16,22 +16,8 @@ export const requireUser = cache(async (locale: Locale) => {
   ]);
   if (claimsError || claims?.claims.sub !== data.user.id)
     redirect(`/${locale}/login`);
-  let accountActive = active.data;
-  if (active.error) {
-    if (active.error.code !== 'PGRST202')
-      throw new Error('Account status unavailable');
-    // A staged upgrade may not expose the RPC yet. Check deletion requests
-    // directly; only an absent queue means this project predates B4.
-    const jobs = await db
-      .from('data_operation_jobs')
-      .select('id')
-      .eq('user_id', data.user.id)
-      .limit(1);
-    if (jobs.error && jobs.error.code !== 'PGRST205')
-      throw new Error('Account status unavailable');
-    accountActive = jobs.error?.code === 'PGRST205' || jobs.data?.length === 0;
-  }
-  if (!accountActive) redirect(`/${locale}/login?notice=deletion-requested`);
+  if (active.error) throw new Error('Account status unavailable');
+  if (!active.data) redirect(`/${locale}/login?notice=deletion-requested`);
   return {
     db,
     user: data.user,

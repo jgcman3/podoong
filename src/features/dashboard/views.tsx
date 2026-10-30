@@ -679,11 +679,14 @@ export async function ChildAccount({
   const ko = locale === 'ko';
   const t = await getTranslations();
   const { child } = context;
-  const owned = await context.db
-    .from('family_members')
-    .select('family_id')
-    .eq('user_id', context.user.id)
-    .eq('role', 'owner');
+  const [owned, serviceAdmin] = await Promise.all([
+    context.db
+      .from('family_members')
+      .select('family_id')
+      .eq('user_id', context.user.id)
+      .eq('role', 'owner'),
+    context.db.rpc('is_service_admin'),
+  ]);
   if (owned.error) throw new Error('Child settings unavailable');
   const editableChildren = context.children.filter((item) =>
     owned.data.some((family) => family.family_id === item.family_id),
@@ -794,6 +797,12 @@ export async function ChildAccount({
             <ChevronRight size={16} />
           </summary>
           <div className="account-service-links">
+            {serviceAdmin.data && (
+              <Link href={`/${locale}/admin`} prefetch={false}>
+                <span>{ko ? '관리자 사이트' : 'Admin site'}</span>
+                <ChevronRight size={16} />
+              </Link>
+            )}
             {[
               ['terms', ko ? '서비스 이용약관' : 'Terms of Service'],
               ['privacy', ko ? '개인정보 처리방침' : 'Privacy Policy'],

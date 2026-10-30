@@ -15,7 +15,7 @@ export default async function DataPage({
   const ko = locale === 'ko';
   const { db } = await requireUser(locale);
   const q = await searchParams;
-  const operator = await db.rpc('is_moderator');
+  const operator = await db.rpc('is_service_admin');
   if (operator.error) throw new Error('Data controls unavailable');
   if (!operator.data) redirect(`/${locale}/account?panel=data`);
   const jobs = await db

@@ -1,4 +1,5 @@
 'use client';
+import { formatCareDuration } from '@/lib/duration';
 import { QuickFieldTitle } from './quick-field-title';
 import { QuickTimeField } from './quick-time-field';
 import { ActivityRail } from './activity-rail';
@@ -274,7 +275,10 @@ export function QuickCare({
                         new Date(e.startedAt),
                         timezone,
                       );
-                      const duration = durationMinutes(e);
+                      const duration =
+                        durationMinutes(e) ??
+                        e.childRecord?.duration_minutes ??
+                        null;
                       const summary = [
                         e.childRecord?.sender_name ?? '',
                         e.childRecord?.received_amount != null &&
@@ -289,7 +293,7 @@ export function QuickCare({
                           ? `${new Intl.NumberFormat(locale).format(e.amount)} ${e.unit}`
                           : '',
                         duration !== null
-                          ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(e.service === 'sleep' ? Math.floor(duration) : duration)} ${c.minutes}`
+                          ? formatCareDuration(duration, locale)
                           : '',
                         e.dose != null
                           ? `${e.dose}${locale === 'ko' ? '차' : ' dose'}`
@@ -602,8 +606,7 @@ function QuickEditor({
         type="hidden"
         name="useCurrentTime"
         value={String(
-          !timeEdited &&
-            (mode === 'start' || diaper || (activity && !timed)),
+          !timeEdited && (mode === 'start' || diaper || (activity && !timed)),
         )}
       />
       <input type="hidden" name="id" value={id} />

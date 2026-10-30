@@ -11,7 +11,7 @@ import {
   Heart,
   ArrowRight,
 } from 'lucide-react';
-import { Nest } from './nest';
+import { BrandImage } from './brand-image';
 import { TopbarChildPicker } from './topbar-child-picker';
 import { ageInDays, type Locale } from '@/lib/domain';
 import type { CareContext } from '@/lib/data';
@@ -77,7 +77,7 @@ export async function Shell({
           className="wordmark"
           href={`/${locale}/today?child=${child.id}`}
         >
-          <Nest />
+          <BrandImage />
           {t('brand')}
         </Link>
         <p className="brand-tagline">{t('tagline')}</p>
@@ -174,9 +174,12 @@ export async function Shell({
           )}
           {children}
         </main>
-        <footer className="app-footer">PODUNG · {t('tagline')}</footer>
+        <footer className="app-footer">podoong · {t('tagline')}</footer>
       </div>
-      <nav className="mobile-nav" aria-label={locale === 'ko' ? '주 메뉴' : 'Main navigation'}>
+      <nav
+        className="mobile-nav"
+        aria-label={locale === 'ko' ? '주 메뉴' : 'Main navigation'}
+      >
         {navigation.map(([key, Icon]) => (
           <Link
             key={key}

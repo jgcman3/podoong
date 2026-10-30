@@ -37,18 +37,18 @@ export async function Insights({
     start = resolveWeek(rawWeek, context.today),
     interval = rawInterval === 'week' ? 'week' : 'day';
   if (pattern === 'received') {
-    const overview = await loadReceivedOverview(context);
-    const [gifts, allowance] = await Promise.all([
-      overview.gifts.length
-        ? loadReceivedRecords(
-            context,
-            'gift',
-            undefined,
-            overview.gifts[0].sender_name,
-          )
-        : Promise.resolve({ items: [], hasMore: false }),
+    const [overview, allowance] = await Promise.all([
+      loadReceivedOverview(context),
       loadReceivedRecords(context, 'allowance'),
     ]);
+    const gifts = overview.gifts.length
+      ? await loadReceivedRecords(
+          context,
+          'gift',
+          undefined,
+          overview.gifts[0].sender_name,
+        )
+      : { items: [], hasMore: false };
     return (
       <InsightsNavigation selected={selected}>
         <div className="insights-page">

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { SocialButtons } from '@/components/social-buttons';
-import { Nest } from '@/components/nest';
+import { BrandImage } from '@/components/brand-image';
 import { Flash } from '@/components/flash';
 import { configured } from '@/lib/supabase/server';
 import { safeReturnPath, type Locale } from '@/lib/domain';
@@ -22,7 +22,7 @@ export default async function Login({
     <main className="welcome-page">
       <header className="welcome-header">
         <Link href={`/${locale}/today`} className="wordmark">
-          <Nest />
+          <BrandImage />
           {t('brand')}
         </Link>
         <Link
@@ -38,7 +38,7 @@ export default async function Login({
           <h1>{t('welcome')}</h1>
           <p>{t('welcomeSub')}</p>
           <div className="welcome-illustration">
-            <Nest large />
+            <BrandImage large />
             <span className="float-label">{t('tagline')}</span>
           </div>
         </section>

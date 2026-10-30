@@ -7,6 +7,9 @@ export default defineConfig([
   globalIgnores([
     '.next/**',
     '.next-e2e/**',
+    'test-results/**',
+    'playwright-report/**',
+    'coverage/**',
     'node_modules/**',
     'next-env.d.ts',
     'supabase/functions/feeding-push/**',

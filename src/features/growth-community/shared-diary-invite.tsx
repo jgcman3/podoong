@@ -12,10 +12,10 @@ export function SharedDiaryInvite({
     return (
       <aside
         className="shared-diary-invite-compact"
-        aria-label={ko ? '포둥 소개' : 'About Podung'}
+        aria-label={ko ? '포둥 소개' : 'About podoong'}
       >
         <div>
-          <strong>podung</strong>
+          <strong>podoong</strong>
           <p>
             {ko ? '함께 돌보는, 포근한 둥지' : 'Caring together, a cozy nest.'}
           </p>
@@ -23,7 +23,7 @@ export function SharedDiaryInvite({
         <Link
           className="diary-invite-cta"
           href={`/${ko ? 'ko' : 'en'}/login`}
-          aria-label={ko ? '포둥 시작하기' : 'Get started with Podung'}
+          aria-label={ko ? '포둥 시작하기' : 'Get started with podoong'}
         >
           {ko ? '시작하기' : 'Get started'}
           <ArrowRight size={16} />
@@ -33,7 +33,7 @@ export function SharedDiaryInvite({
   return (
     <footer className="shared-diary-invite">
       <div className="diary-invite-brand">
-        <strong>podung</strong>
+        <strong>podoong</strong>
       </div>
       <h2>
         {ko ? '함께 돌보는, 포근한 둥지' : 'Caring together, a cozy nest.'}
@@ -44,7 +44,7 @@ export function SharedDiaryInvite({
           : 'Everyday care and growing memories, together.'}
       </p>
       <Link className="diary-invite-cta" href={`/${ko ? 'ko' : 'en'}/login`}>
-        {ko ? '포둥 시작하기' : 'Get started with Podung'}
+        {ko ? '포둥 시작하기' : 'Get started with podoong'}
         <ArrowRight size={18} />
       </Link>
     </footer>

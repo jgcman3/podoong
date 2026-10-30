@@ -161,7 +161,7 @@ export function InstallAppButton({
         {state.ios ? (
           <ol>
             <li>
-              {ko ? 'Safari에서 포둥을 열어요.' : 'Open Podung in Safari.'}
+              {ko ? 'Safari에서 포둥을 열어요.' : 'Open podoong in Safari.'}
             </li>
             <li>
               {ko

@@ -47,10 +47,10 @@ export async function saveTask(form: FormData) {
     p_status: v.status,
     p_assignee_id: v.assignee,
   });
-  if (!error && form.get('intent') === 'toggle') {
+  if (!error) {
     revalidatePath(`/${locale}/today`);
     revalidatePath(`/${locale}/calendar`);
-    return;
+    if (form.get('intent') === 'toggle') return;
   }
   redirect(
     `${target === 'today' ? `/${locale}/today?child=${v.childId}` : calendarReturn(locale, v.childId, v.date ?? form.get('calendarDay'))}&${statusQuery(error)}`,
@@ -94,6 +94,7 @@ export async function saveEvent(form: FormData) {
     p_event_time: v.eventTime,
     p_event_timezone: v.eventTimezone,
   });
+  if (!error) revalidatePath(`/${locale}/calendar`);
   redirect(
     `${calendarReturn(locale, v.childId, v.date)}&${statusQuery(error)}`,
   );
@@ -110,6 +111,7 @@ export async function deleteCalendar(form: FormData) {
     p_id: id.data,
     p_kind: kind.data,
   });
+  if (!error) revalidatePath(`/${locale}/calendar`);
   redirect(
     `${calendarReturn(locale, child.data, form.get('calendarDay'))}&${statusQuery(error)}`,
   );

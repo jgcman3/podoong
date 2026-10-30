@@ -3,7 +3,7 @@ import { ChildSexField } from '@/features/family/sex-field';
 import { getTranslations } from 'next-intl/server';
 import { requireUser } from '@/lib/data';
 import { onboard, consentForInvite } from '@/features/family/actions';
-import { Nest } from '@/components/nest';
+import { BrandImage } from '@/components/brand-image';
 import { Flash } from '@/components/flash';
 import { safeReturnPath, type Locale } from '@/lib/domain';
 export default async function Onboarding({
@@ -27,7 +27,7 @@ export default async function Onboarding({
   return (
     <main className="onboarding-page">
       <div className="onboard-card">
-        <Nest />
+        <BrandImage />
         <span className="eyebrow">OUR LITTLE BEGINNING</span>
         <h1>{t('onboard')}</h1>
         <p>{t('onboardSub')}</p>

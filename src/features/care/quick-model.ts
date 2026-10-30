@@ -83,7 +83,6 @@ export function quickTimeline(
             .filter(Boolean)
             .join(' · ')
         : '',
-      r.duration_minutes != null ? `${r.duration_minutes} min` : '',
     ]
       .filter(Boolean)
       .join(' · '),

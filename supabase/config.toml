@@ -48,3 +48,10 @@ enabled = false
 
 [functions.feeding-push]
 verify_jwt = false
+
+[auth.mfa]
+max_enrolled_factors = 5
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true

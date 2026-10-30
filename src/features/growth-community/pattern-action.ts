@@ -3,11 +3,16 @@ import { z } from 'zod';
 import { loadCare } from '@/lib/data';
 import type { InsightKind } from '@/features/insights/config';
 import { loadInsights } from '@/features/insights/data';
-export async function diaryPattern(input: {
+import { ageInDays } from '@/lib/domain';
+import { dailyFeedingTotals } from '@/features/care/quick-model';
+import { loadQuickTimeline } from '@/features/care/quick-data';
+import { diaryRecordRows } from './record-image-model';
+type DiaryDayInput = {
   child: string;
   locale: 'ko' | 'en';
   day: string;
-}) {
+};
+async function diaryDayContext(input: DiaryDayInput) {
   const parsed = z
     .object({
       child: z.uuid(),
@@ -25,6 +30,10 @@ export async function diaryPattern(input: {
     day < context.child.birth_date
   )
     throw new Error('Unavailable');
+  return { context, day, locale };
+}
+export async function diaryPattern(input: DiaryDayInput) {
+  const { context, day } = await diaryDayContext(input);
   const { week } = await loadInsights(context, day);
   const categories = Object.values(week.categories)
     .filter((category) => !['growth', 'development'].includes(category.kind))
@@ -42,6 +51,7 @@ export async function diaryPattern(input: {
       0,
     );
   return {
+    age: ageInDays(context.child.birth_date, day),
     categories,
     summary: {
       feedingMl:
@@ -49,5 +59,21 @@ export async function diaryPattern(input: {
       stoolCount: stats('stool')?.count ?? 0,
       sleepMinutes: Math.round(sum('sleep', 'minutes')),
     },
+  };
+}
+export async function diaryDayRecords(input: DiaryDayInput) {
+  const { context, day, locale } = await diaryDayContext(input);
+  const entries = await loadQuickTimeline(context, day);
+  return {
+    age: ageInDays(context.child.birth_date, day),
+    name: context.child.name,
+    feeding: dailyFeedingTotals(entries, day, context.timezone),
+    rows: diaryRecordRows(
+      entries,
+      day,
+      context.today,
+      context.timezone,
+      locale,
+    ),
   };
 }

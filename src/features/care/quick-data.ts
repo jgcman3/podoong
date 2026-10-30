@@ -63,11 +63,15 @@ export async function loadQuickTimeline(
         .range(from, to),
     ),
   ]);
-  const timeline = quickTimeline(feeds, child, shots);
-  const growthIds = child
+  const timeline = todayEntries(
+    quickTimeline(feeds, child, shots),
+    day,
+    context.timezone,
+  );
+  const growthIds = timeline
     .filter((r) => r.service === 'growth')
     .map((r) => r.id);
-  const photoRecordIds = child
+  const photoRecordIds = timeline
     .filter((r) => r.service === 'growth' || r.kind === 'gift')
     .map((r) => r.id);
   if (photoRecordIds.length) {
@@ -86,17 +90,24 @@ export async function loadQuickTimeline(
     ]);
     if (shares.error) throw new Error('Diary privacy unavailable');
     if (photos.error) throw new Error('Diary photos unavailable');
+    const sharesByRecord = new Map(
+      shares.data.map((row) => [row.record_id, row]),
+    );
+    const photosByRecord = new Map<string, string[]>();
+    for (const photo of photos.data) {
+      const ids = photosByRecord.get(photo.record_id) ?? [];
+      ids.push(photo.id);
+      photosByRecord.set(photo.record_id, ids);
+    }
     for (const entry of timeline) {
       if (entry.service === 'growth' || entry.kind === 'gift') {
-        const share = shares.data.find((row) => row.record_id === entry.id);
+        const share = sharesByRecord.get(entry.id);
         entry.isPrivate = !share?.same_birth_date && !share?.everyone;
-        entry.photoIds = photos.data
-          .filter((photo) => photo.record_id === entry.id)
-          .map((photo) => photo.id);
+        entry.photoIds = photosByRecord.get(entry.id) ?? [];
       }
     }
   }
-  return todayEntries(timeline, day, context.timezone);
+  return timeline;
 }
 
 export async function loadRecentFeedingAmounts(context: CareContext) {

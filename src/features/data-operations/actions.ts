@@ -78,7 +78,7 @@ export async function dataOperation(form: FormData) {
     });
     failed = !!result.error;
   } else if (action === 'process') {
-    const role = await db.rpc('is_moderator');
+    const role = await db.rpc('service_admin_access');
     if (role.error || !role.data) failed = true;
     else {
       try {

@@ -147,9 +147,6 @@ const en = [
 export function kindName(kind: InsightKind, locale: Locale) {
   return (locale === 'ko' ? ko : en)[insightKinds.indexOf(kind)];
 }
-export function metricName(metric: Metric, locale: Locale) {
-  return locale === 'ko' ? metric.ko : metric.en;
-}
 export function unitName(unit: string, locale: Locale) {
   if (unit === 'h') return locale === 'ko' ? '시간' : 'h';
   return unit === 'count'

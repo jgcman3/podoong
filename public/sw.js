@@ -19,10 +19,10 @@ self.addEventListener('push', (event) => {
     /* Keep the safe local target. */
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || '포둥 · Podung', {
+    self.registration.showNotification(data.title || '포둥 · podoong', {
       body: data.body || '아기의 식사 시간을 확인해 주세요.',
-      icon: '/icons/podung-192.png',
-      badge: '/icons/podung-192.png',
+      icon: '/icons/podung-192.png?v=full-20261029',
+      badge: '/icons/podung-192.png?v=full-20261029',
       tag: typeof data.tag === 'string' ? data.tag : 'podung-feeding',
       data: { url: target.href },
     }),

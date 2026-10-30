@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse(JSON.stringify(payload, null, 2), {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="podung-records.json"',
+      'Content-Disposition': 'attachment; filename="podoong-records.json"',
       'Cache-Control': 'private, no-store',
     },
   });

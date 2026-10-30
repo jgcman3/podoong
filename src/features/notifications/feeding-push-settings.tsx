@@ -60,11 +60,11 @@ export function FeedingPushSettings({
       : status === 'install'
         ? ko
           ? '아이폰은 홈 화면에 추가한 포둥에서 알림을 켤 수 있어요.'
-          : 'On iPhone, add Podung to your Home Screen, then open it to enable notifications.'
+          : 'On iPhone, add podoong to your Home Screen, then open it to enable notifications.'
         : status === 'denied'
           ? ko
             ? '기기 설정에서 포둥의 알림을 허용해 주세요.'
-            : 'Allow Podung notifications in your device settings.'
+            : 'Allow podoong notifications in your device settings.'
           : status === 'unsupported'
             ? ko
               ? '이 브라우저에서는 웹 알림을 지원하지 않아요.'

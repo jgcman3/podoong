@@ -31,7 +31,7 @@ export function PatternAttachment({
     onBusy(true);
     setError('');
     try {
-      const { categories, summary } = await diaryPattern({
+      const { categories, summary, age } = await diaryPattern({
         child,
         locale,
         day,
@@ -118,7 +118,7 @@ export function PatternAttachment({
         );
       }
       ctx.font = 'bold 50px sans-serif';
-      ctx.fillText(ko ? '24시간' : '24h', cx, cy + 10);
+      ctx.fillText(`D+${age}`, cx, cy + 10);
       // Keep every legend item on a single centered line, even in English.
       ctx.font = '36px sans-serif';
       const legendWidths = categories.map(
@@ -179,7 +179,7 @@ export function PatternAttachment({
       ctx.textAlign = 'center';
       ctx.font = '32px sans-serif';
       ctx.fillStyle = '#8b715e';
-      ctx.fillText('podung', canvas.width / 2, canvas.height - 65);
+      ctx.fillText('podoong', canvas.width / 2, canvas.height - 65);
       const blob = await new Promise<Blob>((resolve, reject) =>
         canvas.toBlob(
           (value) =>

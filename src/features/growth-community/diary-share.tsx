@@ -109,7 +109,7 @@ function LinkSheet({
     setError('');
     try {
       await navigator.share({
-        title: ko ? '포둥 성장일기' : 'Podung growth diary',
+        title: ko ? '포둥 성장일기' : 'podoong growth diary',
         url,
       });
     } catch (error) {

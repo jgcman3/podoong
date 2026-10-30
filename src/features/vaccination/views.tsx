@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ShieldCheck, ChevronRight, Heart } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { z } from 'zod';
 import { loadCare, type CareContext } from '@/lib/data';
@@ -11,7 +10,6 @@ import { ConfirmButton } from '@/components/confirm-button';
 import { vaccinationCopy, vaccineName, sources } from './copy';
 import { VaccinationForm } from './form';
 import { deleteVaccination } from './actions';
-import { relativeDay } from '@/features/care/calendar-model';
 type Vaccination = Row<'vaccination_records'>;
 function Summary({
   record: r,
@@ -296,81 +294,5 @@ export async function VaccinationDetail(props: PageProps) {
         )}
       </section>
     </Shell>
-  );
-}
-export async function UpcomingVaccinations({
-  context,
-  locale,
-}: {
-  context: CareContext;
-  locale: Locale;
-}) {
-  const t = vaccinationCopy(locale);
-  const result = await context.db
-    .from('vaccination_records')
-    .select('*')
-    .eq('child_id', context.child.id)
-    .eq('status', 'planned')
-    .order('scheduled_date')
-    .order('id')
-    .limit(3);
-  if (result.error) throw new Error('Planned vaccinations unavailable');
-  return (
-    <section className="panel events-panel">
-      <div className="panel-heading">
-        <h2>
-          <ShieldCheck size={19} />
-          {t.next}
-        </h2>
-        <Link href={`/${locale}/vaccinations?child=${context.child.id}`}>
-          {t.all}
-          <ChevronRight size={15} />
-        </Link>
-      </div>
-      {result.data.length ? (
-        <div className="event-grid">
-          {result.data.map((r) => (
-            <article className="event-tile" key={r.id}>
-              <div className="event-date" aria-hidden="true">
-                <span>{r.scheduled_date!.slice(5, 7)}</span>
-                <strong>{r.scheduled_date!.slice(8)}</strong>
-              </div>
-              <div>
-                <strong>
-                  <Link
-                    aria-label={`${r.scheduled_date} · ${vaccineName(r.vaccine, r.custom_name, locale)}`}
-                    href={`/${locale}/vaccination/${r.id}?child=${context.child.id}`}
-                  >
-                    {vaccineName(r.vaccine, r.custom_name, locale)}
-                  </Link>
-                </strong>
-                <span className="event-countdown">
-                  {relativeDay(r.scheduled_date!, context.today, locale)}
-                </span>
-                <p>
-                  {[
-                    r.dose !== null ? `${t.dose}: ${r.dose}` : null,
-                    r.season,
-                    r.clinic,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </p>
-                {r.scheduled_date! < context.today && (
-                  <span className="badge planned">{t.overdue}</span>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className="empty-state">
-          <span className="empty-icon">
-            <Heart size={22} />
-          </span>
-          <strong>{t.empty}</strong>
-        </div>
-      )}
-    </section>
   );
 }

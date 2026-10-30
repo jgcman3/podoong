@@ -23,7 +23,53 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "audit_events": {
+            "admin_audit_log": {
+                  Row: {
+                    "action": string,"actor_id": string | null,"created_at": string,"details": NonNullable<Json>,"id": string,"subject_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"actor_id"?: string | null,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"subject_id": string
+                  }
+                  Update: {
+                    "action"?: string,"actor_id"?: string | null,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"subject_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "admin_audit_log_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"admin_request_details": {
+                  Row: {
+                    "internal_note": string,"priority": string,"request_id": string,"updated_at": string,"updated_by": string | null,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "internal_note"?: string,"priority"?: string,"request_id": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                  }
+                  Update: {
+                    "internal_note"?: string,"priority"?: string,"request_id"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "admin_request_details_request_id_fkey"
+      columns: ["request_id"]
+isOneToOne: true
+      referencedRelation: "developer_requests"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "admin_request_details_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"audit_events": {
                   Row: {
                     "action": string,"actor_id": string | null,"created_at": string,"family_id": string,"id": number,"subject_id": string | null
                   }
@@ -1115,6 +1161,52 @@ isOneToOne: false
       referencedColumns: ["country_code","code","level"]
     }
                   ]
+                },"service_admins": {
+                  Row: {
+                    "created_at": string,"role": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"role"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"role"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "service_admins_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"service_error_events": {
+                  Row: {
+                    "code": string,"created_at": string,"digest": string | null,"id": string,"resolved_at": string | null,"resolved_by": string | null,"section": string,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "code": string,"created_at"?: string,"digest"?: string | null,"id": string,"resolved_at"?: string | null,"resolved_by"?: string | null,"section": string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "code"?: string,"created_at"?: string,"digest"?: string | null,"id"?: string,"resolved_at"?: string | null,"resolved_by"?: string | null,"section"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "service_error_events_resolved_by_fkey"
+      columns: ["resolved_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "service_error_events_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"tasks": {
                   Row: {
                     "anchor": string | null,"assignee_id": string | null,"child_id": string,"created_by": string | null,"due_date": string | null,"id": string,"offset_days": number | null,"service": string,"source": string,"status": string,"template_key": string | null,"title": string,"updated_at": string
@@ -1254,6 +1346,51 @@ isOneToOne: false
 "add_child_record_photo":
 { Args: { "p_id": string,"p_record": string,"p_size": number,"p_type": string }; Returns: string
                            },
+"admin_audit":
+{ Args: { "p_before"?: string,"p_before_id"?: string }; Returns: {
+              "action": string,"actor_name": string,"created_at": string,"details": Json,"id": string,"subject_id": string
+            }[]
+                           },
+"admin_dashboard":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"admin_errors":
+{ Args: { "p_before"?: string,"p_before_id"?: string,"p_open_only"?: boolean }; Returns: {
+              "code": string,"created_at": string,"digest": string,"id": string,"resolved_at": string,"section": string
+            }[]
+                           },
+"admin_families":
+{ Args: { "p_before"?: string,"p_before_id"?: string }; Returns: {
+              "caregivers": number,"children": number,"country": string,"created_at": string,"id": string,"name": string
+            }[]
+                           },
+"admin_neighborhoods":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "families": number,"opened": boolean,"region": string
+            }[]
+                           },
+"admin_operations":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"admin_requests":
+{ Args: { "p_before"?: string,"p_before_id"?: string,"p_category"?: string,"p_status"?: string }; Returns: {
+              "body": string,"category": string,"created_at": string,"display_name": string,"id": string,"internal_note": string,"priority": string,"status": string,"user_id": string,"version": number
+            }[]
+                           },
+"admin_resolve_error":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"admin_update_request":
+{ Args: { "p_id": string,"p_note": string,"p_priority": string,"p_status": string,"p_version": number }; Returns: undefined
+                           },
+"admin_usage":
+{ Args: { "p_days"?: number }; Returns: Json
+                           },
+"admin_users":
+{ Args: { "p_before"?: string,"p_before_id"?: string }; Returns: {
+              "created_at": string,"deletion_requested": boolean,"display_name": string,"family_count": number,"id": string,"is_admin": boolean,"locale": string
+            }[]
+                           },
 "can_read_child":
 { Args: { "cid": string }; Returns: boolean
                            },
@@ -1299,6 +1436,9 @@ isOneToOne: false
 { Args: { "p_token": string }; Returns: {
               "auth_key": string,"child_id": string,"endpoint": string,"id": string,"lease_token": string,"locale": string,"p256dh": string
             }[]
+                           },
+"cleanup_admin_logs":
+{ Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "community_author_visible":
 { Args: { "p_author": string }; Returns: boolean
@@ -1442,6 +1582,9 @@ isOneToOne: false
 "is_moderator":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"is_service_admin":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "list_caregivers":
 { Args: { "p_child_id": string }; Returns: {
               "display_name": string,"role": string,"user_id": string
@@ -1529,6 +1672,9 @@ isOneToOne: false
 "report_growth_diary":
 { Args: { "p_child": string,"p_reason": string,"p_record": string }; Returns: undefined
                            },
+"report_service_error":
+{ Args: { "p_code": string,"p_digest"?: string,"p_id": string,"p_section": string }; Returns: undefined
+                           },
 "request_account_deletion":
 { Args: { "p_confirmation": string,"p_permit": string }; Returns: string
                            },
@@ -1539,6 +1685,9 @@ isOneToOne: false
 { Args: { "p_family": string }; Returns: undefined
                            },
 "require_recent_login":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"require_service_admin":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "retry_data_operation":
@@ -1603,6 +1752,9 @@ isOneToOne: false
                            },
 "save_vaccination_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_version"?: number }; Returns: string
+                           },
+"service_admin_access":
+{ Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "set_caregiver_relationship":
 { Args: { "p_family": string,"p_relationship": Database["public"]['Enums']["caregiver_relationship"] }; Returns: undefined

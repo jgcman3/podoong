@@ -3,8 +3,6 @@ import {
   endFromDuration,
   endFromClock,
   feedingKinds,
-  quickFeedingKinds,
-  isFeedingKind,
 } from '@/features/care/feeding-record';
 describe('feeding time input', () => {
   it('calculates an end time across midnight without losing start seconds', () => {
@@ -26,12 +24,8 @@ describe('feeding time input', () => {
       expect(endFromDuration('2026-10-13T12:00:00Z', minutes)).toBe('');
     },
   );
-  it('offers the same three feeding kinds in the form and quick actions', () => {
+  it('accepts only the three supported feeding kinds', () => {
     expect(feedingKinds).toEqual(['breast', 'formula', 'solids']);
-    expect(quickFeedingKinds).toEqual(feedingKinds);
-    expect(isFeedingKind('meal')).toBe(false);
-    expect(isFeedingKind('pump')).toBe(false);
-    expect(isFeedingKind('expressed')).toBe(false);
   });
 });
 

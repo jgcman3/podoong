@@ -42,9 +42,15 @@ set local role authenticated;
 select throws_ok($$select retry_data_operation('d5000000-0000-4000-8000-000000000001')$$,'42501',null,'ordinary user cannot retry deletion jobs');
 reset role;
 insert into community_moderators values('d1000000-0000-4000-8000-000000000002');
+set local role authenticated;
+select throws_ok($$select operation_metrics()$$,'42501',null,'community moderator cannot read global operation metrics');
+select throws_ok($$select retry_data_operation('d5000000-0000-4000-8000-000000000001')$$,'42501',null,'community moderator cannot retry account deletion');
+select is((select count(*)::integer from data_operation_jobs where user_id='d1000000-0000-4000-8000-000000000001'),0,'community moderator cannot read another account deletion job');
+reset role;
+insert into service_admins(user_id) values('d1000000-0000-4000-8000-000000000002');
 update data_operation_jobs set status='failed',attempts=10,leased_until=now()-interval '1 minute' where user_id='d1000000-0000-4000-8000-000000000001';
 set local role authenticated;
-select lives_ok($$select retry_data_operation((select id from data_operation_jobs where user_id='d1000000-0000-4000-8000-000000000001'))$$,'moderator resets exhausted job');
+select lives_ok($$select retry_data_operation((select id from data_operation_jobs where user_id='d1000000-0000-4000-8000-000000000001'))$$,'service admin resets exhausted job');
 select is((select attempts from data_operation_jobs where user_id='d1000000-0000-4000-8000-000000000001'),0,'manual retry resets attempt count');
 reset role;
 -- Owner withdrawal is blocked until other caregivers are removed.

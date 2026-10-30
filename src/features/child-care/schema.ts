@@ -1,9 +1,5 @@
 import { z } from 'zod';
 export const childServices = ['sleep', 'diaper', 'growth', 'activity'] as const;
-export type ChildService = (typeof childServices)[number];
-export function isChildService(value: string): value is ChildService {
-  return childServices.includes(value as ChildService);
-}
 const amount = (max: number) =>
   z
     .union([z.literal(''), z.coerce.number().positive().max(max)])

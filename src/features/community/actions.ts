@@ -1,6 +1,7 @@
 'use server';
 import { randomUUID } from 'node:crypto';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireUser } from '@/lib/data';
 import { communityStorage } from './storage';
@@ -45,6 +46,15 @@ export async function communityAction(form: FormData) {
     redirect(
       `/${locale}/community/settings?${error ? 'error=generic' : 'notice=saved'}`,
     );
+  if (!error) {
+    revalidatePath(`/${locale}/community/boards`);
+    const postId = detail.success
+      ? detail.data
+      : action.data === 'post'
+        ? id.data
+        : undefined;
+    if (postId) revalidatePath(`/${locale}/community/${postId}`);
+  }
   if (!error && action.data === 'post' && !detail.success)
     redirect(resultPath(`/${locale}/community/${id.data}`, 'notice=saved'));
   redirect(
@@ -114,5 +124,6 @@ export async function uploadPhoto(form: FormData) {
     await storage.remove([path]);
     redirect(`${target}&error=generic`);
   }
+  revalidatePath(`/${locale}/community/${postId}`);
   redirect(`${target}&notice=saved`);
 }

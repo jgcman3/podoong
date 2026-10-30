@@ -74,7 +74,6 @@ export async function diaryPhotoResponse(
       headers: { ...imageHeaders, 'Content-Type': 'image/webp' },
     });
   } catch {
-    // Older uploaded images may not decode; keep their existing display behavior.
     return new Response(file.data, {
       headers: { ...headers, 'Content-Type': photo.data.content_type },
     });

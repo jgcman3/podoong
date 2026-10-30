@@ -11,12 +11,15 @@ import {
   type ThemePreference,
 } from '@/components/appearance';
 export const metadata = {
-  title: { default: '포둥 · Podung', template: '%s · Podung' },
+  title: { default: '포둥 · podoong', template: '%s · podoong' },
   description: '가족과 함께 만드는 포근한 돌봄의 하루',
   manifest: '/manifest.webmanifest',
   applicationName: '포둥',
   appleWebApp: { capable: true, title: '포둥', statusBarStyle: 'default' },
-  icons: { icon: '/icons/podung-192.png', apple: '/icons/podung-180.png' },
+  icons: {
+    icon: '/icons/podung-192.png?v=full-20261029',
+    apple: '/icons/podung-180.png?v=full-20261029',
+  },
 };
 export const viewport: Viewport = {
   width: 'device-width',

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { createClient, configured } from '@/lib/supabase/server';
 import { acceptInvite } from '@/features/family/actions';
-import { Nest } from '@/components/nest';
+import { BrandImage } from '@/components/brand-image';
 import { Flash } from '@/components/flash';
 import type { Locale } from '@/lib/domain';
 export default async function Invitation({
@@ -35,7 +35,7 @@ export default async function Invitation({
   return (
     <main className="onboarding-page">
       <section className="onboard-card">
-        <Nest />
+        <BrandImage />
         <h1>{t('inviteTitle')}</h1>
         <p>{t('inviteBefore')}</p>
         <Flash error={q.error} />
