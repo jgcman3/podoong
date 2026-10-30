@@ -5,6 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/data';
 import { isLocale } from '@/lib/domain';
+import { imageType } from '@/features/child-care/schema';
 import { iconStorage } from './server';
 
 export async function saveAppIcon(form: FormData) {
@@ -37,7 +38,10 @@ export async function saveAppIcon(form: FormData) {
   const token = randomBytes(32).toString('hex');
   const path = `app-icons/${token}.png`;
   try {
-    const bytes = await sharp(Buffer.from(await file.arrayBuffer()), {
+    const input = Buffer.from(await file.arrayBuffer());
+    if (file.type !== 'image/png' || imageType(input) !== 'image/png')
+      throw new Error('Invalid icon image');
+    const bytes = await sharp(input, {
       limitInputPixels: 25000000,
     })
       .rotate()
