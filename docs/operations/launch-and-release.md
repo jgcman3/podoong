@@ -58,7 +58,7 @@ Vercel 한 프로젝트의 Preview 설정을 개발, Production 설정을 운영
 
 | 저장 위치                        | 항목                                                                                                                                                                                         |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GitHub Repository Variables      | `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `PODUNG_PRODUCTION_PROJECT_REF=atdyjsxfxlhwxmxgtnte`; 준비 완료 후 `DEPLOYMENTS_ENABLED=true`                                                          |
+| GitHub Repository Variables      | `VERCEL_ORG_ID`, `VERCEL_TEAM_SLUG`, `VERCEL_PROJECT_ID`, `PODUNG_PRODUCTION_PROJECT_REF=atdyjsxfxlhwxmxgtnte`; 준비 완료 후 `DEPLOYMENTS_ENABLED=true`                                                          |
 | 각 GitHub Environment Variables  | `SUPABASE_PROJECT_REF`: 각 환경의 프로젝트 ID                                                                                                                                                |
 | GitHub Repository Secrets        | `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`: CI 전용 배포 토큰                                                                                          |
 | 각 GitHub Environment Secrets    | `SUPABASE_SERVICE_ROLE_KEY`: 해당 환경의 서버 키 |
@@ -192,3 +192,12 @@ Actions용 전용 토큰 `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`은 사용자가
 `68147fa`를 작업 브랜치와 `develop`에 푸시하고 `DEPLOYMENTS_ENABLED=true`로 전환했다. 운영 `main`은 반영하지 않았다. 첫 원격 실행의 앱 검사는 모두 통과했고 브라우저 73개 중 70개 통과·2개 실패·운영 빌드 전용 캐시 검사 1개 건너뜀으로 배포가 차단됐다.
 
 두 실패는 애니메이션 도중 서로 다른 순간에 측정한 일정 입력창 버튼 위치, 새 CI DB에 없는 식사 알림 테스트용 구성이다. 같은 프레임에서 크기를 측정하고, 알림 검사가 로컬 테스트 DB에만 임시 구성을 넣은 뒤 제거하도록 보정했다. 기존 알림 구성은 변경하지 않는다. 두 검사를 각각 2회 반복해 통과했고 린트·타입 검사도 통과했다. 운영 빌드 전용 캐시 검사는 별도 로컬 운영 빌드에서 통과했으며 오늘 복귀 85ms·추가 RSC 요청 0건을 관찰했다. 사용자 기기의 응답시간을 보장하는 수치는 아니다.
+
+
+### 개발 앱 첫 배포 및 도메인 연결 — 2026-10-30
+
+두 번째 CI `41035875099`에서 앱 검사, DB 665개와 정리 10개, 브라우저 72개가 통과했다. 운영 빌드 전용 캐시 검사 1개는 기본 개발 서버 검사에서 건너뛰었고 별도 로컬 운영 빌드에서 통과했다. 개발 DB는 최신 상태였고 `feeding-push` 함수를 배포했다.
+
+사전 빌드 앱 `dpl_CJnFQAumrScYgcrgXVx2Y3vvFkTJ`는 Vercel Ready 상태로 생성됐지만 마지막 alias 명령에 팀 ID를 전달해 실패했다. CLI의 alias 명령에는 팀 slug를 사용하도록 `VERCEL_TEAM_SLUG=jgcman3` 변수를 추가했다. 이미 검증된 앱의 `dev.podoong.com` 연결을 CLI로 완료했다.
+
+Vercel 기본 인증이 개발 브랜치 도메인에도 적용되는 것을 확인해 개발 도메인 하나만 Deployment Protection Exception으로 등록했다. 전체 프로젝트 보호를 해제하지 않으며 앱의 Supabase 인증·가족 권한은 유지한다. 한국어 로그인 HTTPS 응답 200을 확인했고 두 언어·카카오 복귀 주소와 수정된 자동 배포의 재실행은 이어서 확인한다. 운영 도메인·운영 DB는 변경하지 않았다.
