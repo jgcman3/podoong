@@ -55,7 +55,7 @@ jobs:
             const base = `https://api.supabase.com/v1/projects/${ref}`;
             await check(`Supabase ${name} project`, base, process.env.SUPABASE_ACCESS_TOKEN,
               data => data.id === ref);
-            await check(`Supabase ${name} connection pooling`, `${base}/config/pooler`, process.env.SUPABASE_ACCESS_TOKEN);
+            await check(`Supabase ${name} connection pooling`, `${base}/config/database/pooler`, process.env.SUPABASE_ACCESS_TOKEN);
             await check(`Supabase ${name} Edge Functions`, `${base}/functions`, process.env.SUPABASE_ACCESS_TOKEN);
           }
           NODE
