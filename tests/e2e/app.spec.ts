@@ -1285,7 +1285,7 @@ test('responsive dashboard and current navigation remain within the viewport', a
     });
   }
   await expect(page.locator('.mobile-nav a')).toHaveText([
-    '오늘', '일정', '인사이트', '성장 일기', '동네 생활', '도담이',
+    '오늘', '일정', '인사이트', '성장 일기', '육아 소통', '도담이',
   ]);
   for (const section of ['today','calendar','insights','community/diaries','community','account']) {
     await page.goto(`/ko/${section}?child=${child.id}`);
@@ -1294,8 +1294,8 @@ test('responsive dashboard and current navigation remain within the viewport', a
     await expect(page.locator('.mobile-nav').getByRole('link', { name: '돌봄 기록', exact: true })).toHaveCount(0);
   }
   await page.goto(`/en/community?child=${child.id}`);
-  await expect(page.getByText('Parenting chat', { exact: true })).toBeVisible();
-  await expect(page.getByText('Kids’ marketplace', { exact: true })).toBeVisible();
+  await expect(page.locator('.parenting-tabs').getByRole('link',{name:'Board',exact:true})).toBeVisible();
+  await expect(page.locator('.parenting-tabs').getByRole('link',{name:'Marketplace',exact:true})).toBeVisible();
   // A running timer must remain reachable beyond the first history page.
   const records = Array.from({ length: 101 }, (_, index) => ({
     id: crypto.randomUUID(),
