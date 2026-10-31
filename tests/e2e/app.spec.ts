@@ -4925,6 +4925,11 @@ test('home screen install exposes manifest, manual guidance and browser installa
   page,
   context,
 }) => {
+  // This test owns the prompt boundary; don't let an ambient browser prompt
+  // replace the controlled event while React updates the installation controls.
+  await page.addInitScript(() => window.addEventListener('beforeinstallprompt', event => {
+    if (event.isTrusted) { event.preventDefault(); event.stopImmediatePropagation(); }
+  }, {capture:true}));
   const { child } = await childCareFamily(context);
   const manifestResponse = await page.request.get('/manifest.webmanifest');
   expect(manifestResponse.ok()).toBe(true);
@@ -4967,7 +4972,9 @@ test('home screen install exposes manifest, manual guidance and browser installa
     });
     window.dispatchEvent(event);
   });
-  await install.click();
+  const nativeInstall = page.locator('button').filter({hasText:'앱으로 설치'});
+  await expect(nativeInstall).toBeVisible();
+  await nativeInstall.click();
   await expect(page.locator('html')).toHaveAttribute(
     'data-install-prompt-count',
     '1',
@@ -5000,6 +5007,8 @@ test('iPhone home screen guidance works from account settings without a native i
   await expect(guide).toContainText('Safari');
   await expect(guide.locator('summary').first()).toBeInViewport();
   await expect(page.getByRole('complementary',{name:'아이콘 사진 변경 안내'})).toContainText('기존 포둥 앱 삭제');
+  const notificationSummary=guide.locator('summary').filter({hasText:'설치 후, 식사 알림도 켜보세요'});
+  expect(await notificationSummary.evaluate(node=>getComputedStyle(node,'::after').content)).toBe('"+"');
   await expect(guide).toContainText('웹 앱으로 열기');
   await expect(guide.getByRole('img', {name:'1단계 메뉴 위치를 표시한 안내용 재현 화면',exact:true})).toBeVisible();
   await guide.getByRole('button', {name:'다음 단계',exact:true}).click();
