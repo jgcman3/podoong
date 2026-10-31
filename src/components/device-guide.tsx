@@ -2,7 +2,12 @@
 
 import { useSyncExternalStore } from 'react';
 import type { Locale } from '@/lib/domain';
-import { devicePlatform, type DevicePlatform } from '@/lib/device-platform';
+import {
+  devicePlatform,
+  type DevicePlatform,
+  type DesktopBrowser,
+} from '@/lib/device-platform';
+import { DesktopInstallGuide } from './desktop-install-guide';
 import {
   InstallVisualGuide,
   NotificationGuideImage,
@@ -33,14 +38,18 @@ function snapshot() {
 export function DeviceGuide({
   locale,
   purpose = 'notifications',
+  initialPlatform = 'desktop',
+  initialBrowser = 'other',
 }: {
   locale: Locale;
   purpose?: 'install' | 'notifications';
+  initialPlatform?: DevicePlatform;
+  initialBrowser?: DesktopBrowser;
 }) {
   const environment = useSyncExternalStore(
     subscribe,
     snapshot,
-    () => 'checking',
+    () => `${initialPlatform}:browser`,
   );
   const ko = locale === 'ko',
     [platform, state] = environment.split(':');
@@ -83,29 +92,7 @@ export function DeviceGuide({
               'Choose “Install & create shortcuts → Install”. Some versions show “Add to Home screen” or “Install app”.',
               'Confirm Install, then launch podoong from your Home Screen or app list.',
             ]
-        : platform === 'mac-safari'
-          ? ko
-            ? [
-                'macOS Sonoma 이상에서 Safari로 포둥을 열고 상단 ‘파일’ 메뉴를 눌러요.',
-                '‘Dock에 추가’를 선택해요. 메뉴가 없다면 Chrome 또는 Edge에서 앱 설치를 이용해요.',
-                '이름을 확인하고 ‘추가’를 눌러요. Dock의 포둥 아이콘으로 실행해요.',
-              ]
-            : [
-                'On macOS Sonoma or later, open podoong in Safari and choose File in the menu bar.',
-                'Choose Add to Dock. If unavailable, use app installation in Chrome or Edge.',
-                'Check the name, choose Add, then launch podoong from the Dock.',
-              ]
-          : ko
-            ? [
-                'Chrome 또는 Edge에서 포둥을 열고 주소창의 설치 아이콘을 찾아요. 없으면 더보기(⋮)를 눌러요.',
-                'Chrome은 ‘전송, 저장 및 공유 → 페이지를 앱으로 설치’, Edge는 ‘앱 → 이 사이트를 앱으로 설치’를 선택해요.',
-                '설치 창에서 ‘설치’를 확인해요. 이후 시작 메뉴나 앱 목록에서 포둥을 실행할 수 있어요.',
-              ]
-            : [
-                'Open podoong in Chrome or Edge. Look for the address-bar install icon, or open More (⋮).',
-                'In Chrome, use “Cast, save and share → Install page as app”. In Edge, use “Apps → Install this site as an app”.',
-                'Confirm Install. Open podoong from your Start menu or app list afterward.',
-              ];
+        : [];
   const notifications =
     platform === 'ios'
       ? ko
@@ -157,12 +144,18 @@ export function DeviceGuide({
       {purpose === 'install' && (
         <>
           <h4>{ko ? '앱처럼 사용하기' : 'Use it like an app'}</h4>
-          {installed ? (
+          {installed && (
             <p>
               {ko
-                ? '이미 앱 화면으로 실행 중이에요.'
-                : 'You are already using the app window.'}
+                ? '아이 사진을 바꿨다면 기존 포둥 앱을 삭제한 뒤, 브라우저에서 다시 추가해주세요. 저장한 육아 기록은 유지됩니다.'
+                : 'After changing the photo, remove the existing podoong app and add it again from your browser. Your saved care records are kept.'}
             </p>
+          )}
+          {platform === 'desktop' || platform === 'mac-safari' ? (
+            <DesktopInstallGuide
+              locale={locale}
+              initialBrowser={initialBrowser}
+            />
           ) : (
             <InstallVisualGuide
               key={`${platform}-${locale}`}

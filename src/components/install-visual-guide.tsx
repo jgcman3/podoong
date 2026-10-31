@@ -24,6 +24,13 @@ export function InstallVisualGuide({
       role="group"
       aria-label={ko ? '화면으로 보는 설치 안내' : 'Visual installation guide'}
     >
+      <noscript>
+        <ol>
+          {steps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      </noscript>
       <nav
         className={styles.steps}
         aria-label={ko ? '설치 단계' : 'Installation steps'}

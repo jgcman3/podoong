@@ -4950,10 +4950,10 @@ test('home screen install exposes manifest, manual guidance and browser installa
     exact: true,
   });
   await install.click();
-  const guide = page.getByRole('dialog', { name: '앱으로 설치' });
+  const guide = page.getByRole('region', { name: '설치 안내', exact: true });
   await expect(guide).toBeVisible();
   await expect(guide).toContainText('페이지를 앱으로 설치');
-  await guide.getByRole('button', { name: '확인' }).click();
+  await install.click();
   await expect(guide).not.toBeVisible();
   // Native browser prompts cannot be operated by Playwright; exercise the
   // browser event boundary and ensure a dismissed prompt is never reused.
@@ -4972,7 +4972,6 @@ test('home screen install exposes manifest, manual guidance and browser installa
     'data-install-prompt-count',
     '1',
   );
-  await install.click();
   await expect(guide).toBeVisible();
   await page.keyboard.press('Escape');
   await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')));
@@ -4997,8 +4996,10 @@ test('iPhone home screen guidance works from account settings without a native i
   await page
     .getByRole('button', { name: '홈 화면에 추가', exact: true })
     .click();
-  const guide = page.getByRole('dialog', { name: '홈 화면에 추가' });
+  const guide = page.getByRole('region', { name: '설치 안내', exact: true });
   await expect(guide).toContainText('Safari');
+  await expect(guide.locator('summary').first()).toBeInViewport();
+  await expect(page.getByRole('complementary',{name:'아이콘 사진 변경 안내'})).toContainText('기존 포둥 앱 삭제');
   await expect(guide).toContainText('웹 앱으로 열기');
   await expect(guide.getByRole('img', {name:'1단계 메뉴 위치를 표시한 안내용 재현 화면',exact:true})).toBeVisible();
   await guide.getByRole('button', {name:'다음 단계',exact:true}).click();
@@ -5010,25 +5011,33 @@ test('iPhone home screen guidance works from account settings without a native i
     await guide.evaluate((node) => node.scrollWidth <= node.clientWidth),
   ).toBe(true);
   await page.screenshot({ caret: 'initial', path: 'test-results/install-iphone-guide.png' });
-  await guide.getByRole('button', { name: '확인' }).click();
+  await page.getByRole('button', { name: '홈 화면에 추가', exact: true }).click();
   await expect(guide).not.toBeVisible();
+  await page.evaluate(()=>window.dispatchEvent(new Event('appinstalled')));
+  await page.getByRole('button',{name:'다시 설치 안내',exact:true}).click();
+  await expect(guide).toBeVisible();
 });
 
 test('Android and PC show platform-specific installation and notification guidance', async ({ page, context }) => {
   const { child } = await childCareFamily(context);
   for (const sample of [
     { ua: 'Mozilla/5.0 (Linux; Android 16) Chrome/130.0 Mobile Safari/537.36', button: '홈 화면에 추가', platform: '안드로이드', install: 'Chrome에서', notification: '안드로이드의 Chrome 앱 알림' },
-    { ua: 'Mozilla/5.0 (Windows NT 10.0) Chrome/130.0 Safari/537.36 Edg/130', button: '앱으로 설치', platform: 'PC', install: 'Chrome 또는 Edge', notification: '운영체제의 브라우저' },
+    { ua: 'Mozilla/5.0 (Windows NT 10.0) Chrome/130.0 Safari/537.36 Edg/130', button: '앱으로 설치', platform: 'PC', install: '기타 도구 → 앱', browser: 'Microsoft Edge', notification: '운영체제의 브라우저' },
+    { ua: 'Mozilla/5.0 (Windows NT 10.0) Chrome/130.0 Safari/537.36', button: '앱으로 설치', platform: 'PC', install: '전송, 저장 및 공유 → 페이지를 앱으로 설치', browser: 'Google Chrome', notification: '운영체제의 브라우저' },
     { ua: 'Mozilla/5.0 (Macintosh) Version/26.0 Safari/605.1', button: '앱으로 설치', platform: 'Mac · Safari', install: 'Dock에 추가', notification: '운영체제의 브라우저' },
   ]) {
     const target = await context.newPage();
     await target.addInitScript(ua => Object.defineProperty(navigator, 'userAgent', {value: ua}), sample.ua);
     await target.goto(`/ko/install?child=${child}&ready=1`);
     await target.getByRole('button', { name: sample.button, exact: true }).click();
-    const dialog = target.getByRole('dialog', {name: sample.button, exact: true});
+    const dialog = target.getByRole('region', {name: '설치 안내', exact: true});
     await expect(dialog).toContainText(sample.platform);
     await expect(dialog).toContainText(sample.install);
-    await dialog.getByRole('button', {name:'확인',exact:true}).click();
+    if ('browser' in sample) {
+      await expect(dialog.getByText(sample.browser!,{exact:true}).locator('..')).toHaveJSProperty('open',true);
+      await expect(dialog.getByRole('img',{name:/단계 메뉴 위치/})).toHaveCount(0);
+    }
+    await target.getByRole('button', {name:sample.button,exact:true}).click();
     await target.goto(`/ko/account?child=${child}&panel=notifications`);
     const guide = target.locator('.feeding-push-settings .device-guide');
     await guide.locator('summary').click();
@@ -6850,7 +6859,7 @@ test('personal child icon crops a photo, publishes install metadata and revokes 
   await page.getByRole('link',{name:'아이 사진으로 홈 화면에 추가',exact:true}).click();
   await expect(page).toHaveURL(/ready=1/);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  const bytes = await sharp('public/brand/podung.png').resize(600,800,{fit:'contain',background:'#fff3e6'}).jpeg().toBuffer();
+  const bytes = await sharp({create:{width:600,height:800,channels:3,background:'#d08b73'}}).jpeg().toBuffer();
   await page.locator('input[type=file]').setInputFiles({name:'child.jpg',mimeType:'image/jpeg',buffer:bytes});
   await expect(page.getByRole('slider',{name:'확대'})).toBeVisible();
   await page.getByRole('slider',{name:'확대'}).fill('1.5');
@@ -6858,8 +6867,8 @@ test('personal child icon crops a photo, publishes install metadata and revokes 
   await expect(page.locator('link[rel=manifest]')).toHaveAttribute('href',/\/api\/app-manifest\/[a-f0-9]{64}/);
   await expect(page).toHaveURL(/ready=1/);
   const manifestPath = (await page.locator('link[rel=manifest]').getAttribute('href'))!;
-  const {data:record} = await admin.from('child_app_icons').select('path').eq('child_id',child).single();
-  expect(record).toBeTruthy(); createdChildPhotos.push(record!.path);
+  const {data:record} = await admin.from('child_app_icons').select('path,layout_version').eq('child_id',child).single();
+  expect(record).toBeTruthy(); expect(record!.layout_version).toBe(2); createdChildPhotos.push(record!.path);
   const anonymous = await browser.newContext();
   try {
     const manifest = await (await anonymous.request.get(`http://127.0.0.1:3188${manifestPath}`)).json();
@@ -6871,7 +6880,18 @@ test('personal child icon crops a photo, publishes install metadata and revokes 
       expect(response.ok()).toBe(true);
       const image = await sharp(await response.body()).metadata();
       expect(image.width).toBe(size); expect(image.height).toBe(size); expect(image.exif).toBeUndefined();
+      const edge = await sharp(await response.body()).removeAlpha().raw().toBuffer();
+      expect(Math.abs(edge[0]-208)).toBeLessThan(4);
+      expect(Math.abs(edge[1]-139)).toBeLessThan(4);
+      expect(Math.abs(edge[2]-115)).toBeLessThan(4);
     }
+    const legacy = await sharp({create:{width:512,height:512,channels:3,background:'#fff3e6'}})
+      .composite([{input:await sharp({create:{width:440,height:440,channels:3,background:'#d08b73'}}).png().toBuffer(),left:36,top:36}]).png().toBuffer();
+    expect((await admin.storage.from('child-care-photos').update(record!.path,legacy,{contentType:'image/png'})).error).toBeNull();
+    expect((await admin.from('child_app_icons').update({layout_version:1}).eq('child_id',child)).error).toBeNull();
+    const oldEdge = await sharp(await (await anonymous.request.get(`http://127.0.0.1:3188${apple}`)).body()).removeAlpha().raw().toBuffer();
+    expect(Math.abs(oldEdge[0]-208)).toBeLessThan(4);
+    expect(Math.abs(oldEdge[1]-139)).toBeLessThan(4);
     await page.screenshot({path:test.info().outputPath('personal-icon-mobile.png'),fullPage:true});
     await page.goto(`/ko/today?child=${child}`);
     await expect(page.locator('link[rel=manifest]')).toHaveAttribute('href',manifestPath);
@@ -6883,4 +6903,18 @@ test('personal child icon crops a photo, publishes install metadata and revokes 
     await page.getByRole('link',{name:'포둥 시작하기',exact:true}).click();
     await expect(page).toHaveURL(/\/ko\/today/);
   } finally { await anonymous.close(); }
+});
+
+
+test('iPhone installation guidance opens before JavaScript initializes', async ({browser,context}) => {
+  const {child} = await childCareFamily(context);
+  const phone = await browser.newContext({...devices['iPhone 13'],javaScriptEnabled:false});
+  await phone.addCookies(await context.cookies());
+  try {
+    const page=await phone.newPage();
+    await page.goto(`/ko/install?child=${child}`);
+    await page.getByRole('button',{name:'홈 화면에 추가',exact:true}).click({timeout:10000});
+    await expect(page.getByRole('region',{name:'설치 안내',exact:true})).toBeVisible();
+    await expect(page.getByRole('region',{name:'설치 안내',exact:true})).toContainText('Safari');
+  } finally {await phone.close();}
 });

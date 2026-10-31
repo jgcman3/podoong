@@ -15,7 +15,7 @@ export async function findIcon(token: string) {
   if (!/^[a-f0-9]{64}$/.test(token)) return null;
   const { data, error } = await iconStorage()
     .from('child_app_icons')
-    .select('path')
+    .select('path,layout_version')
     .eq('token', token)
     .maybeSingle();
   if (error) throw new Error('Icon lookup failed');

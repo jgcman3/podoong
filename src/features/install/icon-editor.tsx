@@ -61,22 +61,17 @@ export function IconEditor({
     const side = Math.min(photo.naturalWidth, photo.naturalHeight) / crop.zoom;
     ctx.fillStyle = '#fff3e6';
     ctx.fillRect(0, 0, 512, 512);
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(36, 36, 440, 440, 100);
-    ctx.clip();
     ctx.drawImage(
       photo,
       ((photo.naturalWidth - side) * crop.x) / 100,
       ((photo.naturalHeight - side) * crop.y) / 100,
       side,
       side,
-      36,
-      36,
-      440,
-      440,
+      0,
+      0,
+      512,
+      512,
     );
-    ctx.restore();
   }, [crop, source, ready]);
   function apply() {
     canvas.current?.toBlob((blob) => {
@@ -195,8 +190,8 @@ export function IconEditor({
           )}
           <small className={styles.note}>
             {ko
-                ? '원본은 보관하지 않아요. 아이콘 링크를 아는 사람은 아이콘 이미지를 볼 수 있어요.'
-                : 'We keep only the processed icon, not the original. Anyone with its link can view the icon image.'}
+              ? '원본은 보관하지 않아요. 아이콘 링크를 아는 사람은 아이콘 이미지를 볼 수 있어요.'
+              : 'We keep only the processed icon, not the original. Anyone with its link can view the icon image.'}
           </small>
         </>
       )}

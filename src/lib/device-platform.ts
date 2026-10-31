@@ -1,4 +1,11 @@
 export type DevicePlatform = 'ios' | 'android' | 'mac-safari' | 'desktop';
+export type DesktopBrowser = 'chrome' | 'edge' | 'safari' | 'other';
+export function desktopBrowser(userAgent: string): DesktopBrowser {
+  if (/Edg\//i.test(userAgent)) return 'edge';
+  if (/Chrome|Chromium/i.test(userAgent)) return 'chrome';
+  if (/Safari/i.test(userAgent)) return 'safari';
+  return 'other';
+}
 
 export function devicePlatform(
   userAgent: string,

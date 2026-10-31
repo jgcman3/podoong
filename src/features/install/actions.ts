@@ -55,7 +55,7 @@ export async function saveAppIcon(form: FormData) {
     if (uploaded.error) throw new Error('upload');
     const saved = await admin
       .from('child_app_icons')
-      .upsert({ child_id: child, token, path });
+      .upsert({ child_id: child, token, path, layout_version: 2 });
     if (saved.error) {
       await admin.storage.from('child-care-photos').remove([path]);
       throw new Error('metadata');

@@ -4,28 +4,20 @@ import {
   createContext,
   useContext,
   useEffect,
-  useId,
   useRef,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from 'react';
-import {
-  Download,
-  Check,
-  ChevronRight,
-  PlusSquare,
-  AppWindow,
-} from 'lucide-react';
-import { createPortal } from 'react-dom';
+import { Download, PlusSquare, AppWindow } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import { DeviceGuide } from './device-guide';
-import { devicePlatform, type DevicePlatform } from '@/lib/device-platform';
+import {
+  devicePlatform,
+  desktopBrowser,
+  type DesktopBrowser,
+  type DevicePlatform,
+} from '@/lib/device-platform';
 import styles from './install-app.module.css';
-
-const subscribeMounted = () => () => {};
-const clientMounted = () => true;
-const serverMounted = () => false;
 
 interface InstallPrompt extends Event {
   prompt(): Promise<void>;
@@ -35,12 +27,21 @@ type InstallState = {
   prompt: InstallPrompt | null;
   installed: boolean;
   platform: DevicePlatform;
+  browser: DesktopBrowser;
   secure: boolean;
   clearPrompt: () => void;
 };
 const InstallContext = createContext<InstallState | null>(null);
 
-export function InstallAppProvider({ children }: { children: ReactNode }) {
+export function InstallAppProvider({
+  children,
+  initialPlatform = 'desktop',
+  initialBrowser = 'other',
+}: {
+  children: ReactNode;
+  initialPlatform?: DevicePlatform;
+  initialBrowser?: DesktopBrowser;
+}) {
   useEffect(() => {
     const display = window.matchMedia('(display-mode: standalone)');
     const isStandalone = () =>
@@ -69,7 +70,8 @@ export function InstallAppProvider({ children }: { children: ReactNode }) {
   const [prompt, setPrompt] = useState<InstallPrompt | null>(null);
   const [device, setDevice] = useState({
     installed: false,
-    platform: 'desktop' as DevicePlatform,
+    platform: initialPlatform,
+    browser: initialBrowser,
     secure: true,
   });
   useEffect(() => {
@@ -86,6 +88,7 @@ export function InstallAppProvider({ children }: { children: ReactNode }) {
           navigator.platform,
           navigator.maxTouchPoints,
         ),
+        browser: desktopBrowser(navigator.userAgent),
         secure: window.isSecureContext,
       });
     const frame = requestAnimationFrame(update);
@@ -119,101 +122,120 @@ export function InstallAppProvider({ children }: { children: ReactNode }) {
 export function InstallAppButton({
   locale,
   card = false,
+  nativeReady = true,
 }: {
   locale: Locale;
   card?: boolean;
+  nativeReady?: boolean;
 }) {
   const state = useContext(InstallContext);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
+  const guide = useRef<HTMLDetailsElement>(null);
   const [busy, setBusy] = useState(false);
-  const mounted = useSyncExternalStore(
-    subscribeMounted,
-    clientMounted,
-    serverMounted,
-  );
   const ko = locale === 'ko';
-  if (!state || state.installed) return null;
+  if (!state) return null;
   const mobile = state.platform === 'ios' || state.platform === 'android';
-  const title = mobile
+  const title = state.installed
     ? ko
-      ? '홈 화면에 추가'
-      : 'Add to Home Screen'
-    : ko
-      ? '앱으로 설치'
-      : 'Install app';
-  const showGuide = () => {
-    dialog.current?.showModal();
-    dialog.current?.querySelector('h2')?.focus({ preventScroll: true });
+      ? '다시 설치 안내'
+      : 'Reinstallation guide'
+    : mobile
+      ? ko
+        ? '홈 화면에 추가'
+        : 'Add to Home Screen'
+      : ko
+        ? '앱으로 설치'
+        : 'Install app';
+  const nativePrompt =
+    nativeReady && state.platform !== 'ios' && !state.installed
+      ? state.prompt
+      : null;
+  const openGuide = () => {
+    if (guide.current) {
+      guide.current.open = true;
+      guide.current.querySelector('summary')?.focus({ preventScroll: true });
+    }
   };
   const install = async () => {
-    if (!state.prompt) {
-      showGuide();
+    if (!nativePrompt) {
+      openGuide();
       return;
     }
     setBusy(true);
     try {
-      await state.prompt.prompt();
-      await state.prompt.userChoice;
+      await nativePrompt.prompt();
+      if ((await nativePrompt.userChoice).outcome !== 'accepted') openGuide();
     } catch {
-      showGuide();
+      openGuide();
     } finally {
       state.clearPrompt();
       setBusy(false);
     }
   };
   return (
-    <>
-      <button
-        type="button"
-        className={card ? 'service-card install-app-card' : 'button secondary'}
-        onClick={install}
-        disabled={busy || !mounted}
+    <div className={styles.installControl}>
+      {nativePrompt && (
+        <button
+          type="button"
+          className="button secondary"
+          disabled={busy}
+          onClick={install}
+        >
+          <Download size={18} />
+          {title}
+        </button>
+      )}
+      <details
+        ref={guide}
+        className={styles.inlineGuide}
+        onToggle={(event) => {
+          if (event.currentTarget.open)
+            event.currentTarget.scrollIntoView({
+              block: 'start',
+              behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
+                ? 'instant'
+                : 'smooth',
+            });
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && guide.current) {
+            guide.current.open = false;
+            guide.current.querySelector('summary')?.focus();
+          }
+        }}
       >
-        {card ? (
-          <>
-            <span className="service-icon">
-              <Download size={24} />
-            </span>
-            <span className="install-app-label">{title}</span>
-            <ChevronRight size={17} />
-          </>
-        ) : (
-          <>
-            {mobile ? <PlusSquare size={18} /> : <AppWindow size={18} />}
-            {title}
-          </>
-        )}
-      </button>
-      {mounted &&
-        createPortal(
-          <dialog
-            ref={dialog}
-            className={`install-app-dialog ${styles.dialog}`}
-            aria-labelledby={titleId}
-          >
-            <h2 id={titleId} tabIndex={-1}>
-              {title}
-            </h2>
-            <div className={styles.dialogBody}>
-              <DeviceGuide locale={locale} purpose="install" />
-              {!state.secure && (
-                <p className="install-app-notice">
-                  {ko
-                    ? '현재 HTTP 개발 주소에서는 바로 설치가 지원되지 않을 수 있어요. HTTPS 주소에서 다시 이용해주세요.'
-                    : 'Direct installation may be unavailable on this HTTP development address. Try again on the HTTPS site.'}
-                </p>
-              )}
-            </div>
-            <form method="dialog">
-              <button className="button primary">
-                <Check size={18} />
-                {ko ? '확인' : 'Done'}
-              </button>
-            </form>
-          </dialog>,
-          document.body,
-        )}
-    </>
+        <summary
+          role="button"
+          className={
+            card ? 'service-card install-app-card' : 'button secondary'
+          }
+        >
+          {mobile ? <PlusSquare size={18} /> : <AppWindow size={18} />}
+          {nativePrompt
+            ? ko
+              ? '설치 방법 보기'
+              : 'Installation instructions'
+            : title}
+        </summary>
+        <section
+          role="region"
+          aria-label={ko ? '설치 안내' : 'Installation guide'}
+          className={styles.inlineBody}
+        >
+          <DeviceGuide
+            locale={locale}
+            purpose="install"
+            initialPlatform={state.platform}
+            initialBrowser={state.browser}
+          />
+          {!state.secure && (
+            <p className="install-app-notice">
+              {ko
+                ? '홈 화면 추가는 HTTPS 주소에서 이용해주세요.'
+                : 'Use the HTTPS site to add the app to your Home Screen.'}
+            </p>
+          )}
+        </section>
+      </details>
+    </div>
   );
 }

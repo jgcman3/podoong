@@ -102,18 +102,34 @@ export default async function Install({ params, searchParams }: Props) {
           </p>
         )}
         <div className={styles.actions}>
-          {query.ready === '1' && <InstallAppButton locale={locale} />}
+          <InstallAppButton locale={locale} nativeReady={query.ready === '1'} />
         </div>
-        <p className={styles.note}>
-          {ko
-            ? '사진을 적용한 다음 홈 화면에 추가해주세요. 이미 설치했다면 아이콘을 바꾸기 위해 삭제 후 다시 추가해야 할 수 있어요.'
-            : 'Apply your photo before installing. If already installed, you may need to remove and add the app again to change its icon.'}
-        </p>
+        <aside
+          className={styles.reinstallNotice}
+          aria-label={ko ? '아이콘 사진 변경 안내' : 'Updating your app icon'}
+        >
+          <strong>
+            {ko
+              ? '설치한 웹앱의 사진을 바꿀 때'
+              : 'Changing the photo of an installed app'}
+          </strong>
+          <p>
+            {ko
+              ? '기존 포둥 앱 삭제 → 브라우저에서 포둥 열기 → 홈 화면에 다시 추가'
+              : 'Remove the existing podoong app → open podoong in your browser → add it to your Home Screen again'}
+          </p>
+          <small>
+            {ko
+              ? '새 사진은 다시 설치한 아이콘에 반영돼요. 저장한 육아 기록은 유지됩니다. 로그인이나 알림 설정은 다시 필요할 수 있어요.'
+              : 'Reinstall to use the new photo. Your saved care records are kept. You may need to sign in or enable notifications again.'}
+          </small>
+        </aside>
         <Link
           className={styles.continue}
           href={`/${locale}/today?child=${selected.id}`}
         >
-          {ko ? '포둥 시작하기' : 'Start using podoong'} <span aria-hidden="true">→</span>
+          {ko ? '포둥 시작하기' : 'Start using podoong'}{' '}
+          <span aria-hidden="true">→</span>
         </Link>
         <small className={styles.note}>
           {ko

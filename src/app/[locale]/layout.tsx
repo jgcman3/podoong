@@ -5,7 +5,8 @@ import { isLocale } from '@/lib/domain';
 import '../globals.css';
 import { InstallAppProvider } from '@/components/install-app';
 import type { Metadata, Viewport } from 'next';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { desktopBrowser, devicePlatform } from '@/lib/device-platform';
 import {
   AppearanceProvider,
   type ThemePreference,
@@ -50,6 +51,7 @@ export default async function LocaleLayout({
   if (!isLocale(locale)) notFound();
   setRequestLocale(locale);
   const store = await cookies();
+  const userAgent = (await headers()).get('user-agent') || '';
   const value = store.get('podung-theme')?.value;
   const preference: ThemePreference =
     value === 'dark' || value === 'system' ? value : 'light';
@@ -64,7 +66,12 @@ export default async function LocaleLayout({
       <body>
         <NextIntlClientProvider>
           <AppearanceProvider initialPreference={preference}>
-            <InstallAppProvider>{children}</InstallAppProvider>
+            <InstallAppProvider
+              initialPlatform={devicePlatform(userAgent, '', 0)}
+              initialBrowser={desktopBrowser(userAgent)}
+            >
+              {children}
+            </InstallAppProvider>
           </AppearanceProvider>
         </NextIntlClientProvider>
       </body>

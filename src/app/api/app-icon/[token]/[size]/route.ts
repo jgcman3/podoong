@@ -14,10 +14,10 @@ export async function GET(
     .storage.from('child-care-photos')
     .download(icon.path);
   if (stored.error || !stored.data) return new Response(null, { status: 404 });
-  const bytes = await sharp(Buffer.from(await stored.data.arrayBuffer()))
-    .resize(Number(size), Number(size))
-    .png()
-    .toBuffer();
+  let image = sharp(Buffer.from(await stored.data.arrayBuffer()));
+  if (icon.layout_version === 1)
+    image = image.extract({ left: 36, top: 36, width: 440, height: 440 });
+  const bytes = await image.resize(Number(size), Number(size)).png().toBuffer();
   return new Response(new Uint8Array(bytes), {
     headers: {
       'Content-Type': 'image/png',

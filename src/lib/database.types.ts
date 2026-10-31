@@ -24,9 +24,9 @@ export type Database = {
         },"public": {
           Tables: {
       child_app_icons: {
-        Row: { child_id: string; token: string; path: string; created_at: string };
-        Insert: { child_id: string; token: string; path: string; created_at?: string };
-        Update: { child_id?: string; token?: string; path?: string; created_at?: string };
+        Row: { child_id: string; token: string; path: string; created_at: string; layout_version: number };
+        Insert: { child_id: string; token: string; path: string; created_at?: string; layout_version?: number };
+        Update: { child_id?: string; token?: string; path?: string; created_at?: string; layout_version?: number };
         Relationships: [];
       };
       signup_agreements: {

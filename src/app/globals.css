@@ -5502,40 +5502,6 @@ button.task-check:disabled {
 .settings-install:not(:has(button, a)) {
   display: none;
 }
-.install-app-dialog {
-  width: min(420px, calc(100% - 32px));
-  max-height: calc(100dvh - 40px);
-  margin: auto;
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  background: var(--surface);
-  color: var(--ink);
-}
-.install-app-dialog::backdrop {
-  background: #19130e80;
-}
-.install-app-dialog h2 {
-  font-size: 18px;
-  margin: 0 0 18px;
-}
-.install-app-dialog ol {
-  padding-left: 22px;
-  line-height: 1.7;
-}
-.install-app-dialog li + li {
-  margin-top: 8px;
-}
-.install-app-dialog .install-app-notice {
-  font-size: 12px;
-  color: var(--muted);
-}
-.install-app-dialog form {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
 button.quick-timeline-entry {
   width: 100%;
   text-align: left;
@@ -8441,7 +8407,6 @@ html[data-standalone] :is(input, select, textarea) {
 .device-guide ol { padding-left: 20px; line-height: 1.8; }
 .device-guide li + li { margin-top: 7px; }
 .device-guide > p { font-size: 11px; margin: 12px 0 0; }
-.install-app-dialog { overflow-y: auto; }
 
 .podung-admin { min-height:100dvh; background:var(--bg); }
 .admin-header { height:76px; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:0 32px; background:var(--surface); border-bottom:1px solid var(--line); }
