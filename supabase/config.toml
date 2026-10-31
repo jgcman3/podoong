@@ -55,3 +55,6 @@ max_enrolled_factors = 5
 [auth.mfa.totp]
 enroll_enabled = true
 verify_enabled = true
+
+[functions.parenting-support]
+verify_jwt = false

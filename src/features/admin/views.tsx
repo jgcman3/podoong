@@ -535,32 +535,20 @@ export async function AdminView({
           if (result.error) throw new Error('Admin neighborhoods unavailable');
           return (
             <section className="admin-panel">
-              <h2>{ko ? '우리 동네 신청 현황' : 'Neighborhood requests'}</h2>
+              <h2>{ko ? '지역별 가족 현황' : 'Families by area'}</h2>
               {result.data.length ? (
                 <Table>
                   <thead>
                     <tr>
                       <th>{ko ? '지역 구분' : 'Region'}</th>
-                      <th>{ko ? '신청 가족' : 'Families'}</th>
-                      <th>{ko ? '개방 상태' : 'Status'}</th>
+                      <th>{ko ? '거주 가족' : 'Families'}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {result.data.map((row) => (
                       <tr key={row.region}>
                         <td className="admin-wrap">{row.region}</td>
-                        <td>{row.families}/10</td>
-                        <td>
-                          <span className="admin-badge">
-                            {row.opened
-                              ? ko
-                                ? '오픈됨'
-                                : 'Open'
-                              : ko
-                                ? '오픈 예정'
-                                : 'Planned'}
-                          </span>
-                        </td>
+                        <td>{row.families}</td>
                       </tr>
                     ))}
                   </tbody>

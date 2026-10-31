@@ -23,6 +23,52 @@ export type Database = {
           }
         },"public": {
           Tables: {
+"parenting_support": {
+                  Row: {
+                    "active": boolean,"agency": string,"agency_type": string,"application_period": string,"benefit": string,"collected_at": string,"eligibility": string,"id": string,"national": boolean,"region_terms": (string)[],"run_id": string,"source_updated": string,"summary": string,"title": string,"url": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"agency": string,"agency_type"?: string,"application_period"?: string,"benefit"?: string,"collected_at": string,"eligibility"?: string,"id": string,"national"?: boolean,"region_terms"?: (string)[],"run_id": string,"source_updated"?: string,"summary"?: string,"title": string,"url": string
+                  }
+                  Update: {
+                    "active"?: boolean,"agency"?: string,"agency_type"?: string,"application_period"?: string,"benefit"?: string,"collected_at"?: string,"eligibility"?: string,"id"?: string,"national"?: boolean,"region_terms"?: (string)[],"run_id"?: string,"source_updated"?: string,"summary"?: string,"title"?: string,"url"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },
+"parenting_support_config": {
+                  Row: {
+                    "singleton": boolean,"token_secret_id": string,"worker_url": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "singleton"?: boolean,"token_secret_id": string,"worker_url": string
+                  }
+                  Update: {
+                    "singleton"?: boolean,"token_secret_id"?: string,"worker_url"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },
+"parenting_support_sync": {
+                  Row: {
+                    "finished_at": string | null,"id": string,"item_count": number,"started_at": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "finished_at"?: string | null,"id"?: string,"item_count"?: number,"started_at"?: string,"status": string
+                  }
+                  Update: {
+                    "finished_at"?: string | null,"id"?: string,"item_count"?: number,"started_at"?: string,"status"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },
+
       child_app_icons: {
         Row: { child_id: string; token: string; path: string; created_at: string; layout_version: number };
         Insert: { child_id: string; token: string; path: string; created_at?: string; layout_version?: number };
@@ -1031,40 +1077,6 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"neighborhood_enrollments": {
-                  Row: {
-                    "created_at": string,"family_id": string,"region": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "created_at"?: string,"family_id": string,"region": string
-                  }
-                  Update: {
-                    "created_at"?: string,"family_id"?: string,"region"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "neighborhood_enrollments_family_id_fkey"
-      columns: ["family_id"]
-isOneToOne: true
-      referencedRelation: "families"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"neighborhood_openings": {
-                  Row: {
-                    "feature": string,"opened_at": string | null,"region": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "feature": string,"opened_at"?: string | null,"region": string
-                  }
-                  Update: {
-                    "feature"?: string,"opened_at"?: string | null,"region"?: string
-                  }
-                  Relationships: [
-
-                  ]
                 },"neighborhood_posts": {
                   Row: {
                     "author_id": string | null,"body": string,"created_at": string,"family_id": string,"feature": string,"id": string,"region": string,"title": string
@@ -1085,26 +1097,6 @@ isOneToOne: false
       referencedColumns: ["id"]
     },{
       foreignKeyName: "neighborhood_posts_family_id_fkey"
-      columns: ["family_id"]
-isOneToOne: false
-      referencedRelation: "families"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"neighborhood_requests": {
-                  Row: {
-                    "created_at": string,"family_id": string,"feature": string,"region": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "created_at"?: string,"family_id": string,"feature": string,"region": string
-                  }
-                  Update: {
-                    "created_at"?: string,"family_id"?: string,"feature"?: string,"region"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "neighborhood_requests_family_id_fkey"
       columns: ["family_id"]
 isOneToOne: false
       referencedRelation: "families"
@@ -1401,6 +1393,23 @@ isOneToOne: false
                 }
           }
           Functions: {
+"begin_parenting_support_sync":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"community_home_area":
+{ Args: { "p_family": string }; Returns: Json
+                           },
+"configure_parenting_support":
+{ Args: { "p_token": string,"p_worker_url": string }; Returns: undefined
+                           },
+"dispatch_parenting_support":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"parenting_feed": { Args: { p_family: string; p_scope?: string; p_category?: string; p_before?: string; p_place?: string; p_feature?: string; p_before_id?: string }; Returns: { area_label: string; body: string; category: string; created_at: string; id: string; mine: boolean; title: string }[] },
+"publish_parenting_support":
+{ Args: { "p_rows": Json,"p_run": string }; Returns: undefined
+                           },
+"save_parenting_post": { Args: { p_family: string; p_category: string; p_title: string; p_body: string; p_place?: string; p_feature?: string }; Returns: string },
       family_join_preview: { Args: { p_token: string }; Returns: Json };
       valid_iana_timezone: { Args: { p_timezone: string }; Returns: boolean };
       merge_family_from_invitation: {
@@ -1456,7 +1465,7 @@ isOneToOne: false
                            },
 "admin_neighborhoods":
 { Args: Record<PropertyKey, never>; Returns: {
-              "families": number,"opened": boolean,"region": string
+              "families": number,"region": string
             }[]
                            },
 "admin_operations":
@@ -1697,11 +1706,6 @@ isOneToOne: false
 "neighborhood_region":
 { Args: { "p_family": string }; Returns: string
                            },
-"neighborhood_status":
-{ Args: { "p_family": string }; Returns: {
-              "families": number,"feature": string,"opened": boolean,"requested": boolean
-            }[]
-                           },
 "notification_child_access":
 { Args: { "p_child": string,"p_user": string }; Returns: boolean
                            },
@@ -1770,12 +1774,6 @@ isOneToOne: false
                            },
 "request_account_deletion":
 { Args: { "p_confirmation": string,"p_permit": string }; Returns: string
-                           },
-"request_neighborhood":
-{ Args: { "p_family": string,"p_feature": string }; Returns: undefined
-                           },
-"request_neighborhood_family":
-{ Args: { "p_family": string }; Returns: undefined
                            },
 "require_recent_login":
 { Args: Record<PropertyKey, never>; Returns: undefined

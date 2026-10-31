@@ -1547,21 +1547,21 @@ test('direct community composing, comments and photos obey permissions', async (
   }
 });
 
-test('local life requires an area and presents the three neighborhood features in both languages', async ({page,context}) => {
+test('parenting community offers categories and independent facility and support tabs in both languages', async ({page,context}) => {
   const home = await childCareFamily(context);
   await page.goto(`/ko/community?child=${home.child}`);
-  await expect(page.getByRole('heading',{name:'동네 생활',exact:true})).toBeVisible();
-  await expect(page.getByRole('button',{name:'우리 동네 신청하기',exact:true})).toBeDisabled();
-  await expect(page.locator('.community-hub-card')).toHaveCount(3);
+  await expect(page.getByRole('heading',{name:'육아 소통',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'우리 동네 신청하기',exact:true})).toHaveCount(0);
+  await expect(page.locator('.parenting-tabs a')).toHaveCount(4);
   await setFamilyResidence(home.family,'1168010100');
   await page.reload();
-  await expect(page.getByRole('button',{name:'우리 동네 신청하기',exact:true})).toBeEnabled();
+  await expect(page.locator('.community-compose summary')).toBeVisible();
   await expect(page.locator('.community-location')).toContainText('강남구 역삼동');
   await page.goto(`/en/community?child=${home.child}`);
-  await expect(page.getByRole('heading',{name:'Local life',exact:true})).toBeVisible();
-  for(const name of ['Parenting chat','Kids’ marketplace','Government & local support'])
+  await expect(page.getByRole('heading',{name:'Parenting community',exact:true})).toBeVisible();
+  for(const name of ['Board','Marketplace','Support','Nearby'])
     await expect(page.getByText(name,{exact:true})).toBeVisible();
-  await expect(page.getByRole('button',{name:'Request our neighborhood',exact:true})).toBeEnabled();
+  await expect(page.getByRole('button',{name:'Request our neighborhood',exact:true})).toHaveCount(0);
 });
 
 test('daily polls, previews and inbox work in both languages', async ({
@@ -6485,29 +6485,31 @@ test('daycare and kindergarten record start and duration and can finish an ongoi
  await expect(running).toHaveCount(0);
 });
 
-test('local life requests count once per family and persist on revisit',async({page,context})=>{
+test('parenting community opens immediately and allows browsing another district',async({page,context})=>{
  const {child,family}=await childCareFamily(context);
- await admin.from('families').update({residence_country_code:'KR',residence_locality:'테스트동',residence_city:`지역-${family}`}).eq('id',family);
+ await setFamilyResidence(family,'1168010100');
  await page.setViewportSize({width:390,height:844});
  await page.goto(`/ko/today?child=${child}`);
- await page.locator('.mobile-nav').getByRole('link',{name:'동네 생활',exact:true}).click();
- await expect(page.getByRole('heading',{name:'동네 생활',exact:true})).toBeVisible();
- const card=page.locator('.neighborhood-join');
- await expect(card).toContainText('0/10 가족 신청');
- await expect(page.locator('.community-hub-card')).toHaveCount(3);
- await expect(page.getByText('10가족 신청 시 오픈 예정',{exact:true})).toHaveCount(3);
- const cards=page.locator('.community-hub-card');
- const first=(await cards.nth(0).boundingBox())!,second=(await cards.nth(1).boundingBox())!;
- expect(Math.round(second.y-first.y-first.height)).toBe(12);
- await page.screenshot({ caret: 'initial',path:'/tmp/podung-local-life-compact.png',fullPage:true});
- await card.getByRole('button',{name:'우리 동네 신청하기',exact:true}).click();
- await expect(card).toContainText('1/10 가족 신청');
- await expect(card.getByRole('button',{name:'신청 완료',exact:true})).toBeDisabled();
- await page.reload();
- await expect(card).toContainText('1/10 가족 신청');
- await expect(page.getByRole('button',{name:'신청 완료',exact:true})).toHaveCount(1);
- await page.goto(`/en/community?child=${child}`);
- await expect(page.getByRole('heading',{name:'Local life',exact:true})).toBeVisible();
+ await page.locator('.mobile-nav').getByRole('link',{name:'육아 소통',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'육아 소통',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'우리 동네 신청하기',exact:true})).toHaveCount(0);
+ await expect(page.locator('.category-pills a')).toHaveCount(12);
+ await page.locator('.community-region-picker summary').click();
+ const picker=page.locator('.community-region-picker');
+ await picker.getByRole('combobox',{name:'시·도',exact:true}).selectOption('26');
+ await picker.getByRole('combobox',{name:'시·군·구',exact:true}).selectOption('26110');
+ await picker.getByRole('combobox',{name:'읍·면·동',exact:true}).selectOption('2611010100');
+ await picker.getByRole('button',{name:'이 지역 보기'}).click();
+ await expect(page.locator('.community-location')).toContainText('부산광역시 중구 영주동');
+ await expect(page.locator('.community-compose summary')).toBeVisible();
+ await page.getByRole('navigation',{name:'게시판 카테고리'}).getByRole('link',{name:'건강증상',exact:true}).click();
+ await expect(page.locator('.category-pills [aria-current=page]')).toHaveText('건강증상');
+ await expect(page).toHaveURL(/place=2611010100/);
+ await expect(page.locator('.community-location')).toContainText('부산광역시 중구');
+ expect((await admin.from('families').select('residence_region_code').eq('id',family).single()).data?.residence_region_code).toBe('1168010100');
+ await page.getByRole('navigation',{name:'지역 범위'}).getByRole('link',{name:'전체 지역',exact:true}).click();
+ await expect(page.locator('.region-pills [aria-current=page]')).toHaveText('전체 지역');
+ await expect(page).toHaveURL(/scope=all/);
 });
 
 test('overseas address registration is reusable by another family',async({page,context,browser})=>{
@@ -6926,4 +6928,36 @@ test('iPhone installation guidance opens before JavaScript initializes', async (
     await expect(page.getByRole('region',{name:'설치 안내',exact:true})).toBeVisible();
     await expect(page.getByRole('region',{name:'설치 안내',exact:true})).toContainText('Safari');
   } finally {await phone.close();}
+});
+
+test('parenting community combines category and region filters and separates maps and Korean support',async({page,context})=>{
+ const {child,family,owner}=await childCareFamily(context);
+ await setFamilyResidence(family,'1168010100');
+ // Read the canonical key rather than relying on a formatted address.
+ const region=await admin.rpc('neighborhood_region',{p_family:family});
+ expect((await admin.from('neighborhood_posts').insert({region:region.data!,feature:'boards',family_id:family,author_id:owner,title:'Fixture hospital question',body:'Fixture neighborhood story',category:'health'})).error).toBeNull();
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/community?child=${child}`);
+ await expect(page.getByRole('heading',{name:'육아 소통',exact:true})).toBeVisible();
+ await page.getByRole('navigation',{name:'게시판 카테고리'}).getByRole('link',{name:'건강증상',exact:true}).click();
+ await expect(page.locator('.category-pills [aria-current=page]')).toHaveText('건강증상');
+ await expect(page.getByRole('heading',{name:'Fixture hospital question'})).toBeVisible();
+ await expect(page.locator('.region-pills [aria-current=page]')).toHaveText('전체 지역');
+ await page.getByRole('navigation',{name:'지역 범위'}).getByRole('link').last().click();
+ await expect(page).toHaveURL(/scope=locality/);
+ await expect(page).toHaveURL(/category=health/);
+ await expect(page.getByRole('heading',{name:'Fixture hospital question'})).toBeVisible();
+ await expect(page.locator('.region-pills [aria-current=page]')).toContainText('역삼동');
+ expect(await page.locator('.parenting-community').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+ await page.locator('.parenting-tabs').getByRole('link',{name:'주변 시설'}).click();
+ await expect(page.getByRole('button',{name:'병원',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'약국',exact:true})).toBeVisible();
+ await page.locator('.parenting-tabs').getByRole('link',{name:'지원금'}).click();
+ await expect(page.getByRole('heading',{name:'전국 공통',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'서울특별시 강남구 역삼동',exact:true})).toBeVisible();
+ await page.screenshot({path:'/private/tmp/podoong-parenting-support-mobile.png',fullPage:true});
+ await page.setViewportSize({width:1280,height:900});
+ await page.goto(`/en/community?child=${child}&scope=city&category=health`);
+ await expect(page.getByRole('heading',{name:'Parenting community',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Fixture hospital question'})).toBeVisible();
 });

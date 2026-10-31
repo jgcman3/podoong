@@ -814,7 +814,7 @@ export async function ChildAccount({
             {[
               ['terms', ko ? '서비스 이용약관' : 'Terms of Service'],
               ['privacy', ko ? '개인정보 처리방침' : 'Privacy Policy'],
-              ['community', ko ? '동네 생활 운영정책' : 'Community Policy'],
+              ['community', ko ? '육아 소통 운영정책' : 'Community Policy'],
             ].map(([key, label]) => (
               <Link
                 key={key}

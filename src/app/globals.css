@@ -7578,64 +7578,6 @@ html[data-standalone] :is(input, select, textarea) {
 .community-location a {
   margin-left: auto;
 }
-.community-hub-list {
-  display: grid;
-  gap: 12px;
-}
-.community-hub-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  text-decoration: none;
-  color: inherit;
-}
-.community-hub-card > span:nth-child(2) {
-  flex: 1;
-  min-width: 0;
-}
-.community-hub-card strong {
-  display: block;
-  font-size: 15px;
-}
-.community-hub-card small {
-  display: block;
-  color: var(--muted);
-  margin-top: 6px;
-  font-size: 12px;
-  line-height: 1.6;
-}
-.community-hub-icon {
-  display: grid;
-  place-items: center;
-  border-radius: 16px;
-  width: 50px;
-  height: 50px;
-  flex-shrink: 0;
-  color: #488376;
-  background: #eaf5ef;
-}
-.community-area-market .community-hub-icon {
-  color: #b97945;
-  background: #fff2e5;
-}
-.community-area-support .community-hub-icon {
-  color: #657bb0;
-  background: #eef2fc;
-}
-.community-coming-soon {
-  text-align: center;
-  color: var(--muted);
-  padding: 40px 16px;
-}
-
-.neighborhood-feature {
-  flex: 1;
-  min-width: 0;
-}
-.neighborhood-feature .button {
-  min-height: 40px;
-  font-size: 13px;
-}
 @media (max-width: 760px) {
   .community-hub {
     gap: 12px;
@@ -7647,9 +7589,6 @@ html[data-standalone] :is(input, select, textarea) {
   .community-hub > p {
     margin: 0;
   }
-}
-.community-hub-card {
-  align-items: flex-start;
 }
 
 .quick-color-gift {
@@ -8038,7 +7977,7 @@ html[data-standalone] :is(input, select, textarea) {
 :root[data-theme='dark'] .insight-clock-center-value {
   fill: var(--ink);
 }
-:root[data-theme='dark'] :is(.community-hub-icon, .account-child-icon) {
+:root[data-theme='dark'] .account-child-icon {
   background: #283b39;
   color: #94cdbd;
 }
@@ -8536,3 +8475,41 @@ html[data-standalone] :is(input, select, textarea) {
 }
 
 .diary-attachment-tools .diary-pattern-attachment > button > svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* Community sections share one compact layout on desktop and mobile. */
+.parenting-community { max-width: 900px; margin-inline: auto; }
+.parenting-tabs { display: flex; gap: .35rem; border-bottom: 1px solid var(--line); padding-bottom: .65rem; }
+.parenting-tabs a { display: flex; align-items: center; justify-content: center; gap: .35rem; flex: 1; padding: .65rem .35rem; border-radius: 12px; color: var(--muted); white-space: nowrap; }
+.parenting-tabs a[aria-current="page"] { color: var(--brown); background: var(--bg); font-weight: 700; }
+.community-pills { display: flex; gap: .45rem; overflow-x: auto; scrollbar-width: none; padding-block: .45rem; -webkit-overflow-scrolling: touch; }
+.community-pills::-webkit-scrollbar { display: none; }
+.community-pills a, .community-pills button { flex: 0 0 auto; border: 1px solid var(--line); border-radius: 999px; padding: .5rem .85rem; background: var(--surface); color: var(--muted); text-decoration: none; font: inherit; font-size: .85rem; }
+.community-pills [aria-current="page"], .community-pills [aria-pressed="true"] { color: var(--brown); border-color: currentColor; font-weight: 700; }
+.region-pills a { display: flex; align-items: center; gap: .45rem; }
+.region-pills small { font-weight: 400; opacity: .8; }
+.parenting-posts, .facility-list, .support-group { display: grid; gap: .7rem; }
+.parenting-posts .panel h2 { font-size: 1.05rem; margin-block: .5rem; }
+.post-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.community-compose { margin-block: .7rem; }
+.facility-map { width: 100%; height: clamp(320px, 52dvh, 560px); border-radius: 16px; overflow: hidden; background: var(--bg); margin-block: .6rem; }
+.facility-list .panel strong, .support-group h2 { display: flex; align-items: center; gap: .45rem; }
+.facility-list .panel p { font-size: .85rem; margin-block: .5rem; }
+.facility-list a { display: inline-flex; align-items: center; gap: .2rem; margin-right: .7rem; font-size: .85rem; }
+.support-group { margin-block: 1.2rem; }
+.support-group h2 { margin: 0; font-size: 1rem; }
+.support-group h3 { font-size: 1rem; margin: 0; }
+.support-source { display: flex; justify-content: space-between; gap: .6rem; align-items: center; margin-top: .8rem; }
+.support-source a { display: inline-flex; gap: .2rem; align-items: center; white-space: nowrap; font-size: .8rem; }
+@media (max-width: 640px) {
+ .parenting-community h1 { font-size: 1.2rem; margin-block: .5rem; }
+ .parenting-tabs a { font-size: .8rem; padding: .6rem .25rem; gap: .2rem; }
+ .parenting-tabs svg { width: 15px; }
+ .region-pills a { padding: .45rem .65rem; font-size: .75rem; }
+ .region-pills small { font-size: .7rem; }
+ .parenting-community .panel { padding: .9rem; }
+}
+.community-region-picker summary { color: var(--brown); cursor: pointer; font-size: .85rem; }
+.community-region-form { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .6rem; padding-block: .75rem; align-items: end; }
+.community-region-form label { display: grid; gap: .3rem; font-size: .8rem; min-width: 0; }
+.community-region-form select { min-width: 0; width: 100%; padding: .55rem .4rem; }
+.community-region-form button { grid-column: 1/-1; justify-self: end; }

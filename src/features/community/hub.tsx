@@ -1,105 +1,141 @@
-import { Flash } from '@/components/flash';
-import { neighborhoodAction } from './neighborhood-actions';
 import Link from 'next/link';
 import { MessagesSquare, ShoppingBag, Landmark, MapPin } from 'lucide-react';
+import { Flash } from '@/components/flash';
 import type { CareContext } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
-const areas = [
-  {
-    key: 'boards',
-    ko: '육아 소통',
-    en: 'Parenting chat',
-    description: [
-      '동네 부모들과 함께 나누는 이야기',
-      'Connect with parents in your area',
-    ],
-    Icon: MessagesSquare,
-  },
-  {
-    key: 'market',
-    ko: '나눔 및 중고거래',
-    en: 'Kids’ marketplace',
-    description: [
-      '아이 물건을 이웃과 나누고 거래해요',
-      'Share and trade children’s items locally',
-    ],
-    Icon: ShoppingBag,
-  },
-  {
-    key: 'support',
-    ko: '정부·지역 지원',
-    en: 'Government & local support',
-    description: [
-      '우리 지역의 육아 지원 정보를 살펴봐요',
-      'Find parenting support in your area',
-    ],
-    Icon: Landmark,
-  },
+import { residenceRegions } from '@/features/family/residence-regions';
+import { CommunityRegionPicker } from './region-picker';
+import { neighborhoodAction } from './neighborhood-actions';
+import { FacilityMap } from './facility-map';
+import { SupportList } from './support-list';
+import { homeArea, parentingCategories, regionScopes } from './options';
+export type CommunityQuery = {
+  child?: string;
+  error?: string;
+  category?: string;
+  scope?: string;
+  before?: string;
+  beforeId?: string;
+  place?: string;
+};
+const tabs = [
+  ['boards', '게시판', 'Board', MessagesSquare],
+  ['map', '주변 시설', 'Nearby', MapPin],
+  ['support', '지원금', 'Support', Landmark],
+  ['market', '나눔장터', 'Marketplace', ShoppingBag],
 ] as const;
 export async function CommunityHub({
   context,
   locale,
-  area,
+  area = 'boards',
   error,
+  query = {},
 }: {
   context: CareContext;
   locale: Locale;
-  area?: 'boards' | 'market' | 'support';
+  area?: 'boards' | 'map' | 'market' | 'support';
   error?: string;
+  query?: CommunityQuery;
 }) {
   const ko = locale === 'ko';
-  const location = [
-    context.family.residence_province,
-    context.family.residence_city,
-    context.family.residence_locality,
-  ]
-    .filter(Boolean)
-    .join(' ');
-  const selected = areas.find((item) => item.key === area);
-  const status = await context.db.rpc('neighborhood_status', {
-    p_family: context.child.family_id,
-  });
-  if (status.error) throw new Error('Neighborhood status unavailable');
-  const current = status.data.find((item) => item.feature === area);
-  const feed =
-    area && current?.opened
-      ? await context.db.rpc('neighborhood_feed', {
-          p_family: context.child.family_id,
-          p_feature: area,
-        })
-      : null;
-  if (feed?.error) throw new Error('Neighborhood unavailable');
-  const hidden = (feature: string, action: string) => (
+  const country = context.family.residence_country_code ?? 'KR';
+  const globalPlaces =
+    context.family.residence_country_code &&
+    context.family.residence_country_code !== 'KR'
+      ? ((
+          await context.db
+            .from('global_residence_places')
+            .select('id,province,city,locality')
+            .eq('country_code', context.family.residence_country_code)
+            .order('province')
+            .limit(1000)
+        ).data ?? [])
+      : [];
+  const selectedKR =
+    country === 'KR'
+      ? residenceRegions.find((r) => r.code === query.place)
+      : undefined;
+  const selectedGlobal = globalPlaces.find((p) => p.id === query.place);
+  const place = selectedKR?.code ?? selectedGlobal?.id ?? '';
+  const family = selectedKR
+    ? {
+        ...context.family,
+        residence_country_code: 'KR',
+        residence_city: selectedKR.fullName.split(' ').slice(0, -1).join(' '),
+        residence_locality: selectedKR.locality,
+      }
+    : selectedGlobal
+      ? {
+          ...context.family,
+          residence_province: selectedGlobal.province,
+          residence_city: selectedGlobal.city,
+          residence_locality: selectedGlobal.locality,
+        }
+      : context.family;
+  const home = homeArea(family);
+  const scope =
+    query.scope === 'all'
+      ? 'all'
+      : (regionScopes.find((value) => value === query.scope) ??
+        (query.place ? 'district' : 'all'));
+  const category =
+    parentingCategories.find(([id]) => id === query.category)?.[0] ?? 'all';
+  const path = `/${locale}/community${area === 'boards' ? '' : `/${area}`}`;
+  const href = (values: Record<string, string>) =>
+    `${path}?${new URLSearchParams({ child: context.child.id, scope, category, place, ...values })}`;
+  const hidden = () => (
     <>
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="child" value={context.child.id} />
-      <input type="hidden" name="feature" value={feature} />
-      <input type="hidden" name="action" value={action} />
+      <input type="hidden" name="feature" value={area} />
+      <input type="hidden" name="place" value={place} />
+      <input type="hidden" name="scope" value={scope} />
     </>
   );
+  const feed =
+    area === 'boards' || area === 'market'
+      ? await context.db.rpc('parenting_feed', {
+          p_family: context.child.family_id,
+          p_scope: scope,
+          p_category: area === 'market' ? 'all' : category,
+          p_place: place,
+          p_feature: area,
+          ...(query.before && !Number.isNaN(Date.parse(query.before))
+            ? { p_before: new Date(query.before).toISOString() }
+            : {}),
+          ...(query.beforeId &&
+          /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(
+            query.beforeId,
+          )
+            ? { p_before_id: query.beforeId }
+            : {}),
+        })
+      : null;
+  if (feed?.error) throw new Error('Community feed unavailable');
   return (
-    <section className="community-hub">
+    <section className="community-hub parenting-community">
       <Flash error={error} />
-      {area && (
-        <Link
-          className="text-link"
-          href={`/${locale}/community?child=${context.child.id}`}
-        >
-          {ko ? '동네 생활' : 'Local life'}
-        </Link>
-      )}
-      <h1>
-        {selected
-          ? ko
-            ? selected.ko
-            : selected.en
-          : ko
-            ? '동네 생활'
-            : 'Local life'}
-      </h1>
+      <h1>{ko ? '육아 소통' : 'Parenting community'}</h1>
+      <nav
+        className="parenting-tabs"
+        aria-label={ko ? '육아 소통 메뉴' : 'Community sections'}
+      >
+        {tabs.map(([id, k, e, Icon]) => (
+          <Link
+            key={id}
+            aria-current={area === id ? 'page' : undefined}
+            href={`/${locale}/community${id === 'boards' ? '' : `/${id}`}?child=${context.child.id}&place=${place}`}
+          >
+            <Icon size={17} />
+            {ko ? k : e}
+          </Link>
+        ))}
+      </nav>
       <div className="community-location">
-        <MapPin size={16} />
-        {location || (ko ? '지역을 설정해 주세요' : 'Choose your area')}
+        <MapPin size={15} />
+        <span>
+          {home.locality || (ko ? '지역을 설정해 주세요' : 'Choose your area')}
+        </span>
         {context.owner && (
           <Link
             href={`/${locale}/account?child=${context.child.id}&panel=residence`}
@@ -108,108 +144,148 @@ export async function CommunityHub({
           </Link>
         )}
       </div>
-      <p className="small muted">
-        {ko
-          ? '우리 동네 10가족이 신청하면 세 기능이 함께 오픈될 예정이에요. 가족당 한 번만 집계돼요.'
-          : 'All three features are planned to open when 10 local families request their neighborhood. Each family counts once.'}
-      </p>
-      {!status.data[0]?.opened && (
-        <div className="panel neighborhood-join">
-          <strong>
-            {ko
-              ? `${status.data[0]?.families ?? 0}/10 가족 신청`
-              : `${status.data[0]?.families ?? 0}/10 families requested`}
-          </strong>
-          <form action={neighborhoodAction}>
-            {hidden('boards', 'request')}
-            <button
-              className="button primary"
-              disabled={
-                !context.family.residence_city ||
-                (context.family.residence_country_code !== 'KR' &&
-                  !context.family.residence_province) ||
-                status.data[0]?.requested
-              }
-            >
-              {status.data[0]?.requested
-                ? ko
-                  ? '신청 완료'
-                  : 'Requested'
-                : ko
-                  ? '우리 동네 신청하기'
-                  : 'Request our neighborhood'}
-            </button>
-          </form>
-        </div>
-      )}
-      {selected && current?.opened ? (
+      <CommunityRegionPicker
+        locale={locale}
+        country={country}
+        place={place || context.family.residence_region_code || ''}
+        child={context.child.id}
+        scope={scope}
+        category={category}
+        path={path}
+        globalPlaces={globalPlaces}
+      />
+      {area === 'map' ? (
+        <FacilityMap locale={locale} area={home.locality} country={country} />
+      ) : area === 'support' ? (
+        <SupportList context={context} locale={locale} area={home} />
+      ) : (
         <>
-          <details className="panel">
-            <summary>{ko ? '글쓰기' : 'Write a post'}</summary>
-            <form action={neighborhoodAction} className="form-stack">
-              {hidden(selected.key, 'post')}
-              <label>
-                {ko ? '제목' : 'Title'}
-                <input name="title" required maxLength={100} />
-              </label>
-              <label>
-                {ko ? '내용' : 'Content'}
-                <textarea name="body" required maxLength={3000} />
-              </label>
-              <button className="button primary">{ko ? '등록' : 'Post'}</button>
-            </form>
-          </details>
-          {feed?.data?.length ? (
-            feed.data.map((post) => (
-              <article className="panel" key={post.id}>
-                <h2>{post.title}</h2>
-                <p style={{ whiteSpace: 'pre-wrap' }}>{post.body}</p>
-              </article>
-            ))
-          ) : (
+          {area === 'boards' && (
+            <>
+              <nav
+                className="community-pills category-pills"
+                aria-label={ko ? '게시판 카테고리' : 'Board categories'}
+              >
+                {parentingCategories.map(([id, k, e]) => (
+                  <Link
+                    key={id}
+                    href={href({ category: id, before: '' })}
+                    aria-current={category === id ? 'page' : undefined}
+                  >
+                    {ko ? k : e}
+                  </Link>
+                ))}
+              </nav>
+              <nav
+                className="community-pills region-pills"
+                aria-label={ko ? '지역 범위' : 'Area scope'}
+              >
+                <Link
+                  href={href({ scope: 'all', place: '', before: '' })}
+                  aria-current={scope === 'all' ? 'page' : undefined}
+                >
+                  {ko ? '전체 지역' : 'All areas'}
+                </Link>
+                {regionScopes.map((id, i) => (
+                  <Link
+                    key={id}
+                    href={href({ scope: id, before: '' })}
+                    aria-current={scope === id ? 'page' : undefined}
+                  >
+                    <span>
+                      {ko
+                        ? ['시 단위', '구 단위', '동 단위'][i]
+                        : ['City', 'District', 'Neighborhood'][i]}
+                    </span>
+                    <small>{home[id].split(' ').at(-1) || '—'}</small>
+                  </Link>
+                ))}
+              </nav>
+            </>
+          )}
+          {!home.district ? (
             <p className="panel">
               {ko
-                ? '첫 이야기를 남겨 주세요.'
-                : 'Start the first conversation.'}
+                ? '지역을 선택하면 이야기를 나눌 수 있어요.'
+                : 'Choose an area to join the conversation.'}
+            </p>
+          ) : (
+            <>
+              <details className="panel community-compose">
+                <summary>{ko ? '글쓰기' : 'Write a post'}</summary>
+                <form action={neighborhoodAction} className="form-stack">
+                  {hidden()}
+                  {area === 'boards' && (
+                    <label>
+                      {ko ? '카테고리' : 'Category'}
+                      <select
+                        name="category"
+                        defaultValue={
+                          category === 'all' ? 'childcare' : category
+                        }
+                      >
+                        {parentingCategories.slice(1).map(([id, k, e]) => (
+                          <option key={id} value={id}>
+                            {ko ? k : e}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label>
+                    {ko ? '제목' : 'Title'}
+                    <input name="title" required maxLength={100} />
+                  </label>
+                  <label>
+                    {ko ? '내용' : 'Content'}
+                    <textarea name="body" required maxLength={3000} />
+                  </label>
+                  <button className="button primary">
+                    {ko ? '등록' : 'Post'}
+                  </button>
+                </form>
+              </details>
+            </>
+          )}
+          {feed?.data?.length ? (
+            <div className="parenting-posts">
+              {feed.data.map((post) => (
+                <article className="panel" key={post.id}>
+                  <div className="small muted">
+                    {area === 'boards' && (
+                      <>
+                        {
+                          parentingCategories.find(
+                            ([id]) => id === post.category,
+                          )?.[ko ? 1 : 2]
+                        }{' '}
+                        ·{' '}
+                      </>
+                    )}
+                    {post.area_label}
+                  </div>
+                  <h2>{post.title}</h2>
+                  <p className="post-body">{post.body}</p>
+                </article>
+              ))}
+              {feed.data.length === 50 && (
+                <Link
+                  className="button secondary"
+                  href={href({
+                    before: feed.data.at(-1)!.created_at,
+                    beforeId: feed.data.at(-1)!.id,
+                  })}
+                >
+                  {ko ? '이전 이야기' : 'Older posts'}
+                </Link>
+              )}
+            </div>
+          ) : (
+            <p className="panel">
+              {ko ? '아직 등록된 이야기가 없어요.' : 'No conversations yet.'}
             </p>
           )}
         </>
-      ) : (
-        <div className="community-hub-list">
-          {areas
-            .filter((item) => !area || item.key === area)
-            .map(({ key, Icon, ...item }) => {
-              const state = status.data.find((value) => value.feature === key)!;
-              return (
-                <article
-                  key={key}
-                  className={`panel community-hub-card community-area-${key}`}
-                >
-                  <span className="community-hub-icon">
-                    <Icon size={25} />
-                  </span>
-                  <div className="neighborhood-feature">
-                    <strong>{ko ? item.ko : item.en}</strong>
-                    <small>{item.description[ko ? 0 : 1]}</small>
-                    {state.opened ? (
-                      <Link
-                        className="button primary"
-                        href={`/${locale}/community/${key}?child=${context.child.id}`}
-                      >
-                        {ko ? '이용하기' : 'Open'}
-                      </Link>
-                    ) : (
-                      <small>
-                        {ko
-                          ? '10가족 신청 시 오픈 예정'
-                          : 'Planned to open with 10 families'}
-                      </small>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-        </div>
       )}
     </section>
   );

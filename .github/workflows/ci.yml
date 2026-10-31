@@ -104,6 +104,7 @@ jobs:
         run: |
           npx supabase db push --project-ref "$SUPABASE_PROJECT_REF" --yes
           npx supabase functions deploy feeding-push --project-ref "$SUPABASE_PROJECT_REF"
+          npx supabase functions deploy parenting-support --project-ref "$SUPABASE_PROJECT_REF"
       - name: Deploy the tested build
         shell: bash
         run: |

@@ -2,17 +2,18 @@ import { notFound } from 'next/navigation';
 import { isLocale } from '@/lib/domain';
 import { loadCare } from '@/lib/data';
 import { Shell } from '@/components/shell';
-import { CommunityHub } from '@/features/community/hub';
+import { CommunityHub, type CommunityQuery } from '@/features/community/hub';
 export default async function Community({
   params,
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ child?: string; error?: string }>;
+  searchParams: Promise<CommunityQuery>;
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  const { child, error } = await searchParams;
+  const query = await searchParams;
+  const { child, error } = query;
   const context = await loadCare(locale, child, []);
   return (
     <Shell
@@ -22,6 +23,7 @@ export default async function Community({
       childRoute="community/market"
     >
       <CommunityHub
+        query={query}
         error={error}
         context={context}
         locale={locale}
