@@ -6981,7 +6981,6 @@ test('public nursing facilities use compact lists, diaper filters and external m
   await expect(page.locator('.facility-card').first().getByRole('link', { name: '네이버 지도' })).toHaveAttribute('href', /^https:\/\/map\.naver\.com\/p\/search\//);
   await expect(page.locator('.facility-map')).toHaveCount(0);
   await page.getByRole('checkbox', { name: '기저귀 교환대 있는 곳' }).check();
-  await page.locator('.facility-filters').getByRole('button', { name: '적용' }).click();
   await expect(page).toHaveURL(/diaper=1/);
   for (const card of await page.locator('.facility-card').all()) await expect(card).toContainText('기저귀 교환대 있음');
   expect(await page.locator('.parenting-community').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
@@ -7013,7 +7012,6 @@ test('local facilities have an independent seven-item mobile menu and change fil
   }
   await page.evaluate(()=>{(window as Window & {facilityNavigationMarker?:boolean}).facilityNavigationMarker=true;});
   await page.getByRole('checkbox',{name:'기저귀 교환대 있는 곳',exact:true}).check();
-  await page.locator('.facility-filters').getByRole('button',{name:'적용',exact:true}).click();
   await expect(page).toHaveURL(/diaper=1/);
   expect(await page.evaluate(()=>(window as Window & {facilityNavigationMarker?:boolean}).facilityNavigationMarker)).toBe(true);
   await page.locator('.mobile-nav').getByRole('link',{name:'육아 소통',exact:true}).click();

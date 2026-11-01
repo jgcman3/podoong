@@ -1,181 +1,19 @@
-import {
-  ExternalLink,
-  MapPin,
-  Phone,
-  CloudSun,
-  Thermometer,
-  Droplets,
-  CloudRain,
-  Wind,
-} from 'lucide-react';
+import { CloudSun, Thermometer, Droplets, CloudRain, Wind } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import type { CareContext } from '@/lib/data';
-import {
-  mapLinks,
-  openingStatus,
-  positiveMeasurement,
-  readableHours,
-  weekdayHours,
-  distanceLabel,
-  nearbyFacilities,
-  type Facility,
-} from './public-data';
+import { positiveMeasurement } from './public-data';
 import {
   airObservations,
   hasPublicDataKey,
-  medicalResults,
-  playgroundList,
-  kindergartenList,
   weatherObservation,
-  facilityOrigin,
 } from './public-data.server';
 import nursing from './data/nursing-rooms.json';
 import type { CommunityQuery } from './hub';
 import { FacilityNavigationForm } from './facility-navigation-form';
+import { facilityKinds as kinds } from './facility-options';
+import { loadFacilityRows } from './facility-listing.server';
+import { FacilityFeed } from './facility-feed';
 import Link from 'next/link';
-
-const kinds = [
-  ['hospital', '병원', 'Hospitals'],
-  ['pharmacy', '약국', 'Pharmacies'],
-  ['daycare', '어린이집', 'Daycare'],
-  ['kindergarten', '유치원', 'Kindergartens'],
-  ['playground', '놀이터·놀이시설', 'Playgrounds'],
-  ['nursing', '수유실·기저귀 교환대', 'Nursing & changing'],
-] as const;
-
-function FacilityCard({
-  facility,
-  locale,
-  holiday,
-  medical = false,
-}: {
-  facility: Facility;
-  locale: Locale;
-  holiday: boolean | null;
-  medical?: boolean;
-}) {
-  const ko = locale === 'ko',
-    links = mapLinks(facility);
-  const status = openingStatus(facility.hours, holiday),
-    hours = readableHours(facility.hours, holiday);
-  return (
-    <article className="panel facility-card">
-      <div className="facility-card-heading">
-        <strong>
-          <MapPin size={16} aria-hidden />
-          {facility.name}
-        </strong>
-        {medical && (
-          <small className={`facility-status ${status}`}>
-            {status === 'open'
-              ? ko
-                ? '운영 시간 내'
-                : 'Within posted hours'
-              : status === 'closed'
-                ? ko
-                  ? '운영 시간 종료'
-                  : 'Posted hours ended'
-                : status === 'before'
-                  ? ko
-                    ? '운영 시간 전'
-                    : 'Before posted hours'
-                  : ko
-                    ? '시간 확인 필요'
-                    : 'Confirm hours'}
-          </small>
-        )}
-      </div>
-      <p>{facility.address}</p>
-      {facility.distanceKm !== undefined && (
-        <p className="facility-distance">
-          <MapPin size={13} aria-hidden />
-          {distanceLabel(facility.distanceKm, ko)}
-        </p>
-      )}
-      {medical && (
-        <div className="facility-hours">
-          <p>
-            <strong>{ko ? '오늘 운영시간' : 'Today’s hours'}</strong>
-            <span>
-              {hours ||
-                (holiday === null
-                  ? ko
-                    ? '오늘 시간 확인 필요'
-                    : 'Today’s hours unavailable'
-                  : ko
-                    ? '오늘 시간 미제공'
-                    : 'Hours not provided today')}
-            </span>
-          </p>
-          <details>
-            <summary
-              aria-label={ko ? '요일별 시간 펼치기' : 'Weekly opening hours'}
-            >
-              {ko ? '요일별 시간' : 'Weekly hours'}
-            </summary>
-            <dl>
-              {(ko
-                ? [
-                    '월요일',
-                    '화요일',
-                    '수요일',
-                    '목요일',
-                    '금요일',
-                    '토요일',
-                    '일요일',
-                    '공휴일',
-                  ]
-                : [
-                    'Monday',
-                    'Tuesday',
-                    'Wednesday',
-                    'Thursday',
-                    'Friday',
-                    'Saturday',
-                    'Sunday',
-                    'Public holidays',
-                  ]
-              ).map((label, i) => (
-                <div key={label}>
-                  <dt>{label}</dt>
-                  <dd>
-                    {weekdayHours(facility.hours, i + 1) ||
-                      (ko ? '정보 없음' : 'Not provided')}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </details>
-        </div>
-      )}
-      {facility.detail &&
-        (medical ? (
-          <details className="facility-extra">
-            <summary>{ko ? '진료과목' : 'Specialties'}</summary>
-            <p className="muted">{facility.detail}</p>
-          </details>
-        ) : (
-          <p className="muted">{facility.detail}</p>
-        ))}
-      <div className="facility-card-links">
-        {facility.phone && (
-          <a href={`tel:${facility.phone.replace(/[^\d+]/g, '')}`}>
-            <Phone size={14} aria-hidden />
-            {facility.phone}
-          </a>
-        )}
-        <a href={links.naver} target="_blank" rel="noreferrer">
-          {ko ? '네이버 지도' : 'Naver Map'}
-          <ExternalLink size={13} aria-hidden />
-        </a>
-        <a href={links.kakao} target="_blank" rel="noreferrer">
-          {ko ? '카카오맵' : 'Kakao Map'}
-          <ExternalLink size={13} aria-hidden />
-        </a>
-      </div>
-    </article>
-  );
-}
 
 export async function LocalConditions({
   area,
@@ -347,10 +185,6 @@ export async function FacilityList({
 }) {
   const ko = locale === 'ko',
     kind = kinds.find(([id]) => id === query.kind)?.[0] ?? 'hospital';
-  const page = Math.min(
-    1000,
-    Math.max(1, Number.parseInt(query.page ?? '1', 10) || 1),
-  );
   const hidden = {
     child: context.child.id,
     place: query.place ?? '',
@@ -369,81 +203,22 @@ export async function FacilityList({
           : 'Facility data currently covers South Korea.'}
       </p>
     );
-  let rows: Facility[] = [],
-    total = 0,
-    holiday: boolean | null = null,
-    unavailable = false,
-    checkedAt = '';
   const medical = kind === 'hospital' || kind === 'pharmacy';
-  const origin =
-    kind !== 'nursing' && area
-      ? await facilityOrigin(referenceArea || area)
-      : undefined;
-  if (kind === 'nursing') {
-    rows = nursing.rooms
-      .filter((room) => !area || room.address.startsWith(area))
-      .filter((room) => query.diaper !== '1' || room.diaperTable)
-      .map((room) => ({
-        id: room.id,
-        name: room.name,
-        address: room.address,
-        phone: '',
-        hours: {},
-        diaperTable: room.diaperTable,
-        detail: [
-          room.location,
-          room.kind,
-          room.fareArea,
-          room.viaOffice === '고객안전실경유'
-            ? ko
-              ? '고객안전실 경유'
-              : 'Via station office'
-            : '',
-          room.diaperTable
-            ? ko
-              ? '기저귀 교환대 있음'
-              : 'Changing table available'
-            : '',
-        ]
-          .filter(Boolean)
-          .join(' · '),
-      }));
-    total = rows.length;
-  } else if (medical && area) {
-    try {
-      const result = await medicalResults(kind, area, page, {
-        origin: origin?.coordinates,
-        openOnly: query.open === '1',
-      });
-      rows = result.facilities;
-      total = result.total;
-      holiday = result.holiday;
-      checkedAt = result.checkedAt;
-    } catch {
-      unavailable = true;
-    }
-  } else if (kind === 'playground' && area) {
-    try {
-      const facilities = nearbyFacilities(
-        await playgroundList(area),
-        origin?.coordinates,
-      );
-      total = facilities.length;
-      rows = facilities.slice((page - 1) * 10, page * 10);
-    } catch {
-      unavailable = true;
-    }
-  } else if (kind === 'kindergarten' && area) {
-    try {
-      const result = await kindergartenList(area);
-      const ranked = nearbyFacilities(result.facilities, origin?.coordinates);
-      total = ranked.length;
-      rows = ranked.slice((page - 1) * 10, page * 10);
-      checkedAt = result.checkedAt;
-    } catch {
-      unavailable = true;
-    }
-  }
+  const {
+    facilities: rows,
+    total,
+    holiday,
+    unavailable,
+    checkedAt,
+    asOf,
+  } = await loadFacilityRows({
+    kind,
+    area,
+    referenceArea,
+    locale,
+    page: 1,
+    query,
+  });
   const visible = rows;
   return (
     <section className="facility-browser">
@@ -469,34 +244,6 @@ export async function FacilityList({
           </button>
         ))}
       </FacilityNavigationForm>
-      {(medical || kind === 'nursing') && (
-        <FacilityNavigationForm
-          action={`/${locale}/facilities`}
-          className="facility-filters"
-        >
-          {inputs()}
-          <label>
-            <input
-              type="checkbox"
-              name={medical ? 'open' : 'diaper'}
-              value="1"
-              defaultChecked={
-                medical ? query.open === '1' : query.diaper === '1'
-              }
-            />
-            {medical
-              ? ko
-                ? '운영 시간 내인 곳만'
-                : 'Within posted hours only'
-              : ko
-                ? '기저귀 교환대 있는 곳'
-                : 'With a changing table'}
-          </label>
-          <button className="button secondary" type="submit">
-            {ko ? '적용' : 'Apply'}
-          </button>
-        </FacilityNavigationForm>
-      )}
       {!area && kind !== 'nursing' ? (
         <p className="panel">
           {ko
@@ -529,24 +276,54 @@ export async function FacilityList({
         </p>
       ) : (
         <>
-          <p className="small muted">
-            {area || (ko ? '서울교통공사 전체' : 'Seoul Metro')} ·{' '}
-            {ko
-              ? `전체 ${total.toLocaleString()}곳`
-              : `${total.toLocaleString()} facilities`}
-            {medical ? ` · ${ko ? `${page}페이지` : `Page ${page}`}` : ''}
-          </p>
-          <div className="facility-list">
-            {visible.map((facility) => (
-              <FacilityCard
-                key={facility.id}
-                facility={facility}
-                locale={locale}
-                holiday={holiday}
-                medical={medical}
-              />
-            ))}
+          <div className="facility-list-toolbar">
+            <p className="small muted">
+              {area || (ko ? '서울교통공사 전체' : 'Seoul Metro')} ·{' '}
+              {ko
+                ? `전체 ${total.toLocaleString()}곳`
+                : `${total.toLocaleString()} facilities`}
+            </p>
+            {(medical || kind === 'nursing') && (
+              <FacilityNavigationForm
+                action={`/${locale}/facilities`}
+                className="facility-filters"
+                key={`${kind}-${query.open}-${query.diaper}-${query.place}`}
+                autoSubmit
+              >
+                {inputs()}
+                <label>
+                  <input
+                    type="checkbox"
+                    name={medical ? 'open' : 'diaper'}
+                    value="1"
+                    defaultChecked={
+                      medical ? query.open === '1' : query.diaper === '1'
+                    }
+                  />
+                  {medical
+                    ? ko
+                      ? '현재 운영중인 곳만'
+                      : 'Open now only'
+                    : ko
+                      ? '기저귀 교환대 있는 곳'
+                      : 'With a changing table'}
+                </label>
+              </FacilityNavigationForm>
+            )}
           </div>
+          <FacilityFeed
+            key={`${context.child.id}-${locale}-${kind}-${query.open}-${query.diaper}-${query.place}`}
+            locale={locale}
+            childId={context.child.id}
+            kind={kind}
+            place={query.place || ''}
+            open={query.open === '1'}
+            diaper={query.diaper === '1'}
+            initialRows={rows}
+            total={total}
+            holiday={holiday}
+            asOf={asOf}
+          />
           {!visible.length && (
             <p className="panel">
               {query.open === '1' && medical
@@ -557,35 +334,6 @@ export async function FacilityList({
                   ? '해당 지역에 수집된 시설이 없어요.'
                   : 'No collected facilities in this area.'}
             </p>
-          )}
-          {kind !== 'nursing' && (
-            <FacilityNavigationForm
-              action={`/${locale}/facilities`}
-              className="facility-pagination"
-            >
-              {inputs()}
-              {query.open === '1' && (
-                <input type="hidden" name="open" value="1" />
-              )}
-              {page > 1 && (
-                <button
-                  className="button secondary"
-                  name="page"
-                  value={page - 1}
-                >
-                  {ko ? '이전' : 'Previous'}
-                </button>
-              )}
-              {page * 10 < total && (
-                <button
-                  className="button secondary"
-                  name="page"
-                  value={page + 1}
-                >
-                  {ko ? '다음 시설' : 'Next facilities'}
-                </button>
-              )}
-            </FacilityNavigationForm>
           )}
         </>
       )}
