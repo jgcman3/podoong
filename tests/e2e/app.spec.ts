@@ -6993,6 +6993,9 @@ test('public nursing facilities use compact lists, diaper filters and external m
 
 test('local facilities have an independent seven-item mobile menu and change filters without a document reload', async ({ page, context }) => {
   const home = await childCareFamily(context);
+  await page.setViewportSize({width:390,height:844});
+  await page.goto(`/ko/facilities?child=${home.child}`);
+  await expect(page.getByRole('link',{name:'주소 설정',exact:true})).toHaveAttribute('href',/panel=residence/);
   await setFamilyResidence(home.family, '1168010100');
   for (const width of [320,390]) {
     await page.setViewportSize({width,height:844});

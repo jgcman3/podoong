@@ -33,6 +33,7 @@ import {
 import nursing from './data/nursing-rooms.json';
 import type { CommunityQuery } from './hub';
 import { FacilityNavigationForm } from './facility-navigation-form';
+import Link from 'next/link';
 
 const kinds = [
   ['hospital', '병원', 'Hospitals'],
@@ -544,8 +545,20 @@ export async function FacilityList({
       {!area && kind !== 'nursing' ? (
         <p className="panel">
           {ko
-            ? '시·군·구를 선택하면 시설을 볼 수 있어요.'
-            : 'Choose a district to see facilities.'}
+            ? context.owner
+              ? '주소 설정에 우리 동네를 등록해 주세요.'
+              : '가족관리자가 주소를 등록하면 동네 시설을 볼 수 있어요.'
+            : context.owner
+              ? 'Add your area in address settings.'
+              : 'Local facilities will appear after your family administrator adds an address.'}
+          {context.owner && (
+            <Link
+              className="button secondary"
+              href={`/${locale}/account?child=${context.child.id}&panel=residence`}
+            >
+              {ko ? '주소 설정' : 'Address settings'}
+            </Link>
+          )}
         </p>
       ) : unavailable ? (
         <p className="panel" role="status">
