@@ -252,7 +252,7 @@ export async function FacilityList({
           room.location,
           room.kind,
           room.fareArea,
-          room.viaOffice === '경유'
+          room.viaOffice === '고객안전실경유'
             ? ko
               ? '고객안전실 경유'
               : 'Via station office'
