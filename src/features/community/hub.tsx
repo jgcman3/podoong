@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { MessagesSquare, ShoppingBag, Landmark, MapPin } from 'lucide-react';
 import { Flash } from '@/components/flash';
 import type { CareContext } from '@/lib/data';
@@ -6,7 +7,7 @@ import type { Locale } from '@/lib/domain';
 import { residenceRegions } from '@/features/family/residence-regions';
 import { CommunityRegionPicker } from './region-picker';
 import { neighborhoodAction } from './neighborhood-actions';
-import { FacilityMap } from './facility-map';
+import { FacilityList, LocalConditions } from './facility-list';
 import { SupportList } from './support-list';
 import { homeArea, parentingCategories, regionScopes } from './options';
 export type CommunityQuery = {
@@ -17,6 +18,11 @@ export type CommunityQuery = {
   before?: string;
   beforeId?: string;
   place?: string;
+  kind?: string;
+  page?: string;
+  open?: string;
+  diaper?: string;
+  station?: string;
 };
 const tabs = [
   ['boards', '게시판', 'Board', MessagesSquare],
@@ -145,6 +151,7 @@ export async function CommunityHub({
         )}
       </div>
       <CommunityRegionPicker
+        key={place}
         locale={locale}
         country={country}
         place={place || context.family.residence_region_code || ''}
@@ -152,10 +159,47 @@ export async function CommunityHub({
         scope={scope}
         category={category}
         path={path}
+        kind={area === 'map' ? query.kind : undefined}
         globalPlaces={globalPlaces}
       />
       {area === 'map' ? (
-        <FacilityMap locale={locale} area={home.locality} country={country} />
+        <>
+          {country === 'KR' && (
+            <Suspense
+              fallback={
+                <p className="small muted">
+                  {ko ? '날씨를 확인하고 있어요.' : 'Checking the weather…'}
+                </p>
+              }
+            >
+              <LocalConditions
+                locale={locale}
+                area={home.locality}
+                station={query.station}
+                hidden={{
+                  child: context.child.id,
+                  place,
+                  kind: query.kind ?? 'hospital',
+                }}
+              />
+            </Suspense>
+          )}
+          <Suspense
+            key={`${place}-${query.kind}-${query.page}-${query.open}-${query.diaper}`}
+            fallback={
+              <p className="panel" role="status">
+                {ko ? '시설을 찾고 있어요.' : 'Finding facilities…'}
+              </p>
+            }
+          >
+            <FacilityList
+              context={context}
+              locale={locale}
+              area={home.district}
+              query={{ ...query, place }}
+            />
+          </Suspense>
+        </>
       ) : area === 'support' ? (
         <SupportList context={context} locale={locale} area={home} />
       ) : (

@@ -8491,7 +8491,6 @@ html[data-standalone] :is(input, select, textarea) {
 .parenting-posts .panel h2 { font-size: 1.05rem; margin-block: .5rem; }
 .post-body { white-space: pre-wrap; overflow-wrap: anywhere; }
 .community-compose { margin-block: .7rem; }
-.facility-map { width: 100%; height: clamp(320px, 52dvh, 560px); border-radius: 16px; overflow: hidden; background: var(--bg); margin-block: .6rem; }
 .facility-list .panel strong, .support-group h2 { display: flex; align-items: center; gap: .45rem; }
 .facility-list .panel p { font-size: .85rem; margin-block: .5rem; }
 .facility-list a { display: inline-flex; align-items: center; gap: .2rem; margin-right: .7rem; font-size: .85rem; }
@@ -8513,3 +8512,34 @@ html[data-standalone] :is(input, select, textarea) {
 .community-region-form label { display: grid; gap: .3rem; font-size: .8rem; min-width: 0; }
 .community-region-form select { min-width: 0; width: 100%; padding: .55rem .4rem; }
 .community-region-form button { grid-column: 1/-1; justify-self: end; }
+
+/* Public facilities share the compact community cards; no embedded map SDK. */
+.facility-browser { display: grid; gap: .65rem; }
+.facility-kinds { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-block: .25rem; }
+.facility-kinds::-webkit-scrollbar { display: none; }
+.facility-kinds button { flex: 0 0 auto; white-space: nowrap; }
+.facility-kinds button[aria-pressed="true"] { color: var(--brown); background: var(--bg); }
+.facility-card-heading { display: flex; align-items: start; justify-content: space-between; gap: .5rem; }
+.facility-card-heading strong { min-width: 0; }
+.facility-card-heading svg { flex-shrink: 0; }
+.facility-status { flex-shrink: 0; font-size: .72rem; color: var(--muted); }
+.facility-status.open { color: #287353; }
+.facility-card-links, .facility-filters, .facility-pagination { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; }
+.facility-filters { justify-content: space-between; }
+.facility-filters label { display: flex; align-items: center; gap: .4rem; font-size: .85rem; }
+.facility-filters input { width: 1rem; height: 1rem; margin: 0; }
+.facility-filters .button, .air-station-picker .button { min-height: 2rem; padding: .35rem .75rem; font-size: .8rem; }
+.local-conditions { margin-bottom: .7rem; }
+.local-conditions h2 { display: flex; align-items: center; gap: .4rem; font-size: 1rem; margin: 0 0 .75rem; }
+.local-condition-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; }
+.local-condition-columns strong { font-size: 1rem; }
+.local-condition-columns strong small { font-size: .65rem; }
+.local-condition-columns p { margin-block: .4rem; }
+.air-station-picker { display: flex; align-items: end; gap: .3rem; margin-top: .4rem; }
+.air-station-picker label { min-width: 0; flex: 1; }
+.air-station-picker select { width: 100%; min-width: 0; padding: .3rem; font-size: .8rem; min-height: 2rem; }
+@media(max-width:480px) {
+  .facility-card-heading { flex-wrap: wrap; }
+  .facility-card { padding: .8rem; }
+  .local-condition-columns { grid-template-columns: 1fr; }
+}

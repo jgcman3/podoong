@@ -10,25 +10,18 @@
 - 신청 및 10가족 오픈 조건은 제거했다. 모든 구 단위 게시판을 바로 이용하며 다른 지역도 선택할 수 있다. 지역을 둘러봐도 가족의 주소는 변경하지 않는다.
 - 기존 게시글은 현재 가족의 지역으로 한 번 채운다. 새 글은 작성 당시 지역을 저장하므로 이후 가족이 이사해도 글의 지역은 바뀌지 않는다.
 
-## 지도 연결 (운영자 설정 필요)
+## 주변 시설 연결
 
-1. [Kakao Developers](https://developers.kakao.com/)에서 앱의 Kakao Maps 사용 설정과 JavaScript 키를 확인한다. OAuth REST 키와 구분한다.
-2. SDK 웹 도메인에 `https://dev.podoong.com`, `https://podoong.com`, 필요한 로컬 주소를 등록한다.
-3. Vercel 개발 환경과 로컬 `.env.local`에 `NEXT_PUBLIC_KAKAO_MAP_KEY`를 설정하고 다시 빌드·배포한다. 운영은 공개 준비가 끝난 뒤 별도 설정한다.
-4. 지도 종류: 어린이집·유치원(PS3), 병원(HP8), 약국(PM9). 지도를 이동한 뒤 ‘이 지도 영역에서 찾기’로 재검색한다. 최대 15개씩 다음 결과를 본다.
-
-사용자가 주변 시설 탭을 열 때만 Kakao SDK를 요청한다. 개인의 GPS 위치를 요청하지 않고, 저장된 **동네 수준 주소**로 지도를 시작한다. 카카오 SDK가 브라우저에서 네트워크 요청하므로 출시 전 개인정보 안내와 해당 공급자의 조건·쿼터를 확인한다. 현재 지도 제공 범위는 한국이며 해외 주소에는 지원 범위를 표시한다.
-
-공식 문서: [지도 SDK](https://apis.map.kakao.com/web/guide/), [시설 카테고리](https://developers.kakao.com/docs/ko/kakaomap/rest-api).
+지도 SDK 연결은 제거하고 공공데이터 목록과 외부 지도 링크로 변경했다. 인증키, 출처, 캐시, 실제 검증 상태는 [공공데이터 연결](public-data.md)을 따른다. 단말 GPS는 요청하지 않는다.
 
 ## 공식 지원금 수집 (운영자 설정 필요)
 
 1. [행정안전부 대한민국 공공서비스 정보 / 보조금24](https://www.data.go.kr/data/15113968/openapi.do) 활용 신청 및 승인을 받는다.
-2. 해당 API의 **일반 인증키(Decoding)**를 개발용 비공개 파일 `.secrets/development-support.env`에 `GOV24_SERVICE_KEY=...`로 저장한다. Git 또는 채팅에 올리지 않는다.
+2. 공공데이터포털 **일반 인증키(Decoding)**를 개발용 비공개 파일 `.secrets/development-public-data.env`에 `PUBLIC_DATA_SERVICE_KEY=...`로 저장한다. 별도 키가 필요한 경우 `GOV24_SERVICE_KEY`로 덮어쓸 수 있다. Git 또는 채팅에 올리지 않는다.
 3. 개발 환경 서버 키를 담은 기존 `.secrets/development-app.env`와 함께 아래 명령을 실행한다.
 
 ```sh
-node --env-file=.secrets/development-app.env --env-file=.secrets/development-support.env scripts/configure-parenting-support.mjs --project-ref aacmsohijybjiyidfzgy
+node --env-file=.secrets/development-app.env --env-file=.secrets/development-public-data.env scripts/configure-parenting-support.mjs --project-ref aacmsohijybjiyidfzgy
 ```
 
 이 명령은 Supabase CLI 로그인/액세스 토큰이 필요하다. 지정한 프로젝트와 환경변수의 URL이 다르면 중단한다. Edge Function은 CI/CD로 먼저 배포되어 있어야 한다. 워커 토큰을 생성하고 Supabase 비밀값으로 API 키를 설정한 뒤 첫 수집을 확인한다. 성공 후에만 매일 **한국 시각 03:20** 수집 일정을 등록한다. 운영에는 운영 환경 파일과 별도 프로젝트를 명시해 실행한다.
@@ -41,7 +34,7 @@ node --env-file=.secrets/development-app.env --env-file=.secrets/development-sup
 - 전체 페이지 수집 성공 후 하나의 트랜잭션으로 반영한다. 중간 오류·빈 응답·전체 건수 변경 시 이전 자료를 보존한다. 동시 수집을 잠그고 15분이 지난 작업만 재시도한다.
 - 최종 갱신 시각, 기관, 신청 기간, 대상, 지원 내용, 정부24 원문 링크를 표시한다. 로그에 API 키나 원본 오류 응답을 남기지 않는다.
 - 보조금24에 실리지 않은 동 주민센터 공고는 포함되지 않을 수 있다. 법정동과 행정동은 다르므로 이름이 비슷하다는 이유만으로 대응시키지 않는다. ‘모든 동 지원금 수집 완료’나 ‘지원 대상 확정’으로 표시하지 않는다.
-- 지원금 소관기관 이름이 표준 전체 주소와 일치하지 않는 경우 안전하게 제외된다. 공개 전 실제 승인 키로 수집 표본을 검토하고, 누락 기관은 검증된 별칭·코드 매핑으로 확장한다. 실제 키가 없는 현재는 실데이터 커버리지를 검증하지 않았다.
+- 지원금 소관기관 이름이 표준 전체 주소와 일치하지 않는 경우 안전하게 제외된다. 공개 전 실제 승인 키로 수집 표본을 검토하고, 누락 기관은 검증된 별칭·코드 매핑으로 확장한다. 2026-11-01 동일 공공데이터 인증키로 전체 수집을 검증했고 육아 지원 2,085건을 개발 DB에 반영했다. 원문에 포함되지 않은 지역 공고까지 수집했다고 표시하지 않는다.
 
 ## 검증
 

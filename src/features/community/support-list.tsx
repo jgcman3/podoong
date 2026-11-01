@@ -1,6 +1,7 @@
 import { ExternalLink, Landmark } from 'lucide-react';
 import type { CareContext } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
+import type { Database } from '@/lib/database.types';
 import { homeArea } from './options';
 export async function SupportList({
   context,
@@ -31,29 +32,28 @@ export async function SupportList({
       ].filter(Boolean),
     ),
   ];
-  if (!terms.length)
-    return (
-      <p className="panel">
-        {ko
-          ? '지역을 설정하면 우리 지역의 지원금을 볼 수 있어요.'
-          : 'Set your area to see local support.'}
-      </p>
-    );
+  const loadGroup = async (national: boolean) => {
+    const rows: Database['public']['Tables']['parenting_support']['Row'][] = [];
+    if (!national && !terms.length) return rows;
+    for (let offset = 0; ; offset += 500) {
+      const base = context.db
+        .from('parenting_support')
+        .select('*')
+        .eq('active', true);
+      const query = national
+        ? base.eq('national', true)
+        : base.overlaps('region_terms', terms);
+      const { data, error } = await query
+        .order('id')
+        .range(offset, offset + 499);
+      if (error) throw new Error('Support information unavailable');
+      rows.push(...data);
+      if (data.length < 500) return rows;
+    }
+  };
   const [national, local, latest] = await Promise.all([
-    context.db
-      .from('parenting_support')
-      .select('*')
-      .eq('active', true)
-      .eq('national', true)
-      .order('title')
-      .limit(300),
-    context.db
-      .from('parenting_support')
-      .select('*')
-      .eq('active', true)
-      .overlaps('region_terms', terms)
-      .order('title')
-      .limit(300),
+    loadGroup(true),
+    loadGroup(false),
     context.db
       .from('parenting_support_sync')
       .select('finished_at')
@@ -62,16 +62,10 @@ export async function SupportList({
       .limit(1)
       .maybeSingle(),
   ]);
-  if (national.error || local.error || latest.error)
-    throw new Error('Support information unavailable');
+  if (latest.error) throw new Error('Support information unavailable');
   const rows = [
-    ...new Map(
-      [...(local.data ?? []), ...(national.data ?? [])].map((row) => [
-        row.id,
-        row,
-      ]),
-    ).values(),
-  ];
+    ...new Map([...local, ...national].map((row) => [row.id, row])).values(),
+  ].sort((a, b) => a.title.localeCompare(b.title, locale));
   const groups = [
     {
       label: ko ? '전국 공통' : 'National',

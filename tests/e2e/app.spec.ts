@@ -6961,3 +6961,24 @@ test('parenting community combines category and region filters and separates map
  await expect(page.getByRole('heading',{name:'Parenting community',exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Fixture hospital question'})).toBeVisible();
 });
+
+test('public nursing facilities use compact lists, diaper filters and external map links in both languages', async ({ page, context }) => {
+  const home = await childCareFamily(context);
+  await setFamilyResidence(home.family, '1168010100');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/community/map?child=${home.child}&kind=nursing`);
+  await expect(page.getByRole('button', { name: '수유실·기저귀 교환대', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.facility-card').first()).toBeVisible();
+  await expect(page.locator('.facility-browser')).toContainText('2025-09-24');
+  await expect(page.locator('.facility-card').first().getByRole('link', { name: '네이버 지도' })).toHaveAttribute('href', /^https:\/\/map\.naver\.com\/p\/search\//);
+  await expect(page.locator('.facility-map')).toHaveCount(0);
+  await page.getByRole('checkbox', { name: '기저귀 교환대 있는 곳' }).check();
+  await page.locator('.facility-filters').getByRole('button', { name: '적용' }).click();
+  await expect(page).toHaveURL(/diaper=1/);
+  for (const card of await page.locator('.facility-card').all()) await expect(card).toContainText('기저귀 교환대 있음');
+  expect(await page.locator('.parenting-community').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`/en/community/map?child=${home.child}&kind=nursing`);
+  await expect(page.getByRole('button', { name: 'Nursing & changing', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.facility-card').first().getByRole('link', { name: 'Kakao Map' })).toBeVisible();
+});
