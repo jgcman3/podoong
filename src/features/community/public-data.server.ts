@@ -187,11 +187,6 @@ export function officialAreaPoint(area: string) {
   }
   return undefined;
 }
-export function areaPointChoices(district: string) {
-  return Object.keys(areaPoints)
-    .filter((name) => name === district || name.startsWith(`${district} `))
-    .sort((a, b) => a.localeCompare(b, 'ko'));
-}
 const addressPoint = unstable_cache(
   async (area: string) => {
     const key = process.env.KAKAO_REST_API_KEY;

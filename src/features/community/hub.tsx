@@ -23,7 +23,6 @@ export type CommunityQuery = {
   open?: string;
   diaper?: string;
   station?: string;
-  anchor?: string;
 };
 const tabs = [
   ['boards', '게시판', 'Board', MessagesSquare],
@@ -187,7 +186,7 @@ export async function CommunityHub({
             </Suspense>
           )}
           <Suspense
-            key={`${place}-${query.kind}-${query.page}-${query.open}-${query.diaper}-${query.anchor}`}
+            key={`${place}-${query.kind}-${query.page}-${query.open}-${query.diaper}`}
             fallback={
               <p className="panel" role="status">
                 {ko ? '시설을 찾고 있어요.' : 'Finding facilities…'}

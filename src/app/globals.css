@@ -8563,8 +8563,6 @@ html[data-standalone] :is(input, select, textarea) {
 }
 
 .facility-navigation-form[aria-busy='true'], .facility-browser form[aria-busy='true'] { opacity: .65; }
-.facility-distance-reference { margin: .25rem 0; }
-.facility-distance-reference summary { cursor: pointer; }
 .facility-extra { font-size: .75rem; color: var(--muted); }
 .facility-extra summary { cursor: pointer; padding-block: .3rem; }
 @media(max-width:760px) {

@@ -28,7 +28,6 @@ import {
   kindergartenList,
   weatherObservation,
   facilityOrigin,
-  areaPointChoices,
 } from './public-data.server';
 import nursing from './data/nursing-rooms.json';
 import type { CommunityQuery } from './hub';
@@ -352,15 +351,11 @@ export async function FacilityList({
     1000,
     Math.max(1, Number.parseInt(query.page ?? '1', 10) || 1),
   );
-  const pointChoices = areaPointChoices(area);
-  const anchor =
-    query.anchor && pointChoices.includes(query.anchor) ? query.anchor : '';
   const hidden = {
     child: context.child.id,
     place: query.place ?? '',
     scope: query.scope ?? 'all',
     kind,
-    anchor,
   };
   const inputs = () =>
     Object.entries(hidden).map(([name, value]) => (
@@ -382,7 +377,7 @@ export async function FacilityList({
   const medical = kind === 'hospital' || kind === 'pharmacy';
   const origin =
     kind !== 'nursing' && area
-      ? await facilityOrigin(anchor || referenceArea || area)
+      ? await facilityOrigin(referenceArea || area)
       : undefined;
   if (kind === 'nursing') {
     rows = nursing.rooms
@@ -474,46 +469,6 @@ export async function FacilityList({
           </button>
         ))}
       </FacilityNavigationForm>
-      {origin && (
-        <details className="facility-distance-reference small muted">
-          <summary>
-            {ko
-              ? `${origin.label} 기준 · 가까운 순`
-              : `Nearest to ${origin.label}`}
-          </summary>
-          <p>
-            {ko
-              ? '선택한 지역 기준점으로부터의 대략적인 직선거리예요.'
-              : 'Approximate straight-line distance from the selected area reference point.'}
-          </p>
-          <FacilityNavigationForm
-            action={`/${locale}/facilities`}
-            className="air-station-picker"
-          >
-            {Object.entries(hidden)
-              .filter(([name]) => name !== 'anchor')
-              .map(([name, value]) => (
-                <input key={name} type="hidden" name={name} value={value} />
-              ))}
-            <label>
-              {ko ? '거리 기준' : 'Distance reference'}
-              <select name="anchor" defaultValue={anchor || ''}>
-                <option value="">
-                  {ko ? '등록한 동네 기준' : 'Registered area'}
-                </option>
-                {pointChoices.map((name) => (
-                  <option key={name} value={name}>
-                    {name.slice(area.length).trim() || name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button className="button secondary" type="submit">
-              {ko ? '적용' : 'Apply'}
-            </button>
-          </FacilityNavigationForm>
-        </details>
-      )}
       {(medical || kind === 'nursing') && (
         <FacilityNavigationForm
           action={`/${locale}/facilities`}
