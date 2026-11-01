@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { MessagesSquare, ShoppingBag, Landmark, MapPin } from 'lucide-react';
+import { MessagesSquare, ShoppingBag, Landmark } from 'lucide-react';
 import { Flash } from '@/components/flash';
 import type { CareContext } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
@@ -23,10 +23,10 @@ export type CommunityQuery = {
   open?: string;
   diaper?: string;
   station?: string;
+  anchor?: string;
 };
 const tabs = [
   ['boards', '게시판', 'Board', MessagesSquare],
-  ['map', '주변 시설', 'Nearby', MapPin],
   ['support', '지원금', 'Support', Landmark],
   ['market', '나눔장터', 'Marketplace', ShoppingBag],
 ] as const;
@@ -86,7 +86,10 @@ export async function CommunityHub({
         (query.place ? 'district' : 'all'));
   const category =
     parentingCategories.find(([id]) => id === query.category)?.[0] ?? 'all';
-  const path = `/${locale}/community${area === 'boards' ? '' : `/${area}`}`;
+  const path =
+    area === 'map'
+      ? `/${locale}/facilities`
+      : `/${locale}/community${area === 'boards' ? '' : `/${area}`}`;
   const href = (values: Record<string, string>) =>
     `${path}?${new URLSearchParams({ child: context.child.id, scope, category, place, ...values })}`;
   const hidden = () => (
@@ -121,47 +124,46 @@ export async function CommunityHub({
   return (
     <section className="community-hub parenting-community">
       <Flash error={error} />
-      <h1>{ko ? '육아 소통' : 'Parenting community'}</h1>
-      <nav
-        className="parenting-tabs"
-        aria-label={ko ? '육아 소통 메뉴' : 'Community sections'}
-      >
-        {tabs.map(([id, k, e, Icon]) => (
-          <Link
-            key={id}
-            aria-current={area === id ? 'page' : undefined}
-            href={`/${locale}/community${id === 'boards' ? '' : `/${id}`}?child=${context.child.id}&place=${place}`}
-          >
-            <Icon size={17} />
-            {ko ? k : e}
-          </Link>
-        ))}
-      </nav>
-      <div className="community-location">
-        <MapPin size={15} />
-        <span>
-          {home.locality || (ko ? '지역을 설정해 주세요' : 'Choose your area')}
-        </span>
-        {context.owner && (
-          <Link
-            href={`/${locale}/account?child=${context.child.id}&panel=residence`}
-          >
-            {ko ? '지역 설정' : 'Area settings'}
-          </Link>
-        )}
+      <h1 className="visually-hidden">
+        {area === 'map'
+          ? ko
+            ? '동네 시설'
+            : 'Local facilities'
+          : ko
+            ? '육아 소통'
+            : 'Parenting community'}
+      </h1>
+      {area !== 'map' && (
+        <nav
+          className="parenting-tabs"
+          aria-label={ko ? '육아 소통 메뉴' : 'Community sections'}
+        >
+          {tabs.map(([id, k, e, Icon]) => (
+            <Link
+              key={id}
+              aria-current={area === id ? 'page' : undefined}
+              href={`/${locale}/community${id === 'boards' ? '' : `/${id}`}?child=${context.child.id}&place=${place}`}
+            >
+              <Icon size={17} />
+              {ko ? k : e}
+            </Link>
+          ))}
+        </nav>
+      )}
+      <div className={area === 'map' ? 'facility-region-picker' : undefined}>
+        <CommunityRegionPicker
+          key={place}
+          locale={locale}
+          country={country}
+          place={place || context.family.residence_region_code || ''}
+          child={context.child.id}
+          scope={scope}
+          category={category}
+          path={path}
+          kind={area === 'map' ? query.kind : undefined}
+          globalPlaces={globalPlaces}
+        />
       </div>
-      <CommunityRegionPicker
-        key={place}
-        locale={locale}
-        country={country}
-        place={place || context.family.residence_region_code || ''}
-        child={context.child.id}
-        scope={scope}
-        category={category}
-        path={path}
-        kind={area === 'map' ? query.kind : undefined}
-        globalPlaces={globalPlaces}
-      />
       {area === 'map' ? (
         <>
           {country === 'KR' && (
@@ -185,7 +187,7 @@ export async function CommunityHub({
             </Suspense>
           )}
           <Suspense
-            key={`${place}-${query.kind}-${query.page}-${query.open}-${query.diaper}`}
+            key={`${place}-${query.kind}-${query.page}-${query.open}-${query.diaper}-${query.anchor}`}
             fallback={
               <p className="panel" role="status">
                 {ko ? '시설을 찾고 있어요.' : 'Finding facilities…'}
@@ -196,6 +198,7 @@ export async function CommunityHub({
               context={context}
               locale={locale}
               area={home.district}
+              referenceArea={home.locality}
               query={{ ...query, place }}
             />
           </Suspense>

@@ -9,6 +9,7 @@ import {
   playgroundList,
   weatherGrid,
   weatherObservation,
+  officialAreaPoint,
 } from '@/features/community/public-data.server';
 
 const answer = (items: unknown[], total = items.length) => ({
@@ -32,6 +33,59 @@ afterEach(() => {
   vi.useRealTimers();
 });
 describe('public API adapters', () => {
+  it('uses the actual available reference area instead of pretending that a district point is a dong point', () => {
+    const point = officialAreaPoint('서울특별시 강남구 역삼동');
+    expect(point?.label).toBe('서울특별시 강남구');
+    expect(point?.coordinates.lat).toBeGreaterThan(37);
+  });
+  it('ranks the entire medical district before paging and filters opening hours across all pages', async () => {
+    const far = Array.from({ length: 500 }, (_, i) => ({
+      hpid: `far-${i}`,
+      dutyName: 'Far fixture',
+      wgs84Lat: 37.6,
+      wgs84Lon: 127.1,
+      dutyTime1s: '0900',
+      dutyTime1c: '0930',
+    }));
+    const near = {
+      hpid: 'near',
+      dutyName: 'Near fixture',
+      wgs84Lat: 37.5,
+      wgs84Lon: 127,
+      dutyTime1s: '0900',
+      dutyTime1c: '1800',
+    };
+    fetcher.mockImplementation(async (url: URL) => {
+      if (url.pathname.includes('SpcdeInfoService'))
+        return new Response(JSON.stringify(answer([])));
+      if (url.searchParams.has('HPID')) {
+        const id = url.searchParams.get('HPID');
+        return new Response(
+          JSON.stringify(
+            answer([
+              id === 'near' ? near : far.find((row) => row.hpid === id)!,
+            ]),
+          ),
+        );
+      }
+      return new Response(
+        JSON.stringify(
+          answer(url.searchParams.get('pageNo') === '1' ? far : [near], 501),
+        ),
+      );
+    });
+    const result = await medicalResults('hospital', '서울특별시 강남구', 1, {
+      origin: { lat: 37.5, lon: 127 },
+    });
+    expect(result.facilities[0].id).toBe('near');
+    expect(result.total).toBe(501);
+    const filtered = await medicalResults('hospital', '서울특별시 강남구', 1, {
+      origin: { lat: 37.5, lon: 127 },
+      openOnly: true,
+    });
+    expect(filtered.facilities.map((row) => row.id)).toEqual(['near']);
+    expect(filtered.total).toBe(1);
+  });
   it('uses official kindergarten region codes and removes the source-echoed key before caching', async () => {
     fetcher.mockResolvedValue(
       new Response(

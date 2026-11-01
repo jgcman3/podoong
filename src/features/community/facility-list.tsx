@@ -1,4 +1,13 @@
-import { ExternalLink, MapPin, Phone, CloudSun } from 'lucide-react';
+import {
+  ExternalLink,
+  MapPin,
+  Phone,
+  CloudSun,
+  Thermometer,
+  Droplets,
+  CloudRain,
+  Wind,
+} from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import type { CareContext } from '@/lib/data';
 import {
@@ -6,6 +15,9 @@ import {
   openingStatus,
   positiveMeasurement,
   readableHours,
+  weekdayHours,
+  distanceLabel,
+  nearbyFacilities,
   type Facility,
 } from './public-data';
 import {
@@ -15,9 +27,12 @@ import {
   playgroundList,
   kindergartenList,
   weatherObservation,
+  facilityOrigin,
+  areaPointChoices,
 } from './public-data.server';
 import nursing from './data/nursing-rooms.json';
 import type { CommunityQuery } from './hub';
+import { FacilityNavigationForm } from './facility-navigation-form';
 
 const kinds = [
   ['hospital', '병원', 'Hospitals'],
@@ -60,19 +75,88 @@ function FacilityCard({
                 ? ko
                   ? '운영 시간 종료'
                   : 'Posted hours ended'
-                : ko
-                  ? '시간 확인 필요'
-                  : 'Confirm hours'}
+                : status === 'before'
+                  ? ko
+                    ? '운영 시간 전'
+                    : 'Before posted hours'
+                  : ko
+                    ? '시간 확인 필요'
+                    : 'Confirm hours'}
           </small>
         )}
       </div>
       <p>{facility.address}</p>
-      {hours && (
-        <p>
-          {ko ? '오늘 등록 시간' : 'Posted hours today'} · {hours}
+      {facility.distanceKm !== undefined && (
+        <p className="facility-distance">
+          <MapPin size={13} aria-hidden />
+          {distanceLabel(facility.distanceKm, ko)}
         </p>
       )}
-      {facility.detail && <p className="muted">{facility.detail}</p>}
+      {medical && (
+        <div className="facility-hours">
+          <p>
+            <strong>{ko ? '오늘 운영시간' : 'Today’s hours'}</strong>
+            <span>
+              {hours ||
+                (holiday === null
+                  ? ko
+                    ? '오늘 시간 확인 필요'
+                    : 'Today’s hours unavailable'
+                  : ko
+                    ? '오늘 시간 미제공'
+                    : 'Hours not provided today')}
+            </span>
+          </p>
+          <details>
+            <summary
+              aria-label={ko ? '요일별 시간 펼치기' : 'Weekly opening hours'}
+            >
+              {ko ? '요일별 시간' : 'Weekly hours'}
+            </summary>
+            <dl>
+              {(ko
+                ? [
+                    '월요일',
+                    '화요일',
+                    '수요일',
+                    '목요일',
+                    '금요일',
+                    '토요일',
+                    '일요일',
+                    '공휴일',
+                  ]
+                : [
+                    'Monday',
+                    'Tuesday',
+                    'Wednesday',
+                    'Thursday',
+                    'Friday',
+                    'Saturday',
+                    'Sunday',
+                    'Public holidays',
+                  ]
+              ).map((label, i) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>
+                    {weekdayHours(facility.hours, i + 1) ||
+                      (ko ? '정보 없음' : 'Not provided')}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        </div>
+      )}
+      {facility.detail &&
+        (medical ? (
+          <details className="facility-extra">
+            <summary>{ko ? '진료과목' : 'Specialties'}</summary>
+            <p className="muted">{facility.detail}</p>
+          </details>
+        ) : (
+          <p className="muted">{facility.detail}</p>
+        ))}
       <div className="facility-card-links">
         {facility.phone && (
           <a href={`tel:${facility.phone.replace(/[^\d+]/g, '')}`}>
@@ -110,87 +194,139 @@ export async function LocalConditions({
     weatherObservation(area).catch(() => null),
     airObservations(area.split(' ')[0]).catch(() => null),
   ]);
-  const selected = air?.find((item) => item.station === station) ?? air?.[0];
+  const localStation = area
+    .split(' ')
+    .reverse()
+    .map((name) => air?.find((item) => item.station === name))
+    .find(Boolean);
+  const selected =
+    air?.find((item) => item.station === station) ?? localStation ?? air?.[0];
   const temperature = weather?.values.T1H,
     pm10 = positiveMeasurement(selected?.pm10),
     pm25 = positiveMeasurement(selected?.pm25);
+  const validTemperature =
+    temperature !== undefined &&
+    Number.isFinite(Number(temperature)) &&
+    Number(temperature) > -80 &&
+    Number(temperature) < 60;
   return (
     <section
-      className="panel local-conditions"
+      className="panel local-conditions weather-overview"
       aria-label={ko ? '날씨·미세먼지' : 'Weather & air quality'}
     >
-      <h2>
-        <CloudSun size={18} aria-hidden />
-        {ko ? '날씨·미세먼지' : 'Weather & air quality'}
-      </h2>
-      <div className="local-condition-columns">
-        <div>
+      <header>
+        <h2>
+          <CloudSun size={20} aria-hidden />
+          {ko ? '우리 동네 날씨' : 'Local weather'}
+        </h2>
+        <span className="small muted">{area}</span>
+      </header>
+      <div className="weather-metrics">
+        <div className="weather-metric temperature">
+          <span className="weather-symbol">
+            <Thermometer size={23} aria-hidden />
+          </span>
+          <span className="weather-metric-label">
+            {ko ? '기온' : 'Temperature'}
+          </span>
           <strong>
-            {temperature !== undefined && Number.isFinite(Number(temperature))
-              ? `${temperature}°C`
-              : '—'}
+            {validTemperature ? temperature : '—'}
+            {validTemperature && <small>°C</small>}
           </strong>
-          <p className="small muted">
+          <small className="muted">
             {weather
-              ? `${weather.label} · ${weather.date.slice(4, 6)}.${weather.date.slice(6)} ${weather.time.slice(0, 2)}:00 KST`
+              ? `${weather.date.slice(4, 6)}.${weather.date.slice(6)} ${weather.time.slice(0, 2)}:00`
               : ko
-                ? '날씨 정보를 불러오지 못했어요.'
-                : 'Weather is temporarily unavailable.'}
-          </p>
-          {weather && (
-            <small>
-              {ko ? '강수량' : 'Rain'} {weather.values.RN1 ?? '—'} mm ·{' '}
-              {ko ? '습도' : 'Humidity'} {weather.values.REH ?? '—'}%
-            </small>
-          )}
+                ? '관측 정보 없음'
+                : 'No observation'}
+          </small>
         </div>
-        <div>
+        <div className="weather-metric pm10">
+          <span className="weather-symbol">
+            <Wind size={23} aria-hidden />
+          </span>
+          <span className="weather-metric-label">
+            {ko ? '미세먼지' : 'Fine dust'}
+          </span>
           <strong>
-            PM10 {pm10 ?? '—'} · PM2.5 {pm25 ?? '—'} <small>µg/m³</small>
+            {pm10 ?? '—'}
+            {pm10 !== null && <small>µg/m³</small>}
           </strong>
-          {air?.length ? (
-            <form method="get" className="air-station-picker">
-              {Object.entries(hidden).map(([name, value]) => (
-                <input key={name} type="hidden" name={name} value={value} />
-              ))}
-              <label>
-                <span className="small">
-                  {ko ? '시·도 내 측정소' : 'Station in this province'}
-                </span>
-                <select
-                  name="station"
-                  defaultValue={selected?.station}
-                  aria-label={ko ? '미세먼지 측정소' : 'Air quality station'}
-                >
-                  {air.map((item) => (
-                    <option key={item.station} value={item.station}>
-                      {item.station}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button className="button secondary" type="submit">
-                {ko ? '보기' : 'View'}
-              </button>
-            </form>
-          ) : (
-            <p className="small muted">
-              {ko
-                ? '미세먼지 정보를 불러오지 못했어요.'
-                : 'Air quality is temporarily unavailable.'}
-            </p>
-          )}
-          {selected && (
-            <p className="small muted">
-              {selected.station} · {selected.time} KST
-            </p>
-          )}
+          <small className="muted">
+            {pm10 !== null ? 'PM10' : ko ? '관측 정보 없음' : 'No observation'}
+          </small>
+        </div>
+        <div className="weather-metric pm25">
+          <span className="weather-symbol">
+            <Wind size={23} aria-hidden />
+          </span>
+          <span className="weather-metric-label">
+            {ko ? '초미세먼지' : 'Ultrafine dust'}
+          </span>
+          <strong>
+            {pm25 ?? '—'}
+            {pm25 !== null && <small>µg/m³</small>}
+          </strong>
+          <small className="muted">
+            {pm25 !== null ? 'PM2.5' : ko ? '관측 정보 없음' : 'No observation'}
+          </small>
         </div>
       </div>
-      <p className="small muted">
-        {ko
-          ? '출처: 기상청 초단기실황 · 에어코리아. 선택한 지역의 격자·측정소 관측값이에요.'
-          : 'Source: KMA observations · AirKorea. Measurements refer to the displayed grid and station.'}
+      {weather && (
+        <div className="weather-extras">
+          <span>
+            <Droplets size={15} aria-hidden />
+            {ko ? '습도' : 'Humidity'} {weather.values.REH ?? '—'}%
+          </span>
+          <span>
+            <CloudRain size={15} aria-hidden />
+            {ko ? '강수량' : 'Rain'} {weather.values.RN1 ?? '—'} mm
+          </span>
+        </div>
+      )}
+      {selected && (
+        <p className="weather-source small muted">
+          {selected.station} · {selected.time} KST
+        </p>
+      )}
+      {air?.length ? (
+        <details className="weather-station">
+          <summary>{ko ? '측정소 변경' : 'Change air station'}</summary>
+          <FacilityNavigationForm
+            action={`/${locale}/facilities`}
+            className="air-station-picker"
+          >
+            {Object.entries(hidden).map(([name, value]) => (
+              <input key={name} type="hidden" name={name} value={value} />
+            ))}
+            <label>
+              <span className="small">
+                {ko ? '시·도 내 측정소' : 'Station in this province'}
+              </span>
+              <select
+                name="station"
+                defaultValue={selected?.station}
+                aria-label={ko ? '미세먼지 측정소' : 'Air quality station'}
+              >
+                {air.map((item) => (
+                  <option key={item.station} value={item.station}>
+                    {item.station}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="button secondary" type="submit">
+              {ko ? '보기' : 'View'}
+            </button>
+          </FacilityNavigationForm>
+        </details>
+      ) : null}
+      <p className="weather-source small muted">
+        {weather
+          ? `${ko ? '기상청' : 'KMA'} (${weather.label}) · ${ko ? '에어코리아' : 'AirKorea'}`
+          : ko
+            ? '기상청 · 에어코리아'
+            : 'KMA · AirKorea'}
       </p>
     </section>
   );
@@ -201,11 +337,13 @@ export async function FacilityList({
   area,
   locale,
   query,
+  referenceArea,
 }: {
   context: CareContext;
   area: string;
   locale: Locale;
   query: CommunityQuery;
+  referenceArea?: string;
 }) {
   const ko = locale === 'ko',
     kind = kinds.find(([id]) => id === query.kind)?.[0] ?? 'hospital';
@@ -213,11 +351,15 @@ export async function FacilityList({
     1000,
     Math.max(1, Number.parseInt(query.page ?? '1', 10) || 1),
   );
+  const pointChoices = areaPointChoices(area);
+  const anchor =
+    query.anchor && pointChoices.includes(query.anchor) ? query.anchor : '';
   const hidden = {
     child: context.child.id,
     place: query.place ?? '',
     scope: query.scope ?? 'all',
     kind,
+    anchor,
   };
   const inputs = () =>
     Object.entries(hidden).map(([name, value]) => (
@@ -237,6 +379,10 @@ export async function FacilityList({
     unavailable = false,
     checkedAt = '';
   const medical = kind === 'hospital' || kind === 'pharmacy';
+  const origin =
+    kind !== 'nursing' && area
+      ? await facilityOrigin(anchor || referenceArea || area)
+      : undefined;
   if (kind === 'nursing') {
     rows = nursing.rooms
       .filter((room) => !area || room.address.startsWith(area))
@@ -269,7 +415,10 @@ export async function FacilityList({
     total = rows.length;
   } else if (medical && area) {
     try {
-      const result = await medicalResults(kind, area, page);
+      const result = await medicalResults(kind, area, page, {
+        origin: origin?.coordinates,
+        openOnly: query.open === '1',
+      });
       rows = result.facilities;
       total = result.total;
       holiday = result.holiday;
@@ -279,7 +428,10 @@ export async function FacilityList({
     }
   } else if (kind === 'playground' && area) {
     try {
-      const facilities = await playgroundList(area);
+      const facilities = nearbyFacilities(
+        await playgroundList(area),
+        origin?.coordinates,
+      );
       total = facilities.length;
       rows = facilities.slice((page - 1) * 10, page * 10);
     } catch {
@@ -288,23 +440,21 @@ export async function FacilityList({
   } else if (kind === 'kindergarten' && area) {
     try {
       const result = await kindergartenList(area);
-      total = result.facilities.length;
-      rows = result.facilities.slice((page - 1) * 10, page * 10);
+      const ranked = nearbyFacilities(result.facilities, origin?.coordinates);
+      total = ranked.length;
+      rows = ranked.slice((page - 1) * 10, page * 10);
       checkedAt = result.checkedAt;
     } catch {
       unavailable = true;
     }
   }
-  const visible =
-    query.open === '1' && medical
-      ? rows.filter((row) => openingStatus(row.hours, holiday) === 'open')
-      : rows;
+  const visible = rows;
   return (
     <section className="facility-browser">
-      <form
-        method="get"
+      <FacilityNavigationForm
+        action={`/${locale}/facilities`}
         className="community-pills facility-kinds"
-        aria-label={ko ? '시설 종류' : 'Facility type'}
+        label={ko ? '시설 종류' : 'Facility type'}
       >
         {Object.entries(hidden)
           .filter(([name]) => name !== 'kind')
@@ -322,9 +472,52 @@ export async function FacilityList({
             {ko ? k : e}
           </button>
         ))}
-      </form>
+      </FacilityNavigationForm>
+      {origin && (
+        <details className="facility-distance-reference small muted">
+          <summary>
+            {ko
+              ? `${origin.label} 기준 · 가까운 순`
+              : `Nearest to ${origin.label}`}
+          </summary>
+          <p>
+            {ko
+              ? '선택한 지역 기준점으로부터의 대략적인 직선거리예요.'
+              : 'Approximate straight-line distance from the selected area reference point.'}
+          </p>
+          <FacilityNavigationForm
+            action={`/${locale}/facilities`}
+            className="air-station-picker"
+          >
+            {Object.entries(hidden)
+              .filter(([name]) => name !== 'anchor')
+              .map(([name, value]) => (
+                <input key={name} type="hidden" name={name} value={value} />
+              ))}
+            <label>
+              {ko ? '거리 기준' : 'Distance reference'}
+              <select name="anchor" defaultValue={anchor || ''}>
+                <option value="">
+                  {ko ? '등록한 동네 기준' : 'Registered area'}
+                </option>
+                {pointChoices.map((name) => (
+                  <option key={name} value={name}>
+                    {name.slice(area.length).trim() || name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="button secondary" type="submit">
+              {ko ? '적용' : 'Apply'}
+            </button>
+          </FacilityNavigationForm>
+        </details>
+      )}
       {(medical || kind === 'nursing') && (
-        <form method="get" className="facility-filters">
+        <FacilityNavigationForm
+          action={`/${locale}/facilities`}
+          className="facility-filters"
+        >
           {inputs()}
           <label>
             <input
@@ -346,14 +539,7 @@ export async function FacilityList({
           <button className="button secondary" type="submit">
             {ko ? '적용' : 'Apply'}
           </button>
-        </form>
-      )}
-      {medical && (
-        <p className="small muted">
-          {ko
-            ? '등록된 운영시간과 공휴일 기준이며 실시간 진료 여부와 다를 수 있어요. 방문 전 전화로 확인해 주세요. 필터는 현재 페이지의 시설에 적용돼요.'
-            : 'Based on posted hours and Korean holidays, not live availability. Call before visiting. The filter applies to this page.'}
-        </p>
+        </FacilityNavigationForm>
       )}
       {!area && kind !== 'nursing' ? (
         <p className="panel">
@@ -397,15 +583,18 @@ export async function FacilityList({
             <p className="panel">
               {query.open === '1' && medical
                 ? ko
-                  ? '이 페이지에서 운영시간을 확인할 수 있는 시설이 없어요. 다음 목록도 확인해 주세요.'
-                  : 'No facilities with confirmed opening hours on this page. Try the next page.'
+                  ? '등록된 시간 기준으로 현재 운영 중인 시설이 없어요.'
+                  : 'No facilities are currently within their posted opening hours.'
                 : ko
                   ? '해당 지역에 수집된 시설이 없어요.'
                   : 'No collected facilities in this area.'}
             </p>
           )}
           {kind !== 'nursing' && (
-            <form method="get" className="facility-pagination">
+            <FacilityNavigationForm
+              action={`/${locale}/facilities`}
+              className="facility-pagination"
+            >
               {inputs()}
               {query.open === '1' && (
                 <input type="hidden" name="open" value="1" />
@@ -428,7 +617,7 @@ export async function FacilityList({
                   {ko ? '다음 시설' : 'Next facilities'}
                 </button>
               )}
-            </form>
+            </FacilityNavigationForm>
           )}
         </>
       )}

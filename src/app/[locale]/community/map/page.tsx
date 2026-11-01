@@ -1,9 +1,7 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { isLocale } from '@/lib/domain';
-import { loadCare } from '@/lib/data';
-import { Shell } from '@/components/shell';
-import { CommunityHub, type CommunityQuery } from '@/features/community/hub';
-export default async function Community({
+import type { CommunityQuery } from '@/features/community/hub';
+export default async function LegacyFacilities({
   params,
   searchParams,
 }: {
@@ -13,22 +11,10 @@ export default async function Community({
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const query = await searchParams;
-  const { child, error } = query;
-  const context = await loadCare(locale, child, []);
-  return (
-    <Shell
-      context={context}
-      locale={locale}
-      section="neighborhood"
-      childRoute="community/map"
-    >
-      <CommunityHub
-        query={query}
-        error={error}
-        context={context}
-        locale={locale}
-        area="map"
-      />
-    </Shell>
+  const values = Object.fromEntries(
+    Object.entries(query).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
   );
+  redirect(`/${locale}/facilities?${new URLSearchParams(values)}`);
 }

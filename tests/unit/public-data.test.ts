@@ -3,6 +3,10 @@ import {
   mapLinks,
   medicalFacility,
   kindergartenFacility,
+  coordinates,
+  nearbyFacilities,
+  distanceLabel,
+  weekdayHours,
   openingStatus,
   positiveMeasurement,
   readableHours,
@@ -11,6 +15,55 @@ import {
 import rooms from '@/features/community/data/nursing-rooms.json';
 
 describe('public facility and measurement data', () => {
+  it('orders by coordinates without changing input and keeps unknown locations last', () => {
+    const base = {
+      name: 'Fixture',
+      address: '서울특별시 강남구',
+      phone: '',
+      hours: {},
+    };
+    const rows = [
+      { ...base, id: 'far', coordinates: { lat: 37.6, lon: 127.1 } },
+      { ...base, id: 'unknown' },
+      { ...base, id: 'near', coordinates: { lat: 37.5, lon: 127.0001 } },
+    ];
+    const sorted = nearbyFacilities(rows, { lat: 37.5, lon: 127 });
+    expect(sorted.map((row) => row.id)).toEqual(['near', 'far', 'unknown']);
+    expect(rows.map((row) => row.id)).toEqual(['far', 'unknown', 'near']);
+    expect(distanceLabel(sorted[0].distanceKm!, true)).toContain('100m 이내');
+    expect(coordinates('127', '37')).toBeUndefined();
+    expect(coordinates('', '')).toBeUndefined();
+  });
+  it('searches by facility name and a short neighborhood or district, without street details', () => {
+    const links = mapLinks({
+      name: '테스트 약국',
+      address: '서울특별시 강남구 테헤란로 123, 3층 (역삼동, 긴 빌딩 이름)',
+    });
+    expect(decodeURIComponent(new URL(links.naver).pathname)).toBe(
+      '/p/search/테스트 약국 역삼동',
+    );
+    expect(
+      decodeURIComponent(
+        new URL(
+          mapLinks({
+            name: '테스트 의원',
+            address: '경기도 성남시 분당구 테스트로 123',
+          }).kakao,
+        ).pathname,
+      ),
+    ).toBe('/link/search/테스트 의원 분당구');
+    expect(weekdayHours({ dutyTime1s: '0900', dutyTime1c: '1800' }, 1)).toBe(
+      '09:00–18:00',
+    );
+    expect(weekdayHours({}, 7)).toBe('');
+    expect(
+      openingStatus(
+        { dutyTime1s: '0900', dutyTime1c: '1800' },
+        false,
+        new Date('2026-11-02T00:00:00+09:00'),
+      ),
+    ).toBe('before');
+  });
   it('does not return the kindergarten API echoed key or staff personal names', () => {
     const facility = kindergartenFacility({
       key: 'synthetic-secret',
@@ -54,6 +107,9 @@ describe('public facility and measurement data', () => {
     ).toThrow('invalid-public-source');
   });
   it('uses Korean local time, holiday hours, and an exclusive closing boundary', () => {
+    expect(weekdayHours({ dutyTime1s: '0', dutyTime1c: '2400' }, 1)).toBe(
+      '00:00–24:00',
+    );
     const hours = {
       dutyTime1s: '0900',
       dutyTime1c: '1800',
@@ -107,9 +163,7 @@ describe('public facility and measurement data', () => {
     const link = new URL(mapLinks(facility).kakao);
     expect(link.hostname).toBe('map.kakao.com');
     expect(link.search).toBe('');
-    expect(decodeURIComponent(link.pathname)).toContain(
-      '테스트 & 의원 서울특별시 중구',
-    );
+    expect(decodeURIComponent(link.pathname)).toContain('테스트 & 의원 중구');
   });
   it('preserves absent/invalid measurements rather than inventing zero', () => {
     for (const value of ['', ' ', '-', undefined, null, '-1', 'NaN'])

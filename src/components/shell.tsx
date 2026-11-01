@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ChartNoAxesColumn,
   MessagesSquare,
+  MapPin,
   Heart,
   ArrowRight,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ const navigation = [
   ['insights', ChartNoAxesColumn],
   ['community', BookOpen],
   ['neighborhood', MessagesSquare],
+  ['facilities', MapPin],
 ] as const;
 export async function Shell({
   context,
@@ -58,6 +60,7 @@ export async function Shell({
     'account',
     'settings',
     'neighborhood',
+    'facilities',
   ].includes(section);
   const childOptions = all.map((c) => ({
     id: c.id,
@@ -85,7 +88,7 @@ export async function Shell({
           {navigation.map(([key, Icon]) => (
             <Link
               key={key}
-              prefetch={true}
+              prefetch={key !== 'facilities'}
               replace
               href={`/${locale}/${key === 'community' ? 'community/diaries' : key === 'neighborhood' ? 'community' : key}?child=${child.id}`}
               className={`nav-link ${section === key ? 'active' : ''}`}
@@ -97,7 +100,11 @@ export async function Shell({
                 ? locale === 'ko'
                   ? '육아 소통'
                   : 'Parenting community'
-                : t(key === 'community' ? 'growthDiary' : key)}
+                : key === 'facilities'
+                  ? locale === 'ko'
+                    ? '동네 시설'
+                    : 'Local facilities'
+                  : t(key === 'community' ? 'growthDiary' : key)}
               {section === key && <span className="nav-dot" />}
             </Link>
           ))}
@@ -183,9 +190,10 @@ export async function Shell({
         {navigation.map(([key, Icon]) => (
           <Link
             key={key}
-            prefetch={true}
+            prefetch={key !== 'facilities'}
             replace
             className={section === key ? 'active' : ''}
+            aria-current={section === key ? 'page' : undefined}
             href={`/${locale}/${key === 'community' ? 'community/diaries' : key === 'neighborhood' ? 'community' : key}?child=${child.id}`}
           >
             <NavigationStatus locale={locale} />
@@ -198,8 +206,14 @@ export async function Shell({
                 : key === 'neighborhood'
                   ? locale === 'ko'
                     ? '육아 소통'
-                    : 'Parenting community'
-                  : t(key === 'community' ? 'growthDiary' : key)}
+                    : 'Talk'
+                  : key === 'facilities'
+                    ? locale === 'ko'
+                      ? '동네 시설'
+                      : 'Nearby'
+                    : key === 'community' && locale === 'en'
+                      ? 'Diary'
+                      : t(key === 'community' ? 'growthDiary' : key)}
             </span>
           </Link>
         ))}

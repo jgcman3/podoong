@@ -224,7 +224,7 @@ form {
   color: #fff;
   padding: 12px;
 }
-.skip-link:focus {
+.skip-link:focus-visible {
   top: 0;
 }
 .app-shell {
@@ -7567,17 +7567,6 @@ html[data-standalone] :is(input, select, textarea) {
   margin: 0;
   font-size: 22px;
 }
-.community-location {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 13px;
-}
-.community-location a {
-  margin-left: auto;
-}
 @media (max-width: 760px) {
   .community-hub {
     gap: 12px;
@@ -8531,15 +8520,111 @@ html[data-standalone] :is(input, select, textarea) {
 .facility-filters .button, .air-station-picker .button { min-height: 2rem; padding: .35rem .75rem; font-size: .8rem; }
 .local-conditions { margin-bottom: .7rem; }
 .local-conditions h2 { display: flex; align-items: center; gap: .4rem; font-size: 1rem; margin: 0 0 .75rem; }
-.local-condition-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; }
-.local-condition-columns strong { font-size: 1rem; }
-.local-condition-columns strong small { font-size: .65rem; }
-.local-condition-columns p { margin-block: .4rem; }
 .air-station-picker { display: flex; align-items: end; gap: .3rem; margin-top: .4rem; }
 .air-station-picker label { min-width: 0; flex: 1; }
 .air-station-picker select { width: 100%; min-width: 0; padding: .3rem; font-size: .8rem; min-height: 2rem; }
 @media(max-width:480px) {
   .facility-card-heading { flex-wrap: wrap; }
   .facility-card { padding: .8rem; }
-  .local-condition-columns { grid-template-columns: 1fr; }
+}
+
+.facility-hours { margin-block: .55rem; padding: .55rem .65rem; background: var(--bg); border-radius: 12px; font-size: .8rem; }
+.facility-hours > p { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.facility-list .facility-hours strong { display: inline; font-size: .8rem; }
+.facility-hours summary { cursor: pointer; color: var(--brown); font-size: .78rem; padding-block: .35rem; }
+.facility-hours dl { margin: .3rem 0 0; display: grid; gap: .4rem; }
+.facility-hours dl > div { display: flex; justify-content: space-between; gap: .5rem; }
+.facility-hours dd { margin: 0; font-variant-numeric: tabular-nums; }
+.facility-distance { display: flex; align-items: center; gap: .2rem; color: var(--brown); }
+.weather-overview { padding: 1rem; }
+.weather-overview > header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .8rem; }
+.weather-overview > header h2 { margin: 0; }
+.weather-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .4rem; }
+.weather-metric { display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .55rem .2rem; text-align: center; border-radius: 16px; }
+.weather-symbol { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 15px; }
+.weather-metric.temperature .weather-symbol { background: #fff0da; color: #b47224; }
+.weather-metric.pm10 .weather-symbol { background: #e8f3ff; color: #4481b8; }
+.weather-metric.pm25 .weather-symbol { background: #f0eaff; color: #8768b6; }
+.weather-metric strong { font-size: 1.6rem; line-height: 1.2; }
+.weather-metric strong small { font-size: .62rem; margin-left: .15rem; font-weight: 500; }
+.weather-metric-label { font-size: .78rem; }
+.weather-metric > small { font-size: .65rem; }
+.weather-extras { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; border-top: 1px solid var(--line); padding-top: .65rem; margin-top: .7rem; }
+.weather-extras > span { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; color: var(--muted); }
+.weather-extras svg { color: #588cac; }
+.weather-source { text-align: center; font-size: .66rem; margin: .6rem 0 0; }
+.weather-station { margin-top: .6rem; font-size: .75rem; color: var(--muted); }
+:root[data-theme='dark'] .weather-symbol { filter: brightness(.8); }
+@media(max-width:760px) {
+  .mobile-nav { padding-inline: 3px; gap: 0; }
+  .mobile-nav > a { flex: 1 1 0; min-width: 0; overflow: hidden; min-height: 44px; }
+  .mobile-nav > a > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 9px; }
+  .mobile-nav > a > svg { width: 19px; height: 19px; flex-shrink: 0; }
+}
+
+.facility-navigation-form[aria-busy='true'], .facility-browser form[aria-busy='true'] { opacity: .65; }
+.facility-distance-reference { margin: .25rem 0; }
+.facility-distance-reference summary { cursor: pointer; }
+.facility-extra { font-size: .75rem; color: var(--muted); }
+.facility-extra summary { cursor: pointer; padding-block: .3rem; }
+@media(max-width:760px) {
+  .facility-region-picker { display: none; }
+  .weather-overview { padding: .7rem .8rem; margin-bottom: .5rem; }
+  .weather-overview > header { margin-bottom: .4rem; }
+  .weather-overview > header h2 { font-size: .84rem; gap: .3rem; }
+  .weather-overview > header > span { font-size: .68rem; }
+  .weather-metric { gap: .1rem; padding: .2rem 0; }
+  .weather-symbol { width: 26px; height: 26px; border-radius: 9px; }
+  .weather-symbol svg { width: 17px; height: 17px; }
+  .weather-metric-label { font-size: .66rem; }
+  .weather-metric strong { font-size: 1.2rem; }
+  .weather-metric strong small { font-size: .52rem; }
+  .weather-metric > small { font-size: .55rem; }
+  .weather-extras { margin-top: .35rem; padding-top: .35rem; gap: .8rem; }
+  .weather-extras > span { font-size: .65rem; }
+  .weather-source { margin-top: .3rem; font-size: .6rem; }
+  .facility-list { gap: .45rem; }
+  .facility-list .facility-card { padding: .65rem .75rem; border-radius: 15px; }
+  .facility-card-heading { gap: .3rem; }
+  .facility-card-heading strong { font-size: .85rem; gap: .3rem; }
+  .facility-card-heading svg { width: 14px; height: 14px; }
+  .facility-card .facility-status { font-size: .64rem; }
+  .facility-list .facility-card p { font-size: .74rem; margin-block: .3rem; }
+  .facility-card .facility-hours { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .25rem; align-items: start; background: transparent; border-radius: 0; padding: 0; margin-block: .3rem; }
+  .facility-card .facility-hours:has(details[open]) { grid-template-columns: 1fr; }
+  .facility-card .facility-hours > p { justify-content: start; gap: .35rem; margin: .2rem 0; }
+  .facility-card .facility-hours strong { font-size: .72rem; }
+  .facility-card .facility-hours summary { padding: .2rem 0; font-size: .7rem; }
+  .facility-card .facility-hours dl { font-size: .73rem; padding-block: .3rem; }
+  .facility-card-links { gap: .7rem; margin-top: .35rem; }
+  .facility-card-links a { font-size: .72rem; margin: 0; }
+  .facility-extra { font-size: .7rem; }
+  .facility-extra summary { padding: .2rem 0; }
+}
+
+@media(max-width:760px) {
+  .weather-overview > header h2 { flex-shrink: 0; }
+  .weather-overview > header > span { max-width: 60%; text-align: right; line-height: 1.35; }
+  .child-account-page .panel { padding: 8px 12px; margin-bottom: 7px; border-radius: 16px; }
+  .child-account-page .account-settings-section > summary { min-height: 44px; gap: 8px; font-size: 13px; }
+  .child-account-page .account-settings-section[open] { padding-bottom: 12px; }
+  .child-account-page .account-settings-section > .panel,
+  .child-account-page .account-settings-section .two-column > .panel { padding: 10px 0 0; margin-bottom: 7px; }
+  .child-account-page .account-children h2 { font-size: 13px; margin: 4px 0 8px; }
+  .child-account-page .account-child-list { gap: 6px; }
+  .child-account-page .account-child-list > a { padding: 8px 10px; gap: 9px; min-height: 50px; }
+  .child-account-page .account-child-icon { width: 34px; height: 34px; }
+  .child-account-page .account-child-list small { margin-top: 1px; font-size: 11px; }
+  .child-account-page .form-stack { gap: 10px; }
+  .child-account-page .form-stack label { gap: 5px; }
+  .child-account-page .account-settings-heading { margin: 14px 0 8px; }
+}
+
+@media(max-width:760px) {
+  .parenting-community .weather-overview { padding: .65rem .75rem; margin-bottom: 0; }
+  .weather-metric { display: grid; grid-template-columns: 26px minmax(0,1fr); grid-template-rows: auto auto auto; column-gap: .25rem; text-align: left; }
+  .weather-metric .weather-symbol { grid-column: 1; grid-row: 1 / 3; }
+  .weather-metric .weather-metric-label { grid-column: 2; grid-row: 1; font-size: .61rem; }
+  .weather-metric strong { grid-column: 2; grid-row: 2; min-width: 0; font-size: 1.05rem; white-space: nowrap; }
+  .weather-metric > small { grid-column: 1 / -1; grid-row: 3; text-align: center; }
 }

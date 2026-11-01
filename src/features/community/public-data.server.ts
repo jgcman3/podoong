@@ -2,15 +2,19 @@ import 'server-only';
 import { unstable_cache } from 'next/cache';
 import grids from './data/weather-grids.json';
 import kindergartenRegions from './data/kindergarten-regions.json';
+import areaPoints from './data/area-points.json';
 import {
   medicalFacility,
   kindergartenFacility,
+  coordinates,
+  nearbyFacilities,
+  openingStatus,
   seoulTime,
   sourceItems,
   text,
   type SourceRow,
 } from './public-data';
-import type { Facility } from './public-data';
+import type { Facility, Coordinates } from './public-data';
 
 export type MedicalKind = 'hospital' | 'pharmacy';
 export const hasPublicDataKey = () =>
@@ -55,7 +59,7 @@ const medicalDetail = unstable_cache(
       throw new Error('missing-detail');
     return medicalFacility(rows[0]);
   },
-  ['medical-detail-v1'],
+  ['medical-detail-v2'],
   { revalidate: 86400 },
 );
 
@@ -71,7 +75,7 @@ export const medicalList = unstable_cache(
         Q1: rest.join(' '),
         _type: 'json',
         pageNo: String(page),
-        numOfRows: '10',
+        numOfRows: '500',
       }),
     );
     return {
@@ -80,7 +84,7 @@ export const medicalList = unstable_cache(
       checkedAt: new Date().toISOString(),
     };
   },
-  ['medical-list-v1'],
+  ['medical-list-v2'],
   { revalidate: 86400 },
 );
 
@@ -109,28 +113,122 @@ export async function medicalResults(
   kind: MedicalKind,
   district: string,
   page: number,
+  options: { origin?: Coordinates; openOnly?: boolean } = {},
 ) {
   const now = new Date(),
     today = seoulTime(now);
-  const [list, holidays] = await Promise.all([
-    medicalList(kind, district, page),
+  const [first, holidays] = await Promise.all([
+    medicalList(kind, district, 1),
     holidayMonth(today.date.slice(0, 6)).catch(() => null),
   ]);
   const holiday = holidays ? holidays.includes(today.date) : null;
-  // List responses omit Sunday/holiday hours. Fetch detail only when needed;
-  // each facility is independently cached so pagination does not multiply calls.
-  if (holiday || today.day === 7) {
-    list.facilities = await Promise.all(
-      list.facilities.map(async (facility) => {
-        try {
-          return await medicalDetail(kind, facility.id);
-        } catch {
-          return facility;
-        }
-      }),
+  if (first.total > 20000) throw new Error('medical-district-too-large');
+  const all = [...first.facilities];
+  const pages = Math.ceil(first.total / 500);
+  for (let start = 2; start <= pages; start += 4) {
+    const group = await Promise.all(
+      Array.from({ length: Math.min(4, pages - start + 1) }, (_, i) =>
+        medicalList(kind, district, start + i),
+      ),
     );
+    for (const result of group) {
+      if (result.total !== first.total)
+        throw new Error('medical-source-changed');
+      all.push(...result.facilities);
+    }
   }
-  return { ...list, holiday };
+  if (
+    all.length !== first.total ||
+    new Set(all.map((row) => row.id)).size !== first.total
+  )
+    throw new Error('incomplete-medical-source');
+  const ranked = nearbyFacilities(all, options.origin);
+  const filtered = options.openOnly
+    ? ranked.filter((row) => openingStatus(row.hours, holiday, now) === 'open')
+    : ranked;
+  const selected = filtered.slice((page - 1) * 10, page * 10);
+  // Fetch weekly details only for visible facilities, with shared per-facility
+  // caching. Ranking happens across the entire district before pagination.
+  const facilities = await Promise.all(
+    selected.map(async (facility) => {
+      try {
+        const detail = await medicalDetail(kind, facility.id);
+        return {
+          ...facility,
+          ...detail,
+          address: detail.address || facility.address,
+          phone: detail.phone || facility.phone,
+          detail: detail.detail || facility.detail,
+          coordinates: detail.coordinates ?? facility.coordinates,
+          distanceKm: facility.distanceKm,
+          hours: { ...facility.hours, ...detail.hours },
+        };
+      } catch {
+        return facility;
+      }
+    }),
+  );
+  return {
+    facilities,
+    total: filtered.length,
+    checkedAt: first.checkedAt,
+    holiday,
+  };
+}
+
+export function officialAreaPoint(area: string) {
+  const catalogue = areaPoints as Record<string, number[]>;
+  const parts = area.trim().split(/\s+/);
+  while (parts.length) {
+    const label = parts.join(' '),
+      point = catalogue[label];
+    if (point) return { label, coordinates: { lat: point[0], lon: point[1] } };
+    parts.pop();
+  }
+  return undefined;
+}
+export function areaPointChoices(district: string) {
+  return Object.keys(areaPoints)
+    .filter((name) => name === district || name.startsWith(`${district} `))
+    .sort((a, b) => a.localeCompare(b, 'ko'));
+}
+const addressPoint = unstable_cache(
+  async (area: string) => {
+    const key = process.env.KAKAO_REST_API_KEY;
+    if (!key) return null;
+    try {
+      const url = new URL(
+        'https://dapi.kakao.com/v2/local/search/address.json',
+      );
+      url.searchParams.set('query', area);
+      url.searchParams.set('size', '1');
+      const response = await fetch(url, {
+        headers: { Authorization: `KakaoAK ${key}` },
+        cache: 'no-store',
+        redirect: 'error',
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) throw new Error('geocode-unavailable');
+      const payload = (await response.json()) as {
+        documents?: { x?: string; y?: string }[];
+      };
+      const result = payload.documents?.[0];
+      return coordinates(result?.y, result?.x) ?? null;
+    } catch {
+      throw new Error('area-coordinate-unavailable');
+    }
+  },
+  ['public-area-address-v1'],
+  { revalidate: 2592000 },
+);
+export async function facilityOrigin(area: string) {
+  const exact = (areaPoints as Record<string, number[]>)[area];
+  if (exact) return officialAreaPoint(area);
+  if (process.env.KAKAO_REST_API_KEY) {
+    const point = await addressPoint(area).catch(() => null);
+    if (point) return { label: area, coordinates: point };
+  }
+  return officialAreaPoint(area);
 }
 
 export function weatherGrid(area: string) {
@@ -273,6 +371,7 @@ const playgroundPage = unstable_cache(
             .join(' '),
           phone: '',
           hours: {},
+          coordinates: coordinates(row.lotCrtsVl, row.latCrtsVl),
           detail: [
             text(row, 'instlPlaceCdNm'),
             text(row, 'prvtPblcYnCdNm'),
@@ -284,7 +383,7 @@ const playgroundPage = unstable_cache(
       }),
     };
   },
-  ['playground-national-page-v1'],
+  ['playground-national-page-v2'],
   { revalidate: 86400 },
 );
 
@@ -317,7 +416,7 @@ export const playgroundList = unstable_cache(
       ).values(),
     ];
   },
-  ['playground-district-v1'],
+  ['playground-district-v2'],
   { revalidate: 86400 },
 );
 
@@ -373,6 +472,6 @@ export const kindergartenList = unstable_cache(
     }
     throw new Error('kindergarten-page-limit');
   },
-  ['kindergarten-district-v1'],
+  ['kindergarten-district-v2'],
   { revalidate: 86400 },
 );
