@@ -45,10 +45,12 @@ export async function CalendarWorkspace({
   const t = await getTranslations(),
     ko = locale === 'ko',
     childId = context.child.id;
+  const parsedDay = z.iso.date().safeParse(requestedDay);
   const month = validMonth(requestedMonth)
     ? requestedMonth!
-    : context.today.slice(0, 7);
-  const parsedDay = z.iso.date().safeParse(requestedDay);
+    : parsedDay.success && validMonth(parsedDay.data.slice(0, 7))
+      ? parsedDay.data.slice(0, 7)
+      : context.today.slice(0, 7);
   const day =
     parsedDay.success && parsedDay.data.startsWith(month)
       ? parsedDay.data

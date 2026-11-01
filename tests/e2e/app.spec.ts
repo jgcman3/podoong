@@ -2744,6 +2744,8 @@ test('today vaccination records in the shared sheet without navigating and keeps
   );
   await page.goto(`/ko/calendar?child=${child}`);
   await expect(page.locator('.calendar-kind-vaccination')).toHaveCount(1);
+  if (yesterday.slice(0, 7) !== today.slice(0, 7))
+    await page.getByRole('link', { name: '이전 달', exact: true }).click();
   await page.locator(`[data-date="${yesterday}"]`).click();
   await expect(page.locator('.calendar-kind-vaccination')).toContainText(
     '추가 접종',
@@ -4550,13 +4552,18 @@ test('growth curves use private measurements and milestone checks persist by chi
       graphWarnings.push(message.text());
   });
   const own = await childCareFamily(context);
-  await admin.from('children').update({ sex: 'female' }).eq('id', own.child);
+  const fixtureToday = new Date(new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date()) + 'T00:00:00Z');
+  const birth = new Date(Date.UTC(fixtureToday.getUTCFullYear(), fixtureToday.getUTCMonth() - 9, 1));
+  const measurementDay = new Date(birth.getTime() + 193 * 86400000).toISOString().slice(0, 10);
+  await admin.from('children').update({ sex: 'female', birth_date: birth.toISOString().slice(0, 10) }).eq('id', own.child);
   const record = await admin.from('child_records').insert({
     id: crypto.randomUUID(),
     child_id: own.child,
     service: 'growth',
     kind: 'measurement',
-    occurred_at: '2026-07-13T01:00:00Z',
+    occurred_at: `${measurementDay}T01:00:00Z`,
     record_timezone: 'Asia/Seoul',
     weight_kg: 8.3,
     height_cm: 67,
