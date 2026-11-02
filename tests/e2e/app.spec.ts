@@ -6509,7 +6509,8 @@ test('parenting community opens immediately and allows browsing another district
  await page.locator('.mobile-nav').getByRole('link',{name:'육아 소통',exact:true}).click();
  await expect(page.getByRole('heading',{name:'육아 소통',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'우리 동네 신청하기',exact:true})).toHaveCount(0);
- await expect(page.locator('.category-pills a')).toHaveCount(12);
+ await expect(page.locator('.category-pills').getByRole('link',{name:'동네 친구들',exact:true})).toBeVisible();
+ await expect(page.locator('.category-pills').getByRole('link',{name:'여행',exact:true})).toHaveCount(1);
  await page.locator('.community-region-picker summary').click();
  const picker=page.locator('.community-region-picker');
  await picker.getByRole('combobox',{name:'시·도',exact:true}).selectOption('26');
