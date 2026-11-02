@@ -9,7 +9,7 @@ import {
   facilityOrigin,
 } from './public-data.server';
 import { kidsCafeList } from './kids-cafes';
-import { nursingRoomsInArea } from './nursing-rooms';
+import { diaperFacilitiesInArea } from './diaper-map.server';
 import { childcareList } from './childcare.server';
 
 export async function loadFacilityRows({
@@ -27,46 +27,21 @@ export async function loadFacilityRows({
   page?: number;
   query?: { open?: string; diaper?: string; specialty?: string };
 }) {
-  const ko = locale === 'ko';
   let rows: Facility[] = [],
     total = 0,
     holiday: boolean | null = null,
     unavailable = false,
     checkedAt = '';
+  const ko = locale === 'ko';
   const medical = kind === 'hospital' || kind === 'pharmacy';
-  const origin =
-    kind !== 'nursing' && area
-      ? await facilityOrigin(referenceArea || area)
-      : undefined;
+  const origin = area ? await facilityOrigin(referenceArea || area) : undefined;
   if (kind === 'nursing') {
-    rows = nursingRoomsInArea(area)
-      .filter((room) => query.diaper !== '1' || room.diaperTable)
-      .map((room) => ({
-        id: room.id,
-        name: room.name,
-        address: room.address,
-        phone: '',
-        hours: {},
-        diaperTable: room.diaperTable,
-        detail: [
-          room.location,
-          room.kind,
-          room.fareArea,
-          room.viaOffice === '고객안전실경유'
-            ? ko
-              ? '고객안전실 경유'
-              : 'Via station office'
-            : '',
-          room.diaperTable
-            ? ko
-              ? '기저귀 교환대 있음'
-              : 'Changing table available'
-            : '',
-        ]
-          .filter(Boolean)
-          .join(' · '),
-      }));
-    total = rows.length;
+    const facilities = nearbyFacilities(
+      diaperFacilitiesInArea(area),
+      origin?.coordinates,
+    );
+    total = facilities.length;
+    rows = facilities.slice((page - 1) * 10, page * 10);
   } else if (medical && area) {
     try {
       const result = await medicalResults(kind, area, page, {

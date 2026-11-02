@@ -41,7 +41,7 @@ export function FacilityFeed({
   const pending = useRef(false),
     sentinel = useRef<HTMLDivElement>(null),
     request = useRef<AbortController | null>(null);
-  const more = kind !== 'nursing' && page * 10 < count,
+  const more = page * 10 < count,
     ko = locale === 'ko';
   const loadMore = useCallback(async () => {
     if (pending.current || !more) return;

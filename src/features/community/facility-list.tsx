@@ -13,7 +13,7 @@ import {
   weatherSky,
 } from './public-data.server';
 import { kidsCafeSources } from './kids-cafes';
-import nursing from './data/nursing-rooms.json';
+import diaperSource from '../../../data/facilities/diaper-map/manifest.json';
 import type { CommunityQuery } from './hub';
 import { FacilityNavigationForm } from './facility-navigation-form';
 import { availableFacilityKinds } from './facility-availability.server';
@@ -251,7 +251,7 @@ export async function FacilityList({
           </button>
         ))}
       </FacilityNavigationForm>
-      {!area && kind !== 'nursing' ? (
+      {!area ? (
         <p className="panel">
           {ko
             ? context.owner
@@ -279,12 +279,12 @@ export async function FacilityList({
         <>
           <div className="facility-list-toolbar">
             <p className="small muted">
-              {area || (ko ? '서울교통공사 전체' : 'Seoul Metro')} ·{' '}
+              {area} ·{' '}
               {ko
                 ? `전체 ${total.toLocaleString()}곳`
                 : `${total.toLocaleString()} facilities`}
             </p>
-            {(medical || kind === 'nursing') && (
+            {medical && (
               <FacilityNavigationForm
                 action={`/${locale}/facilities`}
                 className="facility-filters"
@@ -362,7 +362,7 @@ export async function FacilityList({
       )}
       <p className="small muted">
         {kind === 'nursing'
-          ? `${ko ? '출처: 서울교통공사 수유실현황 · 자료 기준' : 'Source: Seoul Metro nursing rooms · Dataset date'} ${nursing.sourceDate}`
+          ? `${ko ? '출처: 행정안전부 공중화장실정보 · 수집' : 'Source: MOIS public toilets · Retrieved'} ${diaperSource.retrievedAt}`
           : medical
             ? `${ko ? '출처: 국립중앙의료원' : 'Source: National Emergency Medical Center'}${checkedAt ? ` · ${ko ? '조회' : 'Retrieved'} ${new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(checkedAt))}` : ''}`
             : kind === 'daycare'

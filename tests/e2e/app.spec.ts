@@ -6964,23 +6964,21 @@ test('parenting community combines category and region filters and separates map
  await expect(page.getByRole('heading',{name:'Fixture hospital question'})).toBeVisible();
 });
 
-test('public nursing facilities use compact lists, diaper filters and external map links in both languages', async ({ page, context }) => {
+test('public diaper facilities use compact lists and external map links in both languages', async ({ page, context }) => {
   const home = await childCareFamily(context);
   await setFamilyResidence(home.family, '1168010100');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/ko/community/map?child=${home.child}&kind=nursing`);
-  await expect(page.getByRole('button', { name: '수유실', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '기저귀맵', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.facility-card').first()).toBeVisible();
-  await expect(page.locator('.facility-browser')).toContainText('2025-09-24');
+  await expect(page.locator('.facility-browser')).toContainText('2026-11-02');
   await expect(page.locator('.facility-card').first().getByRole('link', { name: '네이버 지도' })).toHaveAttribute('href', /^https:\/\/map\.naver\.com\/p\/search\//);
   await expect(page.locator('.facility-map')).toHaveCount(0);
-  await page.getByRole('checkbox', { name: '기저귀 교환대', exact: true }).check();
-  await expect(page).toHaveURL(/diaper=1/);
-  for (const card of await page.locator('.facility-card').all()) await expect(card).toContainText('기저귀 교환대 있음');
+  await expect(page.getByRole('checkbox', { name: '기저귀 교환대', exact: true })).toHaveCount(0);
   expect(await page.locator('.parenting-community').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/en/community/map?child=${home.child}&kind=nursing`);
-  await expect(page.getByRole('button', { name: 'Nursing & changing', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Diaper map', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.facility-card').first().getByRole('link', { name: 'Kakao Map' })).toBeVisible();
 });
 
@@ -7001,16 +6999,12 @@ test('local facilities have an independent seven-item mobile menu and change fil
     await expect(page.locator('.community-location')).toHaveCount(0);
     await expect(page.locator('.parenting-tabs')).toHaveCount(0);
     await expect(page.getByRole('button', {name: '키즈카페', exact: true})).toBeVisible();
-    await expect(page.getByRole('button', {name: '수유실', exact: true})).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', {name: '기저귀맵', exact: true})).toHaveAttribute('aria-pressed', 'true');
     const kindsBox = await page.locator('.facility-kinds:visible').boundingBox();
     const toolbarBox = await page.locator('.facility-list-toolbar:visible').boundingBox();
     const listBox = await page.locator('.facility-list:visible').boundingBox();
     expect(toolbarBox!.y - kindsBox!.y - kindsBox!.height).toBeLessThanOrEqual(4);
     expect(listBox!.y - toolbarBox!.y - toolbarBox!.height).toBeLessThanOrEqual(4);
-    const summary = await page.locator('.facility-list-toolbar:visible > p').boundingBox();
-    const filter = await page.getByRole('checkbox', {name: '기저귀 교환대', exact: true}).locator('..').boundingBox();
-    expect(filter!.x).toBeGreaterThanOrEqual(summary!.x + summary!.width);
-    expect(Math.abs((filter!.y + filter!.height / 2) - (summary!.y + summary!.height / 2))).toBeLessThan(2);
 
     for (const item of await page.locator('.mobile-nav > a').all()) {
       const box = await item.boundingBox(); expect(box!.width).toBeGreaterThanOrEqual(44); expect(box!.height).toBeGreaterThanOrEqual(44);
@@ -7018,8 +7012,8 @@ test('local facilities have an independent seven-item mobile menu and change fil
     expect(await page.locator('.parenting-community').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
   }
   await page.evaluate(()=>{(window as Window & {facilityNavigationMarker?:boolean}).facilityNavigationMarker=true;});
-  await page.getByRole('checkbox',{name:'기저귀 교환대',exact:true}).check();
-  await expect(page).toHaveURL(/diaper=1/);
+  await page.getByRole('button',{name:'키즈카페',exact:true}).click();
+  await expect(page).toHaveURL(/kind=kids-cafe/);
   expect(await page.evaluate(()=>(window as Window & {facilityNavigationMarker?:boolean}).facilityNavigationMarker)).toBe(true);
   await page.locator('.mobile-nav').getByRole('link',{name:'육아 소통',exact:true}).click();
   await expect(page.locator('.parenting-tabs a')).toHaveCount(3);
@@ -7054,4 +7048,33 @@ test('local facilities navigation is only available for families with Korea sele
     await page.goto(`/en/facilities?child=${home.child}`);
     await expect(page).toHaveURL(country === 'KR' ? /\/en\/facilities\?/ : /\/en\/community\?/);
   }
+});
+
+test('today location strip stays compact and is completely hidden when location is denied', async ({page,context}) => {
+ const home=await childCareFamily(context);
+ await context.grantPermissions(['geolocation']);
+ await context.setGeolocation({latitude:37.545,longitude:126.98});
+ let requests=0;
+ await page.route('**/api/nearby', async route=>{
+   requests++;
+   expect(route.request().method()).toBe('POST');
+   expect(new URL(route.request().url()).search).toBe('');
+   await route.fulfill({json:{ok:true,summary:{temperature:18,condition:'clear',dust:'good',station:'용산구',hospital:{id:'fixture-hospital',name:'소아청소년과',address:'서울특별시 용산구',distanceKm:.3},pharmacy:{id:'fixture-pharmacy',name:'약국',address:'서울특별시 용산구',distanceKm:.2},diaper:{id:'fixture-diaper',name:'기저귀 교환 장소',address:'서울특별시 용산구',distanceKm:.1}}}});
+ });
+ await page.goto(`/ko/today?child=${home.child}`);
+ await expect(page.locator('.today-nearby')).toContainText('미세먼지 좋음');
+ for(const width of [320,390,1280]) {
+   await page.setViewportSize({width,height:844});
+   const strip=page.locator('.today-nearby');
+   expect((await strip.boundingBox())!.height).toBeLessThanOrEqual(85);
+   expect(await strip.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+ }
+ expect(requests).toBe(1);
+ await page.addInitScript(()=>{
+   Object.defineProperty(navigator,'geolocation',{value:{getCurrentPosition(_success:unknown,error:(error:{code:number})=>void){error({code:1});}}});
+ });
+ await page.reload();
+ await expect(page.locator('.today-nearby')).toHaveCount(0);
+ await page.waitForTimeout(500);
+ expect(requests).toBe(1);
 });

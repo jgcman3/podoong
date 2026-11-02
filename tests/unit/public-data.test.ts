@@ -14,7 +14,6 @@ import {
   airQuality,
   weatherCondition,
 } from '@/features/community/public-data';
-import rooms from '@/features/community/data/nursing-rooms.json';
 
 describe('public facility and measurement data', () => {
   it('orders by coordinates without changing input and keeps unknown locations last', () => {
@@ -172,18 +171,6 @@ describe('public facility and measurement data', () => {
       expect(positiveMeasurement(value)).toBeNull();
     expect(positiveMeasurement('0')).toBe(0);
     expect(positiveMeasurement('17')).toBe(17);
-  });
-  it('imports the supplied metro snapshot without invented location or opening data', () => {
-    expect(rooms.sourceDate).toBe('2025-09-24');
-    expect(rooms.rooms).toHaveLength(86);
-    expect(new Set(rooms.rooms.map((row) => row.id)).size).toBe(86);
-    expect(
-      rooms.rooms.every(
-        (row) =>
-          row.name && row.address && typeof row.diaperTable === 'boolean',
-      ),
-    ).toBe(true);
-    expect(rooms.rooms[0]).not.toHaveProperty('hours');
   });
 });
 

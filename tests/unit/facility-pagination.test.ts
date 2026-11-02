@@ -120,7 +120,7 @@ it.each(['kids-cafe', 'nursing'])(
       child: { id: childId },
       family: {
         residence_country_code: 'KR',
-        residence_city: '경기도 수원시 영통구',
+        residence_city: '자료 없는 지역',
         residence_locality: '영통동',
       },
     } as Awaited<ReturnType<typeof loadCare>>);

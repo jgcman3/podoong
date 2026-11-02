@@ -40,6 +40,8 @@ async function request(path: string, params: Record<string, string>) {
     throw new Error('public-source-unavailable');
   }
 }
+export { request as publicDataRequest };
+
 const medicalPaths = {
   hospital: 'B552657/HsptlAsembySearchService/getHsptl',
   pharmacy: 'B552657/ErmctInsttInfoInqireService/getParmacy',
