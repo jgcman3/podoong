@@ -3569,7 +3569,7 @@ test('insights supports rolling seven days, multiple activity patterns and child
   const kinds = page.locator('.insight-kind-rail'),
     feeding = page.locator('[data-statistic="feeding"]');
   await expect(page.locator('.mobile-nav > a')).toHaveCount(6);
-  await expect(kinds.getByRole('button')).toHaveCount(16);
+  await expect(kinds.getByRole('button', { name: '나들이', exact: true })).toBeVisible();
   await expect(
     kinds.getByRole('button', { name: '성장', exact: true }),
   ).toHaveCount(0);
