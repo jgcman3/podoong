@@ -55,12 +55,11 @@ NEXT_PUBLIC_SITE_URL=http://your-mac.local:3187 npm run dev:lan
 
 | 용도 | 변수 이름 | 저장 위치 | 사용처 |
 | --- | --- | --- | --- |
-| 공공데이터 공통 키 | `DATA_SERVICE_KEY` | Vercel → podoong → Settings → Environment Variables | 병원·약국·공휴일·날씨·미세먼지·놀이시설의 서버 조회 |
+| 공공데이터 공통 키 | `DATA_SERVICE_KEY` | Vercel → podoong → Settings → Environment Variables | 병원·약국·공휴일·날씨·미세먼지의 서버 조회 |
 | 유치원 | `KINDERGARTEN_API_KEY` | 위 Vercel 환경변수 | 유치원알리미 조회 |
 | 어린이집 전국 목록 | `CHILDCARE_API_KEY` | 위 Vercel 환경변수 | `cpmsapi021` 전용. 개별 기본정보 API와 키를 혼용하지 않음 |
 | 어린이집 개별 기본정보 | `CHILDCARE_DETAIL_API_KEY` | 위 Vercel 환경변수 | `cpmsapi030` 전용. 2026-11-02 운영계정용 키로 실제 정보·좌표 조회 확인 |
 | 주소 좌표 보완(선택) | `KAKAO_REST_API_KEY` | 위 Vercel 환경변수 | 동네 수준의 주소 좌표 조회. 단말 GPS를 사용하지 않음 |
-| 놀이시설 별도 키(선택) | `PLAYGROUND_API_KEY` | 위 Vercel 환경변수 | 별도 키 발급 시 공통 키보다 우선 사용 |
 | Next.js 서버의 DB 관리자 작업 | `SUPABASE_SERVICE_ROLE_KEY` 또는 `SUPABASE_SECRET_KEY` | 위 Vercel 환경변수 | 비공개 사진·공유·계정 삭제 등 서버 작업. 해당 환경의 DB 키만 사용 |
 | 정부·지역 지원금 수집 | `GOV24_SERVICE_KEY` | 해당 Supabase 프로젝트 → Edge Functions → Secrets | `parenting-support` 정기 수집. 공통 인증키와 같은 값 사용 가능 |
 | 지원금 작업 호출 인증 | `SUPPORT_WORKER_TOKEN` | Supabase Edge Function Secrets와 해당 프로젝트 Vault | Cron이 수집 함수를 호출할 때 검증 |
@@ -93,7 +92,7 @@ NEXT_PUBLIC_SITE_URL=http://your-mac.local:3187 npm run dev:lan
 
 키 변경 시 **환경과 사용처 확인 → 해당 서버의 Secret 변경 → 로컬에서도 사용하면 `.env.local` 반영 → 필요한 재배포/서버 재시작 → 값 노출 없이 실제 요청 확인** 순서로 진행합니다. 운영·개발 프로젝트를 함께 변경하지 않습니다.
 
-놀이시설 목록에는 [전국어린이놀이시설정보서비스](https://www.data.go.kr/data/15124519/openapi.do)의 `1741000/pfc3/getPfctInfo3` 활용 승인이 필요합니다. `1741000/sfty4/getSftyInsp4`는 안전검사 정보로, 목록 서비스와 별도 승인입니다. 전국 페이지를 공유 캐시하고, 원천 자료의 중복 시설 번호는 지역 목록에서 한 번만 표시합니다.
+키즈카페는 사용자가 제공한 서울 열린데이터광장의 `서울형 키즈카페 시설현황정보.json`을 사용합니다. 자료 기준일은 **2026-10-03**, 서울 25개 구의 **151곳**이며 `src/features/community/data/seoul-kids-cafes.json`에 필요한 공개 필드와 원본 SHA-256을 보관합니다. 구별로 가까운 순으로 정렬한 뒤 10곳씩 표시하며 이용 연령·요금 구분·운영일·휴관일을 제공합니다. 기존 행정안전부 놀이시설 API와 `PLAYGROUND_API_KEY`는 더 이상 사용하지 않습니다. 갱신 시 새 파일의 기준일과 SHA-256을 함께 바꿉니다.
 
 날씨 상태는 기상청 초단기 실황의 강수형태와 초단기예보의 하늘상태를 이용합니다. 안개는 이 응답에 없어 추정하지 않습니다. 미세먼지 표시는 [에어코리아 농도 구간](https://www.airkorea.or.kr/web/dustForecast)을 적용합니다(PM10: 30/80/150, PM2.5: 15/35/75 µg/m³). 수신값이 없으면 등급도 표시하지 않습니다.
 
@@ -105,7 +104,7 @@ NEXT_PUBLIC_SITE_URL=http://your-mac.local:3187 npm run dev:lan
 | --- | --- | --- | --- |
 | `CHILDCARE_API_KEY` (`cpmsapi021`) | 운영계정 이용기간 12개월. 기준일 `2026-11-02` → 갱신 예정일 **`2027-11-02`** | **`2027-10-03`**부터 연장 확인, **`2027-10-26`** 최종 확인 | 어린이집정보공개포털 → 마이페이지 → 해당 API 운영계정 이용 신청현황에서 연장. 키가 변경되면 개발 Vercel `Preview/develop`·`.env.local` 갱신 후 재배포·재조회 |
 | `CHILDCARE_DETAIL_API_KEY` (`cpmsapi030`) | 위와 별도 운영계정·키. 기준일 `2026-11-02` → 갱신 예정일 **`2027-11-02`** | **`2027-10-03`**부터 연장 확인, **`2027-10-26`** 최종 확인 | 전국 목록과 개별 기본정보의 신청을 각각 확인. 목록 키만 연장하고 상세 키를 빠뜨리지 않음 |
-| 공공데이터 공통 키 (`DATA_SERVICE_KEY` / 로컬 `PUBLIC_DATA_SERVICE_KEY`)와 지원금 `GOV24_SERVICE_KEY` | 활용신청별 이용기간을 확인해야 함. 현재 신청별 종료일 **미확인** | `2026-12-02` 이용기간 점검. 종료일 확인 후 실제 갱신일 기록 | 공공데이터포털 → 마이페이지 → 데이터활용 → 활용신청 현황. 병원·약국·날씨·공휴일·미세먼지·놀이시설·지원금의 승인과 기간을 각각 확인. 같은 인증키를 쓴다고 모든 신청 기간이 같은 것은 아님 |
+| 공공데이터 공통 키 (`DATA_SERVICE_KEY` / 로컬 `PUBLIC_DATA_SERVICE_KEY`)와 지원금 `GOV24_SERVICE_KEY` | 활용신청별 이용기간을 확인해야 함. 현재 신청별 종료일 **미확인** | `2026-12-02` 이용기간 점검. 종료일 확인 후 실제 갱신일 기록 | 공공데이터포털 → 마이페이지 → 데이터활용 → 활용신청 현황. 병원·약국·날씨·공휴일·미세먼지·지원금의 승인과 기간을 각각 확인. 같은 인증키를 쓴다고 모든 신청 기간이 같은 것은 아님 |
 | `KINDERGARTEN_API_KEY` | 유치원알리미의 승인 계정 이용기간·키 만료일 **미확인** | `2026-12-02` 발급 계정에서 확인 후 날짜 보완 | 유치원알리미 → OPEN API → 발급·신청 내역 확인. 변경 시 Vercel의 해당 환경과 로컬 갱신 |
 | `VERCEL_TOKEN` | 배포용 토큰의 실제 만료일 **미확인**. CLI 로그인 세션 및 소셜 로그인용 토큰과 구분 | `2026-12-02` 계정 Tokens에서 확인 후 만료 전 교체 | Vercel Account Settings → Tokens에서 새 배포 토큰 발급 → GitHub Repository secret 교체 → 개발 배포 검증 후 기존 토큰 폐기 |
 | `SUPABASE_ACCESS_TOKEN` | 발급 시 선택한 기간 또는 무기한 설정에 따름. 현재 CI 등록 토큰의 실제 만료일 **미확인** | `2026-12-02` 계정 Access Tokens에서 확인 후 만료 전 교체 | Supabase Account → Access Tokens → 새 토큰 발급 → GitHub Repository secret 교체 → 개발 배포 검증 |

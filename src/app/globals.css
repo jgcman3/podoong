@@ -8646,3 +8646,8 @@ html[data-standalone] :is(input, select, textarea) {
 :root[data-theme='dark'] .air-quality.moderate { color: #99d9ad; }
 :root[data-theme='dark'] .air-quality.bad { color: #ffd08a; }
 :root[data-theme='dark'] .air-quality.very-bad { color: #ffacb7; }
+
+.facility-extra dl { margin: .4rem 0 0; font-size: .8rem; }
+.facility-extra dl > div { display: grid; grid-template-columns: max-content minmax(0,1fr); gap: .6rem; margin-top: .3rem; }
+.facility-extra dt { color: var(--muted); }
+.facility-extra dd { margin: 0; overflow-wrap: anywhere; }

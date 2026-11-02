@@ -8,7 +8,6 @@ import {
   medicalList,
   medicalResults,
   kindergartenList,
-  playgroundList,
   weatherGrid,
   weatherObservation,
   weatherSky,
@@ -226,32 +225,6 @@ describe('public API adapters', () => {
     expect(station.pm10).toBe('-');
     expect(station.pm25).toBe('0');
     expect(station.station).toBe('Fixture station');
-  });
-  it('reads every playground page and deduplicates facility IDs before displaying a district', async () => {
-    fetcher.mockImplementation(async () => {
-      return new Response(
-        JSON.stringify({
-          header: { resultCode: '00' },
-          body: {
-            totalCnt: '2',
-            totalPageCnt: '2',
-            items: [
-              {
-                pfctSn: 'duplicate-facility',
-                latCrtsVl: '37.5',
-                lotCrtsVl: '126.9',
-                pfctNm: 'Fixture playground',
-                ronaAddr: '서울특별시 강남구 테스트로 1',
-              },
-            ],
-          },
-        }),
-      );
-    });
-    const facilities = await playgroundList('서울특별시 강남구');
-    expect(facilities).toHaveLength(1);
-    expect(facilities[0].coordinates).toEqual({ lat: 37.5, lon: 126.9 });
-    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });
 

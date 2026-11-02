@@ -125,6 +125,24 @@ export function FacilityCard({
         ) : (
           <p className="muted">{facility.detail}</p>
         ))}
+      {facility.visiting && (
+        <details className="facility-extra">
+          <summary>{ko ? '이용 안내' : 'Visit information'}</summary>
+          {facility.visiting.addressDetail && (
+            <p>{facility.visiting.addressDetail}</p>
+          )}
+          <dl>
+            <div>
+              <dt>{ko ? '운영일' : 'Open days'}</dt>
+              <dd>{facility.visiting.openDays || '—'}</dd>
+            </div>
+            <div>
+              <dt>{ko ? '휴관일' : 'Closed days'}</dt>
+              <dd>{facility.visiting.closedDays || '—'}</dd>
+            </div>
+          </dl>
+        </details>
+      )}
       <div className="facility-card-links">
         {facility.phone && (
           <a href={`tel:${facility.phone.replace(/[^\d+]/g, '')}`}>

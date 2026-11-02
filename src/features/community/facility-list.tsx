@@ -12,6 +12,7 @@ import {
   weatherObservation,
   weatherSky,
 } from './public-data.server';
+import kidsCafes from './data/seoul-kids-cafes.json';
 import nursing from './data/nursing-rooms.json';
 import type { CommunityQuery } from './hub';
 import { FacilityNavigationForm } from './facility-navigation-form';
@@ -347,9 +348,13 @@ export async function FacilityList({
                   ? ko
                     ? '소아청소년과 진료가 등록된 병원이 없어요.'
                     : 'No hospitals with registered pediatric services in this area.'
-                  : ko
-                    ? '해당 지역에 수집된 시설이 없어요.'
-                    : 'No collected facilities in this area.'}
+                  : kind === 'kids-cafe' && !area.startsWith('서울특별시 ')
+                    ? ko
+                      ? '서울형 키즈카페는 서울 지역 자료를 제공해요.'
+                      : 'Seoul Kids Café data covers Seoul only.'
+                    : ko
+                      ? '해당 지역에 수집된 시설이 없어요.'
+                      : 'No collected facilities in this area.'}
             </p>
           )}
         </>
@@ -363,10 +368,8 @@ export async function FacilityList({
               ? `${ko ? '출처: 어린이집정보공개포털' : 'Source: Childcare Information Portal'}${checkedAt ? ` · ${ko ? '조회' : 'Retrieved'} ${new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(checkedAt))}` : ''}`
               : kind === 'kindergarten'
                 ? `${ko ? '출처: 유치원알리미 일반현황' : 'Source: Kindergarten Info basic information'}${checkedAt ? ` · ${ko ? '조회' : 'Retrieved'} ${new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(checkedAt))}` : ''}`
-                : kind === 'playground'
-                  ? ko
-                    ? '출처: 행정안전부 어린이놀이시설 안전관리시스템 · 사유 시설은 이용 가능 여부를 확인해 주세요.'
-                    : 'Source: MOIS playground safety system · Confirm access to privately operated facilities.'
+                : kind === 'kids-cafe'
+                  ? `${ko ? '출처: 서울 열린데이터광장 · 서울형 키즈카페 · 자료 기준' : 'Source: Seoul Open Data · Seoul Kids Cafés · Dataset date'} ${kidsCafes.sourceDate}`
                   : ''}
       </p>
     </section>

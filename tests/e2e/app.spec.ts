@@ -7000,7 +7000,7 @@ test('local facilities have an independent seven-item mobile menu and change fil
     await expect(page.locator('.facility-region-picker')).toBeHidden();
     await expect(page.locator('.community-location')).toHaveCount(0);
     await expect(page.locator('.parenting-tabs')).toHaveCount(0);
-    await expect(page.getByRole('button', {name: '놀이시설', exact: true})).toBeVisible();
+    await expect(page.getByRole('button', {name: '키즈카페', exact: true})).toBeVisible();
     await expect(page.getByRole('button', {name: '수유실', exact: true})).toHaveAttribute('aria-pressed', 'true');
     const kindsBox = await page.locator('.facility-kinds:visible').boundingBox();
     const toolbarBox = await page.locator('.facility-list-toolbar:visible').boundingBox();

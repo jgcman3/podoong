@@ -3,7 +3,7 @@ export const facilityKinds = [
   ['pharmacy', '약국', 'Pharmacies'],
   ['daycare', '어린이집', 'Daycare'],
   ['kindergarten', '유치원', 'Kindergartens'],
-  ['playground', '놀이시설', 'Playgrounds'],
+  ['kids-cafe', '키즈카페', 'Kids cafés'],
   ['nursing', '수유실', 'Nursing & changing'],
 ] as const;
 export type FacilityKind = (typeof facilityKinds)[number][0];

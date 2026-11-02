@@ -23,9 +23,7 @@ export const hasPublicDataKey = () =>
 
 async function request(path: string, params: Record<string, string>) {
   const key =
-    (path.startsWith('1741000/') ? process.env.PLAYGROUND_API_KEY : '') ||
-    process.env.DATA_SERVICE_KEY ||
-    process.env.PUBLIC_DATA_SERVICE_KEY;
+    process.env.DATA_SERVICE_KEY || process.env.PUBLIC_DATA_SERVICE_KEY;
   if (!key) throw new Error('public-source-not-configured');
   const url = new URL(`https://apis.data.go.kr/${path}`);
   url.search = new URLSearchParams({ serviceKey: key, ...params }).toString();
@@ -363,102 +361,6 @@ export const airObservations = unstable_cache(
   },
   ['airkorea-observation-v1'],
   { revalidate: 1800 },
-);
-
-// This source does not offer an address filter. Cache its national pages once,
-// then cache each district result, rather than re-downloading for every family.
-// Only compact public facility fields enter the shared cache.
-const playgroundPage = unstable_cache(
-  async (page: number) => {
-    const raw = (await request('1741000/pfc3/getPfctInfo3', {
-      pageIndex: String(page),
-      recordCountPerPage: '1000',
-    })) as {
-      response?: {
-        header?: { resultCode?: unknown };
-        body?: { items?: unknown; totalCnt?: unknown; totalPageCnt?: unknown };
-      };
-    };
-    const payload =
-      raw.response ?? (raw as unknown as NonNullable<typeof raw.response>);
-    const body = payload?.body;
-    const { rows, total } = sourceItems({
-      response: {
-        header: payload?.header,
-        body: { ...body, totalCount: body?.totalCnt },
-      },
-    });
-    const pages = Number(body?.totalPageCnt);
-    if (
-      !Number.isSafeInteger(pages) ||
-      pages < 1 ||
-      pages > 300 ||
-      total > 300000 ||
-      !rows.length
-    )
-      throw new Error('invalid-playground-source');
-    return {
-      total,
-      pages,
-      facilities: rows.map((row) => {
-        const id = text(row, 'pfctSn'),
-          name = text(row, 'pfctNm');
-        if (!id || !name) throw new Error('invalid-playground');
-        return {
-          id,
-          name,
-          address: [
-            text(row, 'ronaAddr') || text(row, 'lotnoAddr'),
-            text(row, 'ronaDaddr') || text(row, 'lotnoDaddr'),
-          ]
-            .filter(Boolean)
-            .join(' '),
-          phone: '',
-          hours: {},
-          coordinates: coordinates(row.latCrtsVl, row.lotCrtsVl),
-          detail: [
-            text(row, 'instlPlaceCdNm'),
-            text(row, 'prvtPblcYnCdNm'),
-            text(row, 'operYnCdNm'),
-          ]
-            .filter(Boolean)
-            .join(' · '),
-        } satisfies Facility;
-      }),
-    };
-  },
-  ['playground-national-page-v3'],
-  { revalidate: 86400 },
-);
-
-export const playgroundList = unstable_cache(
-  async (district: string) => {
-    const first = await playgroundPage(1),
-      found = [...first.facilities];
-    for (let start = 2; start <= first.pages; start += 6) {
-      const pages = await Promise.all(
-        Array.from({ length: Math.min(6, first.pages - start + 1) }, (_, i) =>
-          playgroundPage(start + i),
-        ),
-      );
-      for (const page of pages) {
-        if (page.total !== first.total || page.pages !== first.pages)
-          throw new Error('playground-source-changed');
-        found.push(...page.facilities);
-      }
-    }
-    if (found.length !== first.total)
-      throw new Error('incomplete-playground-source');
-    return [
-      ...new Map(
-        found
-          .filter((row) => row.address.startsWith(`${district} `))
-          .map((row) => [row.id, row]),
-      ).values(),
-    ];
-  },
-  ['playground-district-v3'],
-  { revalidate: 86400 },
 );
 
 export const kindergartenList = unstable_cache(

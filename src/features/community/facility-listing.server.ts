@@ -5,10 +5,10 @@ import type { FacilityKind } from './facility-options';
 import { nearbyFacilities } from './public-data';
 import {
   medicalResults,
-  playgroundList,
   kindergartenList,
   facilityOrigin,
 } from './public-data.server';
+import { kidsCafeList } from './kids-cafes';
 import nursing from './data/nursing-rooms.json';
 import { childcareList } from './childcare.server';
 
@@ -82,17 +82,13 @@ export async function loadFacilityRows({
     } catch {
       unavailable = true;
     }
-  } else if (kind === 'playground' && area) {
-    try {
-      const facilities = nearbyFacilities(
-        await playgroundList(area),
-        origin?.coordinates,
-      );
-      total = facilities.length;
-      rows = facilities.slice((page - 1) * 10, page * 10);
-    } catch {
-      unavailable = true;
-    }
+  } else if (kind === 'kids-cafe' && area) {
+    const facilities = nearbyFacilities(
+      kidsCafeList(area, ko),
+      origin?.coordinates,
+    );
+    total = facilities.length;
+    rows = facilities.slice((page - 1) * 10, page * 10);
   } else if ((kind === 'kindergarten' || kind === 'daycare') && area) {
     try {
       const result = await (kind === 'daycare'

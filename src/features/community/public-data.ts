@@ -10,6 +10,7 @@ export type Facility = {
   diaperTable?: boolean;
   coordinates?: Coordinates;
   distanceKm?: number;
+  visiting?: { addressDetail: string; openDays: string; closedDays: string };
 };
 export function text(row: SourceRow, field: string) {
   const value = row[field];
