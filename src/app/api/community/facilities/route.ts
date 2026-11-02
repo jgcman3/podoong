@@ -15,7 +15,7 @@ const schema = z.object({
     .regex(/^(\d{10})?$/)
     .default(''),
   specialty: z.enum(['pediatrics', 'all']).default('pediatrics'),
-  open: z.enum(['0', '1']).default('0'),
+  open: z.enum(['0', '1']).default('1'),
   diaper: z.enum(['0', '1']).default('0'),
 });
 const headers = { 'Cache-Control': 'private, no-store' };

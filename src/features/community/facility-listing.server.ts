@@ -72,7 +72,7 @@ export async function loadFacilityRows({
     try {
       const result = await medicalResults(kind, area, page, {
         origin: origin?.coordinates,
-        openOnly: query.open === '1',
+        openOnly: query.open !== '0',
         specialty: query.specialty === 'all' ? 'all' : 'pediatrics',
       });
       rows = result.facilities;

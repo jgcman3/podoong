@@ -64,7 +64,7 @@ export function CommunityRegionPicker({
         {specialty && (
           <input type="hidden" name="specialty" value={specialty} />
         )}
-        {open === '1' && <input type="hidden" name="open" value="1" />}
+        {open !== undefined && <input type="hidden" name="open" value={open} />}
         {country === 'KR' ? (
           <>
             <label>

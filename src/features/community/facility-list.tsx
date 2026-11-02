@@ -185,6 +185,8 @@ export async function FacilityList({
 }) {
   const ko = locale === 'ko',
     kind = kinds.find(([id]) => id === query.kind)?.[0] ?? 'hospital';
+  const medical = kind === 'hospital' || kind === 'pharmacy';
+  const open = query.open !== '0';
   const specialty = query.specialty === 'all' ? 'all' : 'pediatrics';
   const hidden = {
     child: context.child.id,
@@ -192,10 +194,15 @@ export async function FacilityList({
     scope: query.scope ?? 'all',
     kind,
     specialty,
+    open: query.open ?? '1',
   };
   const inputs = () =>
     Object.entries(hidden)
-      .filter(([name]) => kind !== 'hospital' || name !== 'specialty')
+      .filter(
+        ([name]) =>
+          !(kind === 'hospital' && name === 'specialty') &&
+          !(medical && name === 'open'),
+      )
       .map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ));
@@ -207,7 +214,6 @@ export async function FacilityList({
           : 'Facility data currently covers South Korea.'}
       </p>
     );
-  const medical = kind === 'hospital' || kind === 'pharmacy';
   const {
     facilities: rows,
     total,
@@ -303,14 +309,13 @@ export async function FacilityList({
                     </label>
                   </>
                 )}
+                {medical && <input type="hidden" name="open" value="0" />}
                 <label>
                   <input
                     type="checkbox"
                     name={medical ? 'open' : 'diaper'}
                     value="1"
-                    defaultChecked={
-                      medical ? query.open === '1' : query.diaper === '1'
-                    }
+                    defaultChecked={medical ? open : query.diaper === '1'}
                   />
                   {medical
                     ? ko
@@ -330,7 +335,7 @@ export async function FacilityList({
             kind={kind}
             place={query.place || ''}
             specialty={specialty}
-            open={query.open === '1'}
+            open={open}
             diaper={query.diaper === '1'}
             initialRows={rows}
             total={total}
@@ -339,7 +344,7 @@ export async function FacilityList({
           />
           {!visible.length && (
             <p className="panel">
-              {query.open === '1' && medical
+              {open && medical
                 ? ko
                   ? '등록된 시간 기준으로 현재 운영 중인 시설이 없어요.'
                   : 'No facilities are currently within their posted opening hours.'

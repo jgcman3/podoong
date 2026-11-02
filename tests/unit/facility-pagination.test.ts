@@ -97,3 +97,18 @@ it.each([null, 'US'])(
     expect(loadFacilityRows).not.toHaveBeenCalled();
   },
 );
+
+it.each([
+  ['', '1'],
+  ['&open=0', '0'],
+])(
+  'defaults to open facilities and preserves explicit opt-out (%s)',
+  async (suffix, open) => {
+    expect((await GET(request(suffix))).status).toBe(200);
+    expect(loadFacilityRows).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ open }),
+      }),
+    );
+  },
+);
