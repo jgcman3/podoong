@@ -8651,3 +8651,5 @@ html[data-standalone] :is(input, select, textarea) {
 .facility-extra dl > div { display: grid; grid-template-columns: max-content minmax(0,1fr); gap: .6rem; margin-top: .3rem; }
 .facility-extra dt { color: var(--muted); }
 .facility-extra dd { margin: 0; overflow-wrap: anywhere; }
+
+.facility-data-source { display: block; margin-top: .2rem; }

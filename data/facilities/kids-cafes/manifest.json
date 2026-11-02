@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "seoul-public",
+      "file": "sources/seoul-public-2026-10-03.json",
+      "region": "서울특별시",
+      "sourceDate": "2026-10-03",
+      "retrievedAt": "2026-11-02",
+      "format": "seoul-public",
+      "url": "https://data.seoul.go.kr/dataList/OA-21716/S/1/datasetView.do",
+      "sha256": "bbb7629918a5a134b25c06f233ac64518dcf131c7a26b6359329e06e969870ac",
+      "name": "서울형 공공 키즈카페",
+      "license": "서울 열린데이터광장 이용조건에 따른 출처 표시"
+    },
+    {
+      "id": "busan-15088441",
+      "file": "sources/busan-15088441-2025-11-17.csv",
+      "region": "부산광역시 기장군",
+      "sourceDate": "2025-11-17",
+      "retrievedAt": "2026-11-02",
+      "format": "busan",
+      "url": "https://www.data.go.kr/data/15088441/fileData.do",
+      "sha256": "a89689820398609af328be1ca04d383d5161a2b448106f00fe48c35a1a03c12d",
+      "name": "부산 기장군 키즈카페 현황",
+      "license": "이용허락범위 제한 없음"
+    },
+    {
+      "id": "busan-15036152",
+      "file": "sources/busan-15036152-2026-07-21.csv",
+      "region": "부산광역시 해운대구",
+      "sourceDate": "2026-07-21",
+      "retrievedAt": "2026-11-02",
+      "format": "busan",
+      "url": "https://www.data.go.kr/data/15036152/fileData.do",
+      "sha256": "7dde6394121a299844ec9c7bf97bcf9fb552ae92b33bb5c79c061d5d528a4761",
+      "name": "부산 해운대구 키즈카페 현황",
+      "license": "이용허락범위 제한 없음"
+    },
+    {
+      "id": "busan-15036154",
+      "file": "sources/busan-15036154-2026-09-07.csv",
+      "region": "부산광역시 부산진구",
+      "sourceDate": "2026-09-07",
+      "retrievedAt": "2026-11-02",
+      "format": "busan",
+      "url": "https://www.data.go.kr/data/15036154/fileData.do",
+      "sha256": "9976122c345a9875fabe859ab7a1ab2c7b8d22c47234ddc77e94c92de1ed8ed6",
+      "name": "부산 부산진구 키즈카페 현황",
+      "license": "이용허락범위 제한 없음"
+    },
+    {
+      "id": "busan-15036170",
+      "file": "sources/busan-15036170-2025-12-02.csv",
+      "region": "부산광역시 강서구",
+      "sourceDate": "2025-12-02",
+      "retrievedAt": "2026-11-02",
+      "format": "busan",
+      "url": "https://www.data.go.kr/data/15036170/fileData.do",
+      "sha256": "1afbab5e8992ef37d78c0ed18a1e890b239eef2c659b5ef7c821763b6f9cdc86",
+      "name": "부산 강서구 키즈카페 현황",
+      "license": "이용허락범위 제한 없음"
+    },
+    {
+      "id": "busan-15036183",
+      "file": "sources/busan-15036183-2026-01-14.csv",
+      "region": "부산광역시 북구",
+      "sourceDate": "2026-01-14",
+      "retrievedAt": "2026-11-02",
+      "format": "busan",
+      "url": "https://www.data.go.kr/data/15036183/fileData.do",
+      "sha256": "e0862737eae96c0c71113ee2dd8688117e26e9de3ba424df39a16be5be70a0d1",
+      "name": "부산 북구 키즈카페 현황",
+      "license": "이용허락범위 제한 없음"
+    }
+  ],
+  "pendingSources": [
+    {
+      "region": "경기도",
+      "url": "https://data.gg.go.kr/portal/data/service/selectServicePage.do?infId=Q51R29M6RJM0SLC9H7P514591788&infSeq=1",
+      "checkedAt": "2026-11-02",
+      "reason": "공식 상세 화면이 정상적으로 완성되지 않고 CSV 원본을 확보하지 못함. 인허가 원천시스템 변경으로 기존 자료 갱신도 중단된 상태. 새 원본 확보 전 목록에 포함하지 않음."
+    }
+  ],
+  "excludedNames": {
+    "렛츠런파크 내 영국관 어린이놀이터": "야외 어린이놀이터",
+    "명지오션퍼스트 실외어린이놀이시설": "실외 어린이놀이시설",
+    "이모션VR": "VR 체험시설",
+    "(주)어메이징캠프부산": "캠핑시설"
+  }
+}

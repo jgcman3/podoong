@@ -8,7 +8,9 @@ const config: NextConfig = {
       process.env.PODUNG_E2E === '1' ? 'tsconfig.e2e.json' : 'tsconfig.json',
   },
   poweredByHeader: false,
-  outputFileTracingIncludes: { '/*': ['./docs/legal/*.md'] },
+  outputFileTracingIncludes: {
+    '/*': ['./docs/legal/*.md', './data/facilities/kids-cafes/**/*'],
+  },
   async headers() {
     return [
       {

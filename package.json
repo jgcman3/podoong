@@ -21,7 +21,9 @@
     "test:local": "node scripts/verify-local.mjs e2e",
     "operations:local": "node scripts/verify-local.mjs worker",
     "backup:verify": "node scripts/verify-local-restore.mjs",
-    "env:check": "node scripts/check-environment.mjs"
+    "env:check": "node scripts/check-environment.mjs",
+    "data:kids-cafes": "node scripts/build-kids-cafes.mjs",
+    "prebuild": "node scripts/build-kids-cafes.mjs --check"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

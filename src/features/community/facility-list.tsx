@@ -12,7 +12,7 @@ import {
   weatherObservation,
   weatherSky,
 } from './public-data.server';
-import kidsCafes from './data/seoul-kids-cafes.json';
+import { kidsCafeSources } from './kids-cafes';
 import nursing from './data/nursing-rooms.json';
 import type { CommunityQuery } from './hub';
 import { FacilityNavigationForm } from './facility-navigation-form';
@@ -348,10 +348,10 @@ export async function FacilityList({
                   ? ko
                     ? '소아청소년과 진료가 등록된 병원이 없어요.'
                     : 'No hospitals with registered pediatric services in this area.'
-                  : kind === 'kids-cafe' && !area.startsWith('서울특별시 ')
+                  : kind === 'kids-cafe'
                     ? ko
-                      ? '서울형 키즈카페는 서울 지역 자료를 제공해요.'
-                      : 'Seoul Kids Café data covers Seoul only.'
+                      ? '해당 지역에 등록된 키즈카페 자료가 없어요.'
+                      : 'No kids café data is available for this area yet.'
                     : ko
                       ? '해당 지역에 수집된 시설이 없어요.'
                       : 'No collected facilities in this area.'}
@@ -369,7 +369,19 @@ export async function FacilityList({
               : kind === 'kindergarten'
                 ? `${ko ? '출처: 유치원알리미 일반현황' : 'Source: Kindergarten Info basic information'}${checkedAt ? ` · ${ko ? '조회' : 'Retrieved'} ${new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(checkedAt))}` : ''}`
                 : kind === 'kids-cafe'
-                  ? `${ko ? '출처: 서울 열린데이터광장 · 서울형 키즈카페 · 자료 기준' : 'Source: Seoul Open Data · Seoul Kids Cafés · Dataset date'} ${kidsCafes.sourceDate}`
+                  ? kidsCafeSources(area).map((source) => (
+                      <span className="facility-data-source" key={source.id}>
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {source.name}
+                        </a>
+                        {' · '}
+                        {ko ? '자료 기준' : 'Dataset date'} {source.sourceDate}
+                      </span>
+                    ))
                   : ''}
       </p>
     </section>
