@@ -13,11 +13,11 @@ const chain = {
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(async () => ({ auth: { getUser }, from: () => chain })),
 }));
-vi.mock('@/features/community/nearby.server', () => ({
+vi.mock('@/features/outing/nearby.server', () => ({
   nearbySummary: vi.fn(async () => ({ temperature: 17 })),
 }));
 import { POST } from '@/app/api/nearby/route';
-import { nearbySummary } from '@/features/community/nearby.server';
+import { nearbySummary } from '@/features/outing/nearby.server';
 const childId = '11111111-1111-4111-8111-111111111111';
 const request = (data: unknown, origin = 'https://example.test') =>
   new NextRequest('https://example.test/api/nearby', {

@@ -9,7 +9,8 @@ const config: NextConfig = {
   },
   poweredByHeader: false,
   outputFileTracingIncludes: {
-    '/*': ['./docs/legal/*.md', './data/facilities/kids-cafes/**/*'],
+    '/*': ['./docs/legal/*.md'],
+    '/api/nearby': ['./data/outing/**/*'],
   },
   async headers() {
     return [
@@ -38,9 +39,12 @@ const config: NextConfig = {
     '127.0.0.1',
     'localhost',
     '192.168.45.85',
-    `${hostname().toLowerCase().replace(/\.local$/, '')}.local`,
-    new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://127.0.0.1:3187')
-      .hostname.toLowerCase(),
+    `${hostname()
+      .toLowerCase()
+      .replace(/\.local$/, '')}.local`,
+    new URL(
+      process.env.NEXT_PUBLIC_SITE_URL || 'http://127.0.0.1:3187',
+    ).hostname.toLowerCase(),
   ],
   experimental: {
     staleTimes: { dynamic: 30, static: 30 },

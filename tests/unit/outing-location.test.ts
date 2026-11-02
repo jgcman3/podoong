@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import {
   requestOutingLocation,
   hasPendingOutingLocation,
-} from '@/features/care/outing-location';
+} from '@/features/outing/location';
 afterEach(() => vi.unstubAllGlobals());
 it('requests location synchronously from the start gesture and reuses an outstanding prompt', async () => {
   let resolve!: PositionCallback;

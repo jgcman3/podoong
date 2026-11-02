@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 import {
   requestOutingLocation,
   hasPendingOutingLocation,
-} from '@/features/care/outing-location';
+} from '@/features/outing/location';
 import { Baby, Hospital, Pill, Thermometer } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
-import type { NearbySummary } from '@/features/community/nearby.server';
-import { mapLinks, distanceLabel } from '@/features/community/public-data';
+import type { NearbySummary } from '@/features/outing/nearby.server';
+import { mapLinks, distanceLabel } from '@/features/outing/public-data';
 const symbols: Record<string, string> = {
   clear: '☀️',
   cloudy: '⛅',

@@ -12,16 +12,16 @@
 
 ## 주변 시설 연결
 
-지도 SDK 연결은 제거하고 공공데이터 목록과 외부 지도 링크로 변경했다. 인증키, 출처, 캐시, 실제 검증 상태는 [공공데이터 연결](public-data.md)을 따른다. 단말 GPS는 요청하지 않는다.
+동네 시설 메뉴와 전용 코드·데이터는 제거했다. 육아 소통은 게시판·지원금·나눔장터를 유지한다. 위치 기반 주변 정보는 [나들이 주변 정보](outing-information.md)에서 별도로 관리한다.
 
 ## 공식 지원금 수집 (운영자 설정 필요)
 
 1. [행정안전부 대한민국 공공서비스 정보 / 보조금24](https://www.data.go.kr/data/15113968/openapi.do) 활용 신청 및 승인을 받는다.
-2. 공공데이터포털 **일반 인증키(Decoding)**를 개발용 비공개 파일 `.secrets/development-public-data.env`에 `PUBLIC_DATA_SERVICE_KEY=...`로 저장한다. 별도 키가 필요한 경우 `GOV24_SERVICE_KEY`로 덮어쓸 수 있다. Git 또는 채팅에 올리지 않는다.
+2. 공공데이터포털 **일반 인증키(Decoding)**를 개발용 비공개 파일 `.secrets/development-support.env`에 `GOV24_SERVICE_KEY=...`로 저장한다. Git 또는 채팅에 올리지 않는다.
 3. 개발 환경 서버 키를 담은 기존 `.secrets/development-app.env`와 함께 아래 명령을 실행한다.
 
 ```sh
-node --env-file=.secrets/development-app.env --env-file=.secrets/development-public-data.env scripts/configure-parenting-support.mjs --project-ref aacmsohijybjiyidfzgy
+node --env-file=.secrets/development-app.env --env-file=.secrets/development-support.env scripts/configure-parenting-support.mjs --project-ref aacmsohijybjiyidfzgy
 ```
 
 이 명령은 Supabase CLI 로그인/액세스 토큰이 필요하다. 지정한 프로젝트와 환경변수의 URL이 다르면 중단한다. Edge Function은 CI/CD로 먼저 배포되어 있어야 한다. 워커 토큰을 생성하고 Supabase 비밀값으로 API 키를 설정한 뒤 첫 수집을 확인한다. 성공 후에만 매일 **한국 시각 03:20** 수집 일정을 등록한다. 운영에는 운영 환경 파일과 별도 프로젝트를 명시해 실행한다.

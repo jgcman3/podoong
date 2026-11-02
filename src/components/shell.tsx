@@ -8,7 +8,6 @@ import {
   CalendarDays,
   ChartNoAxesColumn,
   MessagesSquare,
-  MapPin,
   Heart,
   ArrowRight,
 } from 'lucide-react';
@@ -22,7 +21,6 @@ const navigation = [
   ['insights', ChartNoAxesColumn],
   ['community', BookOpen],
   ['neighborhood', MessagesSquare],
-  ['facilities', MapPin],
 ] as const;
 export async function Shell({
   context,
@@ -42,10 +40,6 @@ export async function Shell({
 }) {
   const t = await getTranslations();
   const { child, children: all, profile, today } = context;
-  const visibleNavigation = navigation.filter(
-    ([key]) =>
-      key !== 'facilities' || context.family.residence_country_code === 'KR',
-  );
   const date = new Intl.DateTimeFormat(locale === 'ko' ? 'ko-KR' : 'en-US', {
     dateStyle: 'full',
     timeZone: 'UTC',
@@ -64,7 +58,6 @@ export async function Shell({
     'account',
     'settings',
     'neighborhood',
-    'facilities',
   ].includes(section);
   const childOptions = all.map((c) => ({
     id: c.id,
@@ -89,10 +82,10 @@ export async function Shell({
         </Link>
         <p className="brand-tagline">{t('tagline')}</p>
         <nav aria-label={locale === 'ko' ? '주 메뉴' : 'Main navigation'}>
-          {visibleNavigation.map(([key, Icon]) => (
+          {navigation.map(([key, Icon]) => (
             <Link
               key={key}
-              prefetch={key !== 'facilities'}
+              prefetch={true}
               replace
               href={`/${locale}/${key === 'community' ? 'community/diaries' : key === 'neighborhood' ? 'community' : key}?child=${child.id}`}
               className={`nav-link ${section === key ? 'active' : ''}`}
@@ -104,11 +97,7 @@ export async function Shell({
                 ? locale === 'ko'
                   ? '육아 소통'
                   : 'Parenting community'
-                : key === 'facilities'
-                  ? locale === 'ko'
-                    ? '동네 시설'
-                    : 'Local facilities'
-                  : t(key === 'community' ? 'growthDiary' : key)}
+                : t(key === 'community' ? 'growthDiary' : key)}
               {section === key && <span className="nav-dot" />}
             </Link>
           ))}
@@ -191,10 +180,10 @@ export async function Shell({
         className="mobile-nav"
         aria-label={locale === 'ko' ? '주 메뉴' : 'Main navigation'}
       >
-        {visibleNavigation.map(([key, Icon]) => (
+        {navigation.map(([key, Icon]) => (
           <Link
             key={key}
-            prefetch={key !== 'facilities'}
+            prefetch={true}
             replace
             className={section === key ? 'active' : ''}
             aria-current={section === key ? 'page' : undefined}
@@ -211,13 +200,9 @@ export async function Shell({
                   ? locale === 'ko'
                     ? '육아 소통'
                     : 'Talk'
-                  : key === 'facilities'
-                    ? locale === 'ko'
-                      ? '동네 시설'
-                      : 'Nearby'
-                    : key === 'community' && locale === 'en'
-                      ? 'Diary'
-                      : t(key === 'community' ? 'growthDiary' : key)}
+                  : key === 'community' && locale === 'en'
+                    ? 'Diary'
+                    : t(key === 'community' ? 'growthDiary' : key)}
             </span>
           </Link>
         ))}

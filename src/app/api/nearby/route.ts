@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { nearbySummary } from '@/features/community/nearby.server';
+import { nearbySummary } from '@/features/outing/nearby.server';
 const schema = z
   .object({
     childId: z.uuid(),

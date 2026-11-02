@@ -2,18 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   mapLinks,
   medicalFacility,
-  kindergartenFacility,
   coordinates,
   nearbyFacilities,
   distanceLabel,
-  weekdayHours,
   openingStatus,
   positiveMeasurement,
-  readableHours,
-  sourceItems,
   airQuality,
   weatherCondition,
-} from '@/features/community/public-data';
+} from '@/features/outing/public-data';
 
 describe('public facility and measurement data', () => {
   it('orders by coordinates without changing input and keeps unknown locations last', () => {
@@ -53,64 +49,6 @@ describe('public facility and measurement data', () => {
         ).pathname,
       ),
     ).toBe('/link/search/테스트 의원 분당구');
-    expect(weekdayHours({ dutyTime1s: '0900', dutyTime1c: '1800' }, 1)).toBe(
-      '09:00–18:00',
-    );
-    expect(weekdayHours({}, 7)).toBe('');
-    expect(
-      openingStatus(
-        { dutyTime1s: '0900', dutyTime1c: '1800' },
-        false,
-        new Date('2026-11-02T00:00:00+09:00'),
-      ),
-    ).toBe('before');
-  });
-  it('does not return the kindergarten API echoed key or staff personal names', () => {
-    const facility = kindergartenFacility({
-      key: 'synthetic-secret',
-      kindercode: 'fixture',
-      kindername: 'Fixture kindergarten',
-      rppnname: 'private representative',
-      ldgrname: 'private principal',
-      addr: '서울특별시 강남구',
-      telno: '02-000-0000',
-    });
-    expect(JSON.stringify(facility)).not.toContain('synthetic-secret');
-    expect(JSON.stringify(facility)).not.toContain('private');
-  });
-  it('rejects an API error even when HTTP succeeded, and normalizes single and empty items', () => {
-    expect(() =>
-      sourceItems({ response: { header: { resultCode: '30' } } }),
-    ).toThrow('public-source-unavailable');
-    expect(
-      sourceItems({
-        response: {
-          header: { resultCode: '00' },
-          body: { totalCount: 1, items: { item: { hpid: 'fixture' } } },
-        },
-      }).rows,
-    ).toHaveLength(1);
-    expect(
-      sourceItems({
-        response: {
-          header: { resultCode: '00' },
-          body: { totalCount: 0, items: '' },
-        },
-      }).rows,
-    ).toEqual([]);
-    expect(() =>
-      sourceItems({
-        response: {
-          header: { resultCode: '00' },
-          body: { totalCount: 'not a number' },
-        },
-      }),
-    ).toThrow('invalid-public-source');
-  });
-  it('uses Korean local time, holiday hours, and an exclusive closing boundary', () => {
-    expect(weekdayHours({ dutyTime1s: '0', dutyTime1c: '2400' }, 1)).toBe(
-      '00:00–24:00',
-    );
     const hours = {
       dutyTime1s: '0900',
       dutyTime1c: '1800',
@@ -125,9 +63,6 @@ describe('public facility and measurement data', () => {
     );
     expect(openingStatus(hours, true, new Date('2026-11-02T04:00:00Z'))).toBe(
       'closed',
-    );
-    expect(readableHours(hours, true, new Date('2026-11-02T00:00:00Z'))).toBe(
-      '10:00–13:00',
     );
     expect(openingStatus(hours, false, new Date('2026-11-01T14:59:00Z'))).toBe(
       'unknown',

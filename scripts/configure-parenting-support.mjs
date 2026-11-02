@@ -8,8 +8,7 @@ const ref = process.argv[process.argv.indexOf('--project-ref') + 1];
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const secret =
   process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-const key =
-  process.env.GOV24_SERVICE_KEY || process.env.PUBLIC_DATA_SERVICE_KEY;
+const key = process.env.GOV24_SERVICE_KEY;
 if (
   !/^[a-z0-9]{20}$/.test(ref ?? '') ||
   url !== `https://${ref}.supabase.co` ||
@@ -18,7 +17,7 @@ if (
   /[\r\n]/.test(key)
 )
   throw new Error(
-    'Check the explicit project ref, app environment and GOV24_SERVICE_KEY or PUBLIC_DATA_SERVICE_KEY.',
+    'Check the explicit project ref, app environment and GOV24_SERVICE_KEY.',
   );
 const token = randomBytes(32).toString('hex');
 const directory = await mkdtemp(join(tmpdir(), 'podoong-support-'));

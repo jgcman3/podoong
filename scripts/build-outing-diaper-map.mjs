@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
-import { clean, hash, parseCsv } from './lib/kids-cafe-import.mjs';
-const root = new URL('../data/facilities/diaper-map/', import.meta.url);
+import { clean, hash, parseCsv } from './lib/public-data-file.mjs';
+const root = new URL('../data/outing/diaper-map/', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('manifest.json', root)));
 function source(file) {
   const entry = manifest.sources.find((s) => s.file === file);

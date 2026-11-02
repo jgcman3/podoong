@@ -6,10 +6,12 @@ import {
   airObservations,
   weatherObservation,
   weatherSky,
+  holidayMonth,
 } from './public-data.server';
 import {
-  coordinates,
   medicalFacility,
+  openingStatus,
+  seoulTime,
   nearbyFacilities,
   sourceItems,
   weatherCondition,
@@ -25,68 +27,48 @@ async function source(path: string, params: Record<string, string>) {
     await publicDataRequest(path, { _type: 'json', ...params }),
   );
 }
-const pediatricPage = unstable_cache(
-  async (page: number) => {
-    const { rows, total } = await source(
-      'B552657/HsptlAsembySearchService/getHsptlMdcncListInfoInqire',
-      { QD: 'D002', pageNo: String(page), numOfRows: '1000' },
-    );
-    return {
-      total,
-      facilities: rows
-        .map(medicalFacility)
-        .map(({ id, name, address, phone, coordinates }) => ({
-          id,
-          name,
-          address,
-          phone,
-          coordinates,
-          hours: {},
-        })),
-    };
+type MedicalKind = 'hospital' | 'pharmacy';
+// Nationwide public catalogues are shared across users; no device location is
+// sent to the medical provider or used as a medical cache key.
+const medicalPage = unstable_cache(
+  async (kind: MedicalKind, page: number) => {
+    const path =
+      kind === 'hospital'
+        ? 'B552657/HsptlAsembySearchService/getHsptlMdcncListInfoInqire'
+        : 'B552657/ErmctInsttInfoInqireService/getParmacyListInfoInqire';
+    const { rows, total } = await source(path, {
+      ...(kind === 'hospital' ? { QD: 'D002' } : {}),
+      pageNo: String(page),
+      numOfRows: '1000',
+    });
+    return { total, facilities: rows.map(medicalFacility) };
   },
-  ['nearby-pediatrics-v1'],
+  ['outing-medical-hours-v1'],
   { revalidate: 86400 },
 );
-async function pediatricFacilities() {
-  const first = await pediatricPage(1);
-  if (first.total > 30000) throw Error('invalid-pediatrics-count');
-  const all: Facility[] = [...first.facilities];
-  for (let start = 2; start <= Math.ceil(first.total / 1000); start += 4) {
+async function medicalFacilities(kind: MedicalKind) {
+  const first = await medicalPage(kind, 1);
+  if (first.total > 50000) throw Error('invalid-medical-count');
+  const all: Facility[] = [...first.facilities],
+    pages = Math.ceil(first.total / 1000);
+  for (let start = 2; start <= pages; start += 4) {
     const group = await Promise.all(
-      Array.from(
-        { length: Math.min(4, Math.ceil(first.total / 1000) - start + 1) },
-        (_, i) => pediatricPage(start + i),
+      Array.from({ length: Math.min(4, pages - start + 1) }, (_, i) =>
+        medicalPage(kind, start + i),
       ),
     );
     for (const part of group) {
-      if (part.total !== first.total) throw Error('pediatrics-source-changed');
+      if (part.total !== first.total) throw Error('medical-source-changed');
       all.push(...part.facilities);
     }
   }
-  if (all.length !== first.total) throw Error('incomplete-pediatrics');
+  if (
+    all.length !== first.total ||
+    new Set(all.map((row) => row.id)).size !== first.total
+  )
+    throw Error('incomplete-medical-source');
   return all;
 }
-// Public results are shared by ~1 km grid, never by a user or precise GPS point.
-const pharmacies = unstable_cache(
-  async (lat: number, lon: number) => {
-    const { rows } = await source(
-      'B552657/ErmctInsttInfoInqireService/getParmacyLcinfoInqire',
-      {
-        WGS84_LAT: String(lat),
-        WGS84_LON: String(lon),
-        numOfRows: '100',
-        pageNo: '1',
-      },
-    );
-    return rows.map((row) => ({
-      ...medicalFacility(row),
-      coordinates: coordinates(row.latitude, row.longitude),
-    }));
-  },
-  ['nearby-pharmacies-v1'],
-  { revalidate: 3600 },
-);
 
 export function nearbyArea(point: Coordinates) {
   const candidates = Object.entries(areaPoints)
@@ -116,21 +98,29 @@ function nearest(rows: Facility[], point: Coordinates) {
 export async function nearbySummary(point: Coordinates) {
   const area = nearbyArea(point);
   if (!area) return null;
-  const [weather, sky, air, hospitals, drugstores] = await Promise.all([
-    weatherObservation(area).catch(() => null),
-    weatherSky(area).catch(() => undefined),
-    airObservations(area.split(' ')[0]).catch(() => []),
-    pediatricFacilities().catch(() => []),
-    pharmacies(
-      Math.round(point.lat * 100) / 100,
-      Math.round(point.lon * 100) / 100,
-    ).catch(() => []),
-  ]);
+  const month = seoulTime().date.slice(0, 6);
+  const [weather, sky, air, hospitals, drugstores, holidays] =
+    await Promise.all([
+      weatherObservation(area).catch(() => null),
+      weatherSky(area).catch(() => undefined),
+      airObservations(area.split(' ')[0]).catch(() => []),
+      medicalFacilities('hospital').catch(() => []),
+      medicalFacilities('pharmacy').catch(() => []),
+      holidayMonth(month).catch(() => null),
+    ]);
   // Use only a matching local station; never substitute an arbitrary province station.
   const station = [...area.split(' ')]
     .reverse()
     .map((name) => air.find((row) => row.station === name))
     .find(Boolean);
+  const now = new Date(),
+    local = seoulTime(now);
+  const holiday =
+    holidays && local.date.slice(0, 6) === month
+      ? holidays.includes(local.date)
+      : null;
+  const open = (rows: Facility[]) =>
+    rows.filter((row) => openingStatus(row.hours, holiday, now) === 'open');
   const temperature = Number(weather?.values.T1H);
   const dust = airQuality(positiveMeasurement(station?.pm10), 'pm10');
   return {
@@ -144,8 +134,8 @@ export async function nearbySummary(point: Coordinates) {
         : null,
     dust,
     station: station?.station ?? null,
-    hospital: nearest(hospitals, point),
-    pharmacy: nearest(drugstores, point),
+    hospital: nearest(open(hospitals), point),
+    pharmacy: nearest(open(drugstores), point),
     diaper: nearest(diaperFacilities, point),
   };
 }

@@ -6,11 +6,8 @@ export type Facility = {
   address: string;
   phone: string;
   hours: Record<string, string>;
-  detail?: string;
-  diaperTable?: boolean;
   coordinates?: Coordinates;
   distanceKm?: number;
-  visiting?: { addressDetail: string; openDays: string; closedDays: string };
 };
 export function text(row: SourceRow, field: string) {
   const value = row[field];
@@ -72,30 +69,7 @@ export function medicalFacility(row: SourceRow): Facility {
     address: text(row, 'dutyAddr'),
     phone: text(row, 'dutyTel1'),
     hours,
-    detail: text(row, 'dgidIdName'),
     coordinates: coordinates(row.wgs84Lat, row.wgs84Lon),
-  };
-}
-export function kindergartenFacility(row: SourceRow): Facility {
-  const id = text(row, 'kindercode'),
-    name = text(row, 'kindername');
-  if (!id || !name) throw new Error('invalid-kindergarten');
-  // Upstream includes a field named key and personal principal/representative
-  // names. Whitelist only the public fields needed by the facility card.
-  return {
-    id,
-    name,
-    address: text(row, 'addr'),
-    phone: text(row, 'telno'),
-    hours: {},
-    coordinates: coordinates(row.lttdcdnt, row.lngtcdnt),
-    detail: [
-      text(row, 'establish'),
-      text(row, 'opertime'),
-      text(row, 'pbnttmng'),
-    ]
-      .filter(Boolean)
-      .join(' · '),
   };
 }
 export function seoulTime(now = new Date()) {
@@ -132,23 +106,6 @@ export function openingStatus(
   // This describes today's posted schedule, not live availability.
   if (minute < start) return 'before';
   return minute < end ? 'open' : 'closed';
-}
-export function readableHours(
-  hours: Facility['hours'],
-  holiday: boolean | null,
-  now = new Date(),
-) {
-  if (holiday === null) return '';
-  const day = holiday ? 8 : seoulTime(now).day;
-  return weekdayHours(hours, day);
-}
-export function weekdayHours(hours: Facility['hours'], day: number) {
-  const start = minutes(hours[`dutyTime${day}s`]),
-    end = minutes(hours[`dutyTime${day}c`]);
-  if (start === null || end === null) return '';
-  const format = (n: number) =>
-    `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
-  return `${format(start)}–${format(end)}`;
 }
 export function facilityArea(address: string) {
   const parenthetical = address.match(/\(([^)]+)\)/)?.[1] ?? '';

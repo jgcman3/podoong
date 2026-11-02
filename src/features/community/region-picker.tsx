@@ -11,9 +11,6 @@ export function CommunityRegionPicker({
   category,
   path,
   globalPlaces = [],
-  kind,
-  specialty,
-  open,
 }: {
   locale: Locale;
   country: string | null;
@@ -22,9 +19,6 @@ export function CommunityRegionPicker({
   scope: string;
   category: string;
   path: string;
-  kind?: string;
-  specialty?: string;
-  open?: string;
   globalPlaces?: {
     id: string;
     province: string;
@@ -60,11 +54,6 @@ export function CommunityRegionPicker({
           value={scope === 'all' ? 'district' : scope}
         />
         <input type="hidden" name="category" value={category} />
-        {kind && <input type="hidden" name="kind" value={kind} />}
-        {specialty && (
-          <input type="hidden" name="specialty" value={specialty} />
-        )}
-        {open !== undefined && <input type="hidden" name="open" value={open} />}
         {country === 'KR' ? (
           <>
             <label>

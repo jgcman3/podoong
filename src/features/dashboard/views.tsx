@@ -1,4 +1,4 @@
-import { NearbyStrip } from './nearby-strip';
+import { NearbyStrip } from '@/features/outing/nearby-strip';
 import { DeveloperRequestForm } from '@/features/developer-requests/form';
 import { AppearanceSettings } from '@/components/appearance';
 import { RelationshipField } from '@/features/family/relationship-field';

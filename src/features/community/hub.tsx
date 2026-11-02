@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Suspense } from 'react';
 import { MessagesSquare, ShoppingBag, Landmark } from 'lucide-react';
 import { Flash } from '@/components/flash';
 import type { CareContext } from '@/lib/data';
@@ -7,7 +6,6 @@ import type { Locale } from '@/lib/domain';
 import { residenceRegions } from '@/features/family/residence-regions';
 import { CommunityRegionPicker } from './region-picker';
 import { neighborhoodAction } from './neighborhood-actions';
-import { FacilityList, LocalConditions } from './facility-list';
 import { SupportList } from './support-list';
 import { homeArea, parentingCategories, regionScopes } from './options';
 export type CommunityQuery = {
@@ -18,11 +16,6 @@ export type CommunityQuery = {
   before?: string;
   beforeId?: string;
   place?: string;
-  kind?: string;
-  specialty?: string;
-  page?: string;
-  open?: string;
-  diaper?: string;
 };
 const tabs = [
   ['boards', '게시판', 'Board', MessagesSquare],
@@ -38,7 +31,7 @@ export async function CommunityHub({
 }: {
   context: CareContext;
   locale: Locale;
-  area?: 'boards' | 'map' | 'market' | 'support';
+  area?: 'boards' | 'market' | 'support';
   error?: string;
   query?: CommunityQuery;
 }) {
@@ -85,10 +78,7 @@ export async function CommunityHub({
         (query.place ? 'district' : 'all'));
   const category =
     parentingCategories.find(([id]) => id === query.category)?.[0] ?? 'all';
-  const path =
-    area === 'map'
-      ? `/${locale}/facilities`
-      : `/${locale}/community${area === 'boards' ? '' : `/${area}`}`;
+  const path = `/${locale}/community${area === 'boards' ? '' : `/${area}`}`;
   const href = (values: Record<string, string>) =>
     `${path}?${new URLSearchParams({ child: context.child.id, scope, category, place, ...values })}`;
   const hidden = () => (
@@ -124,32 +114,24 @@ export async function CommunityHub({
     <section className="community-hub parenting-community">
       <Flash error={error} />
       <h1 className="visually-hidden">
-        {area === 'map'
-          ? ko
-            ? '동네 시설'
-            : 'Local facilities'
-          : ko
-            ? '육아 소통'
-            : 'Parenting community'}
+        {ko ? '육아 소통' : 'Parenting community'}
       </h1>
-      {area !== 'map' && (
-        <nav
-          className="parenting-tabs"
-          aria-label={ko ? '육아 소통 메뉴' : 'Community sections'}
-        >
-          {tabs.map(([id, k, e, Icon]) => (
-            <Link
-              key={id}
-              aria-current={area === id ? 'page' : undefined}
-              href={`/${locale}/community${id === 'boards' ? '' : `/${id}`}?child=${context.child.id}&place=${place}`}
-            >
-              <Icon size={17} />
-              {ko ? k : e}
-            </Link>
-          ))}
-        </nav>
-      )}
-      <div className={area === 'map' ? 'facility-region-picker' : undefined}>
+      <nav
+        className="parenting-tabs"
+        aria-label={ko ? '육아 소통 메뉴' : 'Community sections'}
+      >
+        {tabs.map(([id, k, e, Icon]) => (
+          <Link
+            key={id}
+            aria-current={area === id ? 'page' : undefined}
+            href={`/${locale}/community${id === 'boards' ? '' : `/${id}`}?child=${context.child.id}&place=${place}`}
+          >
+            <Icon size={17} />
+            {ko ? k : e}
+          </Link>
+        ))}
+      </nav>
+      <div>
         <CommunityRegionPicker
           key={place}
           locale={locale}
@@ -159,43 +141,10 @@ export async function CommunityHub({
           scope={scope}
           category={category}
           path={path}
-          kind={area === 'map' ? query.kind : undefined}
-          specialty={area === 'map' ? query.specialty : undefined}
-          open={area === 'map' ? query.open : undefined}
           globalPlaces={globalPlaces}
         />
       </div>
-      {area === 'map' ? (
-        <>
-          {country === 'KR' && (
-            <Suspense
-              fallback={
-                <p className="small muted">
-                  {ko ? '날씨를 확인하고 있어요.' : 'Checking the weather…'}
-                </p>
-              }
-            >
-              <LocalConditions locale={locale} area={home.locality} />
-            </Suspense>
-          )}
-          <Suspense
-            key={`${place}-${query.kind}-${query.page}-${query.open}-${query.diaper}-${query.specialty}`}
-            fallback={
-              <p className="panel" role="status">
-                {ko ? '시설을 찾고 있어요.' : 'Finding facilities…'}
-              </p>
-            }
-          >
-            <FacilityList
-              context={context}
-              locale={locale}
-              area={home.district}
-              referenceArea={home.locality}
-              query={{ ...query, place }}
-            />
-          </Suspense>
-        </>
-      ) : area === 'support' ? (
+      {area === 'support' ? (
         <SupportList context={context} locale={locale} area={home} />
       ) : (
         <>

@@ -5,7 +5,7 @@ Deno.serve(async(request: Request)=>{
  const token=request.headers.get('x-podoong-support-token');
  const expected=Deno.env.get('SUPPORT_WORKER_TOKEN');
  if(!expected||!token||token.length!==64||token!==expected)return new Response(null,{status:401});
- const key=Deno.env.get('GOV24_SERVICE_KEY') || Deno.env.get('PUBLIC_DATA_SERVICE_KEY');
+ const key=Deno.env.get('GOV24_SERVICE_KEY');
  if(!key)return new Response(null,{status:503});
  const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
  const begin=await db.rpc('begin_parenting_support_sync');

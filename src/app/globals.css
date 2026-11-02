@@ -8476,13 +8476,11 @@ html[data-standalone] :is(input, select, textarea) {
 .community-pills [aria-current="page"], .community-pills [aria-pressed="true"] { color: var(--brown); border-color: currentColor; font-weight: 700; }
 .region-pills a { display: flex; align-items: center; gap: .45rem; }
 .region-pills small { font-weight: 400; opacity: .8; }
-.parenting-posts, .facility-list, .support-group { display: grid; gap: .7rem; }
+.parenting-posts, .support-group { display: grid; gap: .7rem; }
 .parenting-posts .panel h2 { font-size: 1.05rem; margin-block: .5rem; }
 .post-body { white-space: pre-wrap; overflow-wrap: anywhere; }
 .community-compose { margin-block: .7rem; }
-.facility-list .panel strong, .support-group h2 { display: flex; align-items: center; gap: .45rem; }
-.facility-list .panel p { font-size: .85rem; margin-block: .5rem; }
-.facility-list a { display: inline-flex; align-items: center; gap: .2rem; margin-right: .7rem; font-size: .85rem; }
+.support-group h2 { display: flex; align-items: center; gap: .45rem; }
 .support-group { margin-block: 1.2rem; }
 .support-group h2 { margin: 0; font-size: 1rem; }
 .support-group h3 { font-size: 1rem; margin: 0; }
@@ -8502,103 +8500,7 @@ html[data-standalone] :is(input, select, textarea) {
 .community-region-form select { min-width: 0; width: 100%; padding: .55rem .4rem; }
 .community-region-form button { grid-column: 1/-1; justify-self: end; }
 
-/* Public facilities share the compact community cards; no embedded map SDK. */
-.facility-browser { display: grid; gap: .2rem; }
-.facility-kinds { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-block: 0; }
-.facility-kinds::-webkit-scrollbar { display: none; }
-.facility-kinds button { flex: 0 0 auto; white-space: nowrap; }
-.facility-kinds button[aria-pressed="true"] { color: var(--brown); background: var(--bg); }
-.facility-card-heading { display: flex; align-items: start; justify-content: space-between; gap: .5rem; }
-.facility-card-heading strong { min-width: 0; }
-.facility-card-heading svg { flex-shrink: 0; }
-.facility-status { flex-shrink: 0; font-size: .72rem; color: var(--muted); }
-.facility-status.open { color: #287353; }
-.facility-card-links, .facility-filters { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; }
-.facility-filters { justify-content: space-between; }
-.facility-filters label { display: flex; align-items: center; gap: .4rem; font-size: .85rem; }
-.facility-filters input { width: 1rem; height: 1rem; margin: 0; }
-.facility-filters .button { min-height: 2rem; padding: .35rem .75rem; font-size: .8rem; }
-.local-conditions { margin-bottom: .7rem; }
-.local-conditions h2 { display: flex; align-items: center; gap: .4rem; font-size: 1rem; margin: 0 0 .75rem; }
-@media(max-width:480px) {
-  .facility-card-heading { flex-wrap: wrap; }
-  .facility-card { padding: .8rem; }
-}
-
-.facility-hours { margin-block: .55rem; padding: .55rem .65rem; background: var(--bg); border-radius: 12px; font-size: .8rem; }
-.facility-hours > p { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-.facility-list .facility-hours strong { display: inline; font-size: .8rem; }
-.facility-hours summary { cursor: pointer; color: var(--brown); font-size: .78rem; padding-block: .35rem; }
-.facility-hours dl { margin: .3rem 0 0; display: grid; gap: .4rem; }
-.facility-hours dl > div { display: flex; justify-content: space-between; gap: .5rem; }
-.facility-hours dd { margin: 0; font-variant-numeric: tabular-nums; }
-.facility-distance { display: flex; align-items: center; gap: .2rem; color: var(--brown); }
-.weather-overview { padding: 1rem; }
-.weather-overview > header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .8rem; }
-.weather-overview > header h2 { margin: 0; }
-.weather-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .4rem; }
-.weather-metric { display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .55rem .2rem; text-align: center; border-radius: 16px; }
-.weather-symbol { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 15px; }
-.weather-metric.temperature .weather-symbol { background: #fff0da; color: #b47224; }
-.weather-metric.pm10 .weather-symbol { background: #e8f3ff; color: #4481b8; }
-.weather-metric.pm25 .weather-symbol { background: #f0eaff; color: #8768b6; }
-.weather-metric strong { font-size: 1.6rem; line-height: 1.2; }
-.weather-metric strong small { font-size: .62rem; margin-left: .15rem; font-weight: 500; }
-.weather-metric-label { font-size: .78rem; }
-.weather-metric > small { font-size: .65rem; }
-.weather-extras { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; border-top: 1px solid var(--line); padding-top: .65rem; margin-top: .7rem; }
-.weather-extras > span { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; color: var(--muted); }
-.weather-extras svg { color: #588cac; }
-.weather-source { text-align: center; font-size: .66rem; margin: .6rem 0 0; }
-:root[data-theme='dark'] .weather-symbol { filter: brightness(.8); }
 @media(max-width:760px) {
-  .mobile-nav { padding-inline: 3px; gap: 0; }
-  .mobile-nav > a { flex: 1 1 0; min-width: 0; overflow: hidden; min-height: 44px; }
-  .mobile-nav > a > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 9px; }
-  .mobile-nav > a > svg { width: 19px; height: 19px; flex-shrink: 0; }
-}
-
-.facility-navigation-form[aria-busy='true'], .facility-browser form[aria-busy='true'] { opacity: .65; }
-.facility-extra { font-size: .75rem; color: var(--muted); }
-.facility-extra summary { cursor: pointer; padding-block: .3rem; }
-@media(max-width:760px) {
-  .facility-region-picker { display: none; }
-  .weather-overview { padding: .7rem .8rem; margin-bottom: .5rem; }
-  .weather-overview > header { margin-bottom: .4rem; }
-  .weather-overview > header h2 { font-size: .84rem; gap: .3rem; }
-  .weather-overview > header > span { font-size: .68rem; }
-  .weather-metric { gap: .1rem; padding: .2rem 0; }
-  .weather-symbol { width: 26px; height: 26px; border-radius: 9px; }
-  .weather-symbol svg { width: 17px; height: 17px; }
-  .weather-metric-label { font-size: .66rem; }
-  .weather-metric strong { font-size: 1.2rem; }
-  .weather-metric strong small { font-size: .52rem; }
-  .weather-metric > small { font-size: .55rem; }
-  .weather-extras { margin-top: .35rem; padding-top: .35rem; gap: .8rem; }
-  .weather-extras > span { font-size: .65rem; }
-  .weather-source { margin-top: .3rem; font-size: .6rem; }
-  .facility-list { gap: .45rem; }
-  .facility-list .facility-card { padding: .65rem .75rem; border-radius: 15px; }
-  .facility-card-heading { gap: .3rem; }
-  .facility-card-heading strong { font-size: .85rem; gap: .3rem; }
-  .facility-card-heading svg { width: 14px; height: 14px; }
-  .facility-card .facility-status { font-size: .64rem; }
-  .facility-list .facility-card p { font-size: .74rem; margin-block: .3rem; }
-  .facility-card .facility-hours { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .25rem; align-items: start; background: transparent; border-radius: 0; padding: 0; margin-block: .3rem; }
-  .facility-card .facility-hours:has(details[open]) { grid-template-columns: 1fr; }
-  .facility-card .facility-hours > p { justify-content: start; gap: .35rem; margin: .2rem 0; }
-  .facility-card .facility-hours strong { font-size: .72rem; }
-  .facility-card .facility-hours summary { padding: .2rem 0; font-size: .7rem; }
-  .facility-card .facility-hours dl { font-size: .73rem; padding-block: .3rem; }
-  .facility-card-links { gap: .7rem; margin-top: .35rem; }
-  .facility-card-links a { font-size: .72rem; margin: 0; }
-  .facility-extra { font-size: .7rem; }
-  .facility-extra summary { padding: .2rem 0; }
-}
-
-@media(max-width:760px) {
-  .weather-overview > header h2 { flex-shrink: 0; }
-  .weather-overview > header > span { max-width: 60%; text-align: right; line-height: 1.35; }
   .child-account-page .panel { padding: 8px 12px; margin-bottom: 7px; border-radius: 16px; }
   .child-account-page .account-settings-section > summary { min-height: 44px; gap: 8px; font-size: 13px; }
   .child-account-page .account-settings-section[open] { padding-bottom: 12px; }
@@ -8613,30 +8515,6 @@ html[data-standalone] :is(input, select, textarea) {
   .child-account-page .form-stack label { gap: 5px; }
   .child-account-page .account-settings-heading { margin: 14px 0 8px; }
 }
-
-@media(max-width:760px) {
-  .parenting-community .weather-overview { padding: .65rem .75rem; margin-bottom: 0; }
-  .weather-metric { display: grid; grid-template-columns: 26px minmax(0,1fr); grid-template-rows: auto auto auto; column-gap: .25rem; text-align: left; }
-  .weather-metric .weather-symbol { grid-column: 1; grid-row: 1 / 3; }
-  .weather-metric .weather-metric-label { grid-column: 2; grid-row: 1; font-size: .61rem; }
-  .weather-metric strong { grid-column: 2; grid-row: 2; min-width: 0; font-size: 1.05rem; white-space: nowrap; }
-  .weather-metric > small { grid-column: 1 / -1; grid-row: 3; text-align: center; }
-}
-
-.facility-list-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; gap: .5rem; }
-.facility-list-toolbar > p { min-width: 0; margin: 0; }
-.facility-list-toolbar .facility-filters { grid-column: 2; grid-row: 1; justify-self: end; width: auto; margin: 0; flex-wrap: nowrap; }
-.facility-list-toolbar .facility-filters label { min-height: 44px; cursor: pointer; white-space: nowrap; }
-.facility-load-more { min-height: 8px; display: flex; align-items: center; justify-content: center; gap: .4rem; font-size: .8rem; color: var(--muted); padding-block: .4rem; }
-.facility-load-more:empty { padding: 0; }
-@media(max-width:760px) {
-  .facility-list-toolbar { gap: .35rem; }
-  .facility-list-toolbar > p, .facility-list-toolbar .facility-filters label { font-size: .67rem; line-height: 1.5; }
-  .facility-list-toolbar .facility-filters label { gap: .3rem; }
-  .facility-list-toolbar .facility-filters input { width: 14px; height: 14px; min-height: 14px; }
-}
-
-.weather-metric > .air-quality { justify-self: center; border-radius: 999px; padding: .12rem .5rem; font-weight: 700; line-height: 1.3; }
 .air-quality.good { color: #256b98; background: #eaf5ff; }
 .air-quality.moderate { color: #2c704d; background: #e9f6ee; }
 .air-quality.bad { color: #97530b; background: #fff1da; }
@@ -8646,13 +8524,6 @@ html[data-standalone] :is(input, select, textarea) {
 :root[data-theme='dark'] .air-quality.moderate { color: #99d9ad; }
 :root[data-theme='dark'] .air-quality.bad { color: #ffd08a; }
 :root[data-theme='dark'] .air-quality.very-bad { color: #ffacb7; }
-
-.facility-extra dl { margin: .4rem 0 0; font-size: .8rem; }
-.facility-extra dl > div { display: grid; grid-template-columns: max-content minmax(0,1fr); gap: .6rem; margin-top: .3rem; }
-.facility-extra dt { color: var(--muted); }
-.facility-extra dd { margin: 0; overflow-wrap: anywhere; }
-
-.facility-data-source { display: block; margin-top: .2rem; }
 
 /* Optional local context stays compact above today's care cards. */
 .today-nearby {
@@ -8730,3 +8601,21 @@ html[data-standalone] :is(input, select, textarea) {
 .quick-color-outing { --care-ink:#6b7b36; --care-bg:#f0f4e4; }
 :root[data-theme='dark'] .quick-color-outing { --care-ink:#c5d59b; --care-bg:#323c27; }
 .outing-start-help { margin:0; line-height:1.6; }
+
+.last-care .last-care-card {
+  border-color: color-mix(in srgb, var(--care-ink) 40%, var(--surface));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--care-ink) 20%, var(--surface)),
+    var(--care-bg)
+  );
+  box-shadow: inset 0 3px 0 var(--care-ink);
+}
+.last-care-heading h2 {
+  color: var(--care-ink);
+  font-weight: 700;
+}
+.last-care-card > time {
+  color: color-mix(in srgb, var(--care-ink) 80%, var(--ink));
+  font-weight: 800;
+}

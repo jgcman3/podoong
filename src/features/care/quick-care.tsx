@@ -1,5 +1,5 @@
 'use client';
-import { requestOutingLocation } from './outing-location';
+import { requestOutingLocation } from '@/features/outing/location';
 import { formatCareDuration } from '@/lib/duration';
 import { QuickFieldTitle } from './quick-field-title';
 import { QuickTimeField } from './quick-time-field';
