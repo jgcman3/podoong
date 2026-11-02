@@ -1,5 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
+import {
+  requestOutingLocation,
+  hasPendingOutingLocation,
+} from '@/features/care/outing-location';
 import { Baby, Hospital, Pill, Thermometer } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import type { NearbySummary } from '@/features/community/nearby.server';
@@ -59,50 +63,44 @@ function ActiveNearbyStrip({
     function locate() {
       if (!active || document.hidden || controller.signal.aborted) return;
       const current = ++sequence;
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          if (!active || current !== sequence || permissionLost()) return;
-          const key = `${Math.round(position.coords.latitude * 1000)},${Math.round(position.coords.longitude * 1000)}`;
-          if (recent?.key === key && Date.now() - recent.at < 300000) {
-            setSummary(recent.summary);
+      void requestOutingLocation().then(async (position) => {
+        if (!position) {
+          if (active && current === sequence) hide();
+          return;
+        }
+        if (!active || current !== sequence || permissionLost()) return;
+        const key = `${Math.round(position.coords.latitude * 1000)},${Math.round(position.coords.longitude * 1000)}`;
+        if (recent?.key === key && Date.now() - recent.at < 300000) {
+          setSummary(recent.summary);
+          return;
+        }
+        try {
+          const response = await fetch('/api/nearby', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              childId,
+              lat: position.coords.latitude,
+              lon: position.coords.longitude,
+            }),
+            cache: 'no-store',
+            signal: controller.signal,
+          });
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) hide();
             return;
           }
-          try {
-            const response = await fetch('/api/nearby', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                childId,
-                lat: position.coords.latitude,
-                lon: position.coords.longitude,
-              }),
-              cache: 'no-store',
-              signal: controller.signal,
-            });
-            if (!response.ok) {
-              if (response.status === 401 || response.status === 403) hide();
-              return;
-            }
-            const data = await response.json();
-            if (
-              active &&
-              current === sequence &&
-              !permissionLost() &&
-              data.ok
-            ) {
-              recent = { key, at: Date.now(), summary: data.summary };
-              setSummary(data.summary);
-            }
-          } catch {
-            /* Optional context never interrupts care recording. */
+          const data = await response.json();
+          if (active && current === sequence && !permissionLost() && data.ok) {
+            recent = { key, at: Date.now(), summary: data.summary };
+            setSummary(data.summary);
           }
-        },
-        () => {
-          if (active && current === sequence) hide();
-        },
-        { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 },
-      );
+        } catch {
+          /* Optional context never interrupts care recording. */
+        }
+      });
     }
+
     function changed() {
       if (permissionLost()) hide();
     }
@@ -111,7 +109,11 @@ function ActiveNearbyStrip({
         status = await navigator.permissions.query({ name: 'geolocation' });
         if (!active) return;
         status.addEventListener('change', changed);
-        if (status.state === 'denied') return;
+        if (
+          status.state === 'denied' ||
+          (status.state === 'prompt' && !hasPendingOutingLocation())
+        )
+          return;
       } catch {
         /* Safari may not expose Permissions API. */
       }

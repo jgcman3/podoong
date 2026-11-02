@@ -1,4 +1,5 @@
 'use client';
+import { requestOutingLocation } from './outing-location';
 import { formatCareDuration } from '@/lib/duration';
 import { QuickFieldTitle } from './quick-field-title';
 import { QuickTimeField } from './quick-time-field';
@@ -594,7 +595,14 @@ function QuickEditor({
   const durationNeeded =
     mode === 'record' && !sleepEditing && (feed || kind === 'sleep' || timed);
   return (
-    <form action={action} className="quick-editor-form" aria-label={title}>
+    <form
+      action={action}
+      onSubmit={() => {
+        if (outing && mode === 'start') void requestOutingLocation();
+      }}
+      className="quick-editor-form"
+      aria-label={title}
+    >
       <header
         className="quick-composer-heading"
         style={{ outline: 'none', boxShadow: 'none' }}

@@ -7057,6 +7057,19 @@ test('today location strip stays compact and is completely hidden when location 
  await page.setViewportSize({width:390,height:844});
  await context.grantPermissions(['geolocation']);
  await context.setGeolocation({latitude:37.545,longitude:126.98});
+ await page.addInitScript(()=>{
+   const original=navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);
+   Object.defineProperty(navigator.geolocation,'getCurrentPosition',{value:(success:PositionCallback,error?:PositionErrorCallback|null,options?:PositionOptions)=>{
+     (window as Window & {outingLocationRequested?:boolean}).outingLocationRequested=true;
+     original(success,error,options);
+   }});
+ });
+ await page.route('**/ko/today?*',async route=>{
+   if(route.request().method()==='POST' && route.request().headers()['next-action']) {
+     expect(await page.evaluate(()=>(window as Window & {outingLocationRequested?:boolean}).outingLocationRequested)).toBe(true);
+   }
+   await route.continue();
+ });
  let requests=0;
  await page.route('**/api/nearby', async route=>{
    requests++;
@@ -7070,6 +7083,7 @@ test('today location strip stays compact and is completely hidden when location 
  await page.getByRole('button',{name:'나들이',exact:true}).click();
  const editor=page.locator('.quick-editor-form');
  await expect(editor).toContainText('위치를 허용하면');
+ expect(await page.evaluate(()=>(window as Window & {outingLocationRequested?:boolean}).outingLocationRequested)).toBeUndefined();
  await page.screenshot({path:'test-results/outing-start-mobile.png',fullPage:false});
  await editor.getByRole('button',{name:'나들이 시작',exact:true}).click();
  await expect(page.locator('.today-nearby')).toContainText('미세먼지 좋음');
