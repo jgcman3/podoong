@@ -8619,3 +8619,46 @@ html[data-standalone] :is(input, select, textarea) {
   color: color-mix(in srgb, var(--care-ink) 80%, var(--ink));
   font-weight: 800;
 }
+
+/* Opt-in introductions share the community's compact, warm card layout. */
+.neighborhood-friends { display: grid; gap: .8rem; }
+.friend-introduction { margin: 0; }
+.friend-introduction summary { display:flex; align-items:center; justify-content:space-between; cursor:pointer; gap:.6rem; list-style:none; }
+.friend-introduction summary::-webkit-details-marker { display:none; }
+.friend-introduction summary > span { display:flex; align-items:center; gap:.5rem; font-weight:700; }
+.friend-introduction[open] summary { margin-bottom:1rem; }
+.friend-introduction[open] summary > svg { transform:rotate(90deg); }
+.friend-sharing-choice { display:flex; align-items:center; gap:.55rem; }
+.friend-sharing-choice input { width:18px; min-height:18px; height:18px; flex-shrink:0; }
+.friend-form-actions { display:flex; justify-content:flex-end; }
+.friend-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.8rem; }
+.friend-card { --friend-ink:#477ba5; --friend-tint:#eaf4fb; display:grid; grid-template-columns:64px minmax(0,1fr); align-items:center; gap:.8rem; padding:1.1rem; border:1px solid var(--line); border-radius:20px; background:var(--surface); }
+.friend-female { --friend-ink:#b16f88; --friend-tint:#faedf2; }
+.friend-face { display:grid; place-items:center; width:64px; height:64px; border-radius:24px; background:var(--friend-tint); color:var(--friend-ink); }
+.friend-identity { min-width:0; }
+.friend-identity h2 { margin:0 0 .3rem; font-size:.95rem; overflow-wrap:anywhere; }
+.friend-age { display:flex; gap:.5rem; align-items:center; font-size:.75rem; color:var(--muted); }
+.friend-age strong { color:var(--friend-ink); font-size:.8rem; }
+.friend-area { margin:.25rem 0 0; font-size:.7rem; color:var(--muted); overflow-wrap:anywhere; }
+.friend-status { grid-column:1 / -1; display:flex; align-items:flex-start; gap:.4rem; margin:0; padding:.65rem .8rem; border-radius:4px 14px 14px 14px; background:var(--friend-tint); font-size:.8rem; line-height:1.5; }
+.friend-status svg { margin-top:.15rem; flex-shrink:0; color:var(--friend-ink); }
+.friend-status span { min-width:0; overflow-wrap:anywhere; }
+.friend-empty { text-align:center; color:var(--muted); }
+.friend-empty > svg { margin-inline:.4rem; color:var(--brown); }
+:root[data-theme='dark'] .friend-card { --friend-ink:#9ec9ef; --friend-tint:#293b4e; }
+:root[data-theme='dark'] .friend-female { --friend-ink:#e6aec6; --friend-tint:#44313f; }
+@media(max-width:600px) {
+ .friend-grid { gap:.6rem; }
+ .friend-card { grid-template-columns:44px minmax(0,1fr); gap:.5rem; padding:.75rem; border-radius:16px; }
+ .friend-face { width:44px; height:44px; border-radius:17px; }
+ .friend-face svg { width:34px; height:34px; }
+ .friend-identity h2 { font-size:.8rem; }
+ .friend-age { gap:.3rem; flex-wrap:wrap; font-size:.65rem; }
+ .friend-age strong { font-size:.7rem; }
+ .friend-area { font-size:.6rem; }
+ .friend-status { padding:.5rem; font-size:.73rem; }
+ .parenting-tabs a { min-width:0; }
+}
+.friend-status span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+@media(max-width:359px) { .friend-grid { grid-template-columns:minmax(0,1fr); } }
+.friend-area { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

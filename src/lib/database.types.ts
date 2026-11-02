@@ -23,6 +23,27 @@ export type Database = {
           }
         },"public": {
           Tables: {
+"parenting_friend_profiles": {
+                  Row: {
+                    "child_id": string,"created_at": string,"enabled": boolean,"id": string,"nickname": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"created_at"?: string,"enabled"?: boolean,"id"?: string,"nickname": string,"status"?: string
+                  }
+                  Update: {
+                    "child_id"?: string,"created_at"?: string,"enabled"?: boolean,"id"?: string,"nickname"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_friend_profiles_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: true
+      referencedRelation: "children"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },
 "parenting_support": {
                   Row: {
                     "active": boolean,"agency": string,"agency_type": string,"application_period": string,"benefit": string,"collected_at": string,"eligibility": string,"id": string,"national": boolean,"region_terms": (string)[],"run_id": string,"source_updated": string,"summary": string,"title": string,"url": string
@@ -1404,6 +1425,14 @@ isOneToOne: false
                            },
 "dispatch_parenting_support":
 { Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"parenting_friends":
+{ Args: { "p_before"?: string,"p_before_id"?: string,"p_family": string,"p_place"?: string,"p_scope"?: string }; Returns: {
+              "age_days": number,"area_label": string,"created_at": string,"id": string,"nickname": string,"sex": string,"status": string
+            }[]
+                           },
+"save_parenting_friend":
+{ Args: { "p_child": string,"p_enabled": boolean,"p_nickname": string,"p_status": string }; Returns: undefined
                            },
 "parenting_feed": { Args: { p_family: string; p_scope?: string; p_category?: string; p_before?: string; p_place?: string; p_feature?: string; p_before_id?: string }; Returns: { area_label: string; body: string; category: string; created_at: string; id: string; mine: boolean; title: string }[] },
 "publish_parenting_support":

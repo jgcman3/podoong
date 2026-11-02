@@ -15,18 +15,20 @@ const areas = ['서울특별시', '서울특별시 강남구', '서울특별시 
 describe('parenting community', () => {
   it('keeps the requested category order', () =>
     expect(parentingCategories.map((v) => v[1])).toEqual([
+      '동네 친구들',
       '전체',
+      '소아과',
       '어린이집',
-      '놀이나들이',
+      '놀이-나들이',
       '육아용품',
-      '발달훈육',
-      '수유분유',
+      '발달-훈육',
+      '수유-분유',
       '출산준비물',
       '산후조리',
-      '건강증상',
+      '건강-증상',
       '유아식',
       '출산',
-      '이유식',
+      '여행',
     ]));
   it('handles municipality/district hierarchies and foreign same-name cities', () => {
     const kr = {

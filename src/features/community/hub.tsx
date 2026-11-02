@@ -7,7 +7,13 @@ import { residenceRegions } from '@/features/family/residence-regions';
 import { CommunityRegionPicker } from './region-picker';
 import { neighborhoodAction } from './neighborhood-actions';
 import { SupportList } from './support-list';
-import { homeArea, parentingCategories, regionScopes } from './options';
+import {
+  homeArea,
+  parentingCategories,
+  parentingTags,
+  regionScopes,
+} from './options';
+import { NeighborhoodFriends } from './friends';
 export type CommunityQuery = {
   child?: string;
   error?: string;
@@ -18,9 +24,9 @@ export type CommunityQuery = {
   place?: string;
 };
 const tabs = [
-  ['boards', '게시판', 'Board', MessagesSquare],
+  ['boards', '육아 소통', 'Parenting talk', MessagesSquare],
+  ['market', '나눔-중고 거래', 'Share & trade', ShoppingBag],
   ['support', '지원금', 'Support', Landmark],
-  ['market', '나눔장터', 'Marketplace', ShoppingBag],
 ] as const;
 export async function CommunityHub({
   context,
@@ -91,7 +97,7 @@ export async function CommunityHub({
     </>
   );
   const feed =
-    area === 'boards' || area === 'market'
+    (area === 'boards' && category !== 'friends') || area === 'market'
       ? await context.db.rpc('parenting_feed', {
           p_family: context.child.family_id,
           p_scope: scope,
@@ -157,7 +163,12 @@ export async function CommunityHub({
                 {parentingCategories.map(([id, k, e]) => (
                   <Link
                     key={id}
-                    href={href({ category: id, before: '' })}
+                    href={href({
+                      category: id,
+                      before: '',
+                      beforeId: '',
+                      ...(id === 'friends' ? { scope: 'district' } : {}),
+                    })}
                     aria-current={category === id ? 'page' : undefined}
                   >
                     {ko ? k : e}
@@ -191,87 +202,104 @@ export async function CommunityHub({
               </nav>
             </>
           )}
-          {!home.district ? (
-            <p className="panel">
-              {ko
-                ? '지역을 선택하면 이야기를 나눌 수 있어요.'
-                : 'Choose an area to join the conversation.'}
-            </p>
+          {area === 'boards' && category === 'friends' ? (
+            <NeighborhoodFriends
+              context={context}
+              locale={locale}
+              scope={scope}
+              place={place}
+              before={query.before}
+              beforeId={query.beforeId}
+            />
           ) : (
             <>
-              <details className="panel community-compose">
-                <summary>{ko ? '글쓰기' : 'Write a post'}</summary>
-                <form action={neighborhoodAction} className="form-stack">
-                  {hidden()}
-                  {area === 'boards' && (
-                    <label>
-                      {ko ? '카테고리' : 'Category'}
-                      <select
-                        name="category"
-                        defaultValue={
-                          category === 'all' ? 'childcare' : category
-                        }
-                      >
-                        {parentingCategories.slice(1).map(([id, k, e]) => (
-                          <option key={id} value={id}>
-                            {ko ? k : e}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  <label>
-                    {ko ? '제목' : 'Title'}
-                    <input name="title" required maxLength={100} />
-                  </label>
-                  <label>
-                    {ko ? '내용' : 'Content'}
-                    <textarea name="body" required maxLength={3000} />
-                  </label>
-                  <button className="button primary">
-                    {ko ? '등록' : 'Post'}
-                  </button>
-                </form>
-              </details>
-            </>
-          )}
-          {feed?.data?.length ? (
-            <div className="parenting-posts">
-              {feed.data.map((post) => (
-                <article className="panel" key={post.id}>
-                  <div className="small muted">
-                    {area === 'boards' && (
-                      <>
-                        {
-                          parentingCategories.find(
-                            ([id]) => id === post.category,
-                          )?.[ko ? 1 : 2]
-                        }{' '}
-                        ·{' '}
-                      </>
-                    )}
-                    {post.area_label}
-                  </div>
-                  <h2>{post.title}</h2>
-                  <p className="post-body">{post.body}</p>
-                </article>
-              ))}
-              {feed.data.length === 50 && (
-                <Link
-                  className="button secondary"
-                  href={href({
-                    before: feed.data.at(-1)!.created_at,
-                    beforeId: feed.data.at(-1)!.id,
-                  })}
-                >
-                  {ko ? '이전 이야기' : 'Older posts'}
-                </Link>
+              {!home.district ? (
+                <p className="panel">
+                  {ko
+                    ? '지역을 선택하면 이야기를 나눌 수 있어요.'
+                    : 'Choose an area to join the conversation.'}
+                </p>
+              ) : (
+                <>
+                  <details className="panel community-compose">
+                    <summary>{ko ? '글쓰기' : 'Write a post'}</summary>
+                    <form action={neighborhoodAction} className="form-stack">
+                      {hidden()}
+                      {area === 'boards' && (
+                        <label>
+                          {ko ? '태그' : 'Tag'}
+                          <select
+                            name="category"
+                            defaultValue={
+                              parentingTags.some(([id]) => id === category)
+                                ? category
+                                : 'childcare'
+                            }
+                          >
+                            {parentingTags.map(([id, k, e]) => (
+                              <option key={id} value={id}>
+                                {ko ? k : e}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      <label>
+                        {ko ? '제목' : 'Title'}
+                        <input name="title" required maxLength={100} />
+                      </label>
+                      <label>
+                        {ko ? '내용' : 'Content'}
+                        <textarea name="body" required maxLength={3000} />
+                      </label>
+                      <button className="button primary">
+                        {ko ? '등록' : 'Post'}
+                      </button>
+                    </form>
+                  </details>
+                </>
               )}
-            </div>
-          ) : (
-            <p className="panel">
-              {ko ? '아직 등록된 이야기가 없어요.' : 'No conversations yet.'}
-            </p>
+              {feed?.data?.length ? (
+                <div className="parenting-posts">
+                  {feed.data.map((post) => (
+                    <article className="panel" key={post.id}>
+                      <div className="small muted">
+                        {area === 'boards' && (
+                          <>
+                            {
+                              parentingCategories.find(
+                                ([id]) => id === post.category,
+                              )?.[ko ? 1 : 2]
+                            }{' '}
+                            ·{' '}
+                          </>
+                        )}
+                        {post.area_label}
+                      </div>
+                      <h2>{post.title}</h2>
+                      <p className="post-body">{post.body}</p>
+                    </article>
+                  ))}
+                  {feed.data.length === 50 && (
+                    <Link
+                      className="button secondary"
+                      href={href({
+                        before: feed.data.at(-1)!.created_at,
+                        beforeId: feed.data.at(-1)!.id,
+                      })}
+                    >
+                      {ko ? '이전 이야기' : 'Older posts'}
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <p className="panel">
+                  {ko
+                    ? '아직 등록된 이야기가 없어요.'
+                    : 'No conversations yet.'}
+                </p>
+              )}
+            </>
           )}
         </>
       )}
