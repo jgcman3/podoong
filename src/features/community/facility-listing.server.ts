@@ -9,7 +9,7 @@ import {
   facilityOrigin,
 } from './public-data.server';
 import { kidsCafeList } from './kids-cafes';
-import nursing from './data/nursing-rooms.json';
+import { nursingRoomsInArea } from './nursing-rooms';
 import { childcareList } from './childcare.server';
 
 export async function loadFacilityRows({
@@ -39,8 +39,7 @@ export async function loadFacilityRows({
       ? await facilityOrigin(referenceArea || area)
       : undefined;
   if (kind === 'nursing') {
-    rows = nursing.rooms
-      .filter((room) => !area || room.address.startsWith(area))
+    rows = nursingRoomsInArea(area)
       .filter((room) => query.diaper !== '1' || room.diaperTable)
       .map((room) => ({
         id: room.id,

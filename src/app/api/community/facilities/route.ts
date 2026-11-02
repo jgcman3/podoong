@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { loadCare } from '@/lib/data';
 import { residenceRegions } from '@/features/family/residence-regions';
 import { facilityKinds } from '@/features/community/facility-options';
+import { availableFacilityKinds } from '@/features/community/facility-availability.server';
 import { loadFacilityRows } from '@/features/community/facility-listing.server';
 
 const schema = z.object({
@@ -45,6 +46,8 @@ export async function GET(request: NextRequest) {
   const area = selected
     ? selected.fullName.split(' ').slice(0, -1).join(' ')
     : (context.family.residence_city ?? '');
+  if (!availableFacilityKinds(area).some(([kind]) => kind === input.kind))
+    return NextResponse.json({ ok: false }, { status: 404, headers });
   const referenceArea =
     selected?.fullName ??
     [context.family.residence_city, context.family.residence_locality]

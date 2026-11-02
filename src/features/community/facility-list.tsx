@@ -16,7 +16,7 @@ import { kidsCafeSources } from './kids-cafes';
 import nursing from './data/nursing-rooms.json';
 import type { CommunityQuery } from './hub';
 import { FacilityNavigationForm } from './facility-navigation-form';
-import { facilityKinds as kinds } from './facility-options';
+import { availableFacilityKinds } from './facility-availability.server';
 import { loadFacilityRows } from './facility-listing.server';
 import { FacilityFeed } from './facility-feed';
 import Link from 'next/link';
@@ -179,6 +179,7 @@ export async function FacilityList({
   query: CommunityQuery;
   referenceArea?: string;
 }) {
+  const kinds = availableFacilityKinds(area);
   const ko = locale === 'ko',
     kind = kinds.find(([id]) => id === query.kind)?.[0] ?? 'hospital';
   const medical = kind === 'hospital' || kind === 'pharmacy';
