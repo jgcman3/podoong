@@ -18,6 +18,7 @@ export const insightKinds = [
   'development',
   'daycare',
   'kindergarten',
+  'outing',
 ] as const;
 export type InsightKind = (typeof insightKinds)[number];
 export type Metric = {
@@ -103,6 +104,7 @@ export const metrics: Record<InsightKind, Metric[]> = {
   development: [count],
   daycare: [minutes, count],
   kindergarten: [minutes, count],
+  outing: [minutes, count],
 };
 const ko = [
   '모유',
@@ -123,6 +125,7 @@ const ko = [
   '발달',
   '어린이집',
   '유치원',
+  '나들이',
 ];
 const en = [
   'Breast',
@@ -143,6 +146,7 @@ const en = [
   'Development',
   'Daycare',
   'Kindergarten',
+  'Outing',
 ];
 export function kindName(kind: InsightKind, locale: Locale) {
   return (locale === 'ko' ? ko : en)[insightKinds.indexOf(kind)];

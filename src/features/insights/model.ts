@@ -278,8 +278,9 @@ export function aggregateWeek(
     ) {
       point(r.kind as InsightKind, at, {
         minutes:
-          ['daycare', 'kindergarten', 'play', 'tummy'].includes(r.kind) &&
-          r.ended_at
+          ['daycare', 'kindergarten', 'play', 'tummy', 'outing'].includes(
+            r.kind,
+          ) && r.ended_at
             ? Math.max(
                 0,
                 (Date.parse(r.ended_at) - Date.parse(r.occurred_at)) / 60000,

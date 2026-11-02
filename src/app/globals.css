@@ -8726,3 +8726,7 @@ html[data-standalone] :is(input, select, textarea) {
 
 .today-nearby-place > span:first-child > span {min-width:0;overflow:hidden;text-overflow:ellipsis;}
 .today-nearby-place svg {flex-shrink:0;}
+
+.quick-color-outing { --care-ink:#6b7b36; --care-bg:#f0f4e4; }
+:root[data-theme='dark'] .quick-color-outing { --care-ink:#c5d59b; --care-bg:#323c27; }
+.outing-start-help { margin:0; line-height:1.6; }

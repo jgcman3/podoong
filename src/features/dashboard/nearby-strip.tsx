@@ -20,13 +20,34 @@ const grades = {
 };
 let recent:
   { key: string; at: number; summary: NearbySummary | null } | undefined;
-export function NearbyStrip({ locale }: { locale: Locale }) {
+export function NearbyStrip({
+  locale,
+  childId,
+  enabled,
+}: {
+  locale: Locale;
+  childId: string;
+  enabled: boolean;
+}) {
+  return enabled ? (
+    <ActiveNearbyStrip key={childId} locale={locale} childId={childId} />
+  ) : null;
+}
+function ActiveNearbyStrip({
+  locale,
+  childId,
+}: {
+  locale: Locale;
+  childId: string;
+}) {
   const [summary, setSummary] = useState<NearbySummary | null>(null);
   useEffect(() => {
     if (!window.isSecureContext || !navigator.geolocation) return;
     let active = true,
       status: PermissionStatus | undefined;
     const controller = new AbortController();
+    let sequence = 0;
+    let refreshTimer: number | undefined;
     function permissionLost() {
       return status !== undefined && status.state !== 'granted';
     }
@@ -36,9 +57,11 @@ export function NearbyStrip({ locale }: { locale: Locale }) {
       controller.abort();
     }
     function locate() {
+      if (!active || document.hidden || controller.signal.aborted) return;
+      const current = ++sequence;
       navigator.geolocation.getCurrentPosition(
         async (position) => {
-          if (!active || permissionLost()) return;
+          if (!active || current !== sequence || permissionLost()) return;
           const key = `${Math.round(position.coords.latitude * 1000)},${Math.round(position.coords.longitude * 1000)}`;
           if (recent?.key === key && Date.now() - recent.at < 300000) {
             setSummary(recent.summary);
@@ -49,15 +72,24 @@ export function NearbyStrip({ locale }: { locale: Locale }) {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
+                childId,
                 lat: position.coords.latitude,
                 lon: position.coords.longitude,
               }),
               cache: 'no-store',
               signal: controller.signal,
             });
-            if (!response.ok) return;
+            if (!response.ok) {
+              if (response.status === 401 || response.status === 403) hide();
+              return;
+            }
             const data = await response.json();
-            if (active && !permissionLost() && data.ok) {
+            if (
+              active &&
+              current === sequence &&
+              !permissionLost() &&
+              data.ok
+            ) {
               recent = { key, at: Date.now(), summary: data.summary };
               setSummary(data.summary);
             }
@@ -66,9 +98,9 @@ export function NearbyStrip({ locale }: { locale: Locale }) {
           }
         },
         () => {
-          if (active) hide();
+          if (active && current === sequence) hide();
         },
-        { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 },
+        { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 },
       );
     }
     function changed() {
@@ -83,14 +115,20 @@ export function NearbyStrip({ locale }: { locale: Locale }) {
       } catch {
         /* Safari may not expose Permissions API. */
       }
-      if (active) locate();
+      if (active) {
+        locate();
+        refreshTimer = window.setInterval(locate, 300000);
+        document.addEventListener('visibilitychange', locate);
+      }
     })();
     return () => {
       active = false;
       controller.abort();
+      window.clearInterval(refreshTimer);
+      document.removeEventListener('visibilitychange', locate);
       status?.removeEventListener('change', changed);
     };
-  }, []);
+  }, [childId]);
   const ko = locale === 'ko';
   if (
     !summary ||

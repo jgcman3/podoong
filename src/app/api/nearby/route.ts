@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { nearbySummary } from '@/features/community/nearby.server';
 const schema = z
   .object({
+    childId: z.uuid(),
     lat: z.number().finite().min(33).max(39),
     lon: z.number().finite().min(124).max(132),
   })
@@ -31,8 +32,27 @@ export async function POST(request: NextRequest) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
     return NextResponse.json({ ok: false }, { status: 400, headers });
+  const active = await db
+    .from('child_records')
+    .select('id')
+    .eq('child_id', parsed.data.childId)
+    .eq('service', 'activity')
+    .eq('kind', 'outing')
+    .eq('timer_started', true)
+    .is('ended_at', null)
+    .lte('occurred_at', new Date().toISOString())
+    .limit(1)
+    .maybeSingle();
+  if (active.error || !active.data)
+    return NextResponse.json({ ok: false }, { status: 403, headers });
   return NextResponse.json(
-    { ok: true, summary: await nearbySummary(parsed.data) },
+    {
+      ok: true,
+      summary: await nearbySummary({
+        lat: parsed.data.lat,
+        lon: parsed.data.lon,
+      }),
+    },
     { headers },
   );
 }

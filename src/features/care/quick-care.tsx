@@ -208,11 +208,15 @@ export function QuickCare({
                     <div>
                       <strong>
                         {labels[kind]} ·{' '}
-                        {['daycare', 'kindergarten'].includes(kind)
+                        {kind === 'outing'
                           ? locale === 'ko'
-                            ? '머무는 중'
-                            : 'Attending'
-                          : c.running}
+                            ? '진행 중'
+                            : 'In progress'
+                          : ['daycare', 'kindergarten'].includes(kind)
+                            ? locale === 'ko'
+                              ? '머무는 중'
+                              : 'Attending'
+                            : c.running}
                       </strong>
                       <Timer
                         start={e.startedAt}
@@ -227,13 +231,17 @@ export function QuickCare({
                         onClick={() => open(kind, e)}
                       >
                         <Square size={13} />
-                        {['daycare', 'kindergarten'].includes(e.kind)
+                        {kind === 'outing'
                           ? locale === 'ko'
-                            ? '귀가'
-                            : 'Finish'
-                          : e.service === 'sleep'
-                            ? c.sleepStop
-                            : c.stop}
+                            ? '나들이 종료'
+                            : 'End outing'
+                          : ['daycare', 'kindergarten'].includes(e.kind)
+                            ? locale === 'ko'
+                              ? '귀가'
+                              : 'Finish'
+                            : e.service === 'sleep'
+                              ? c.sleepStop
+                              : c.stop}
                       </button>
                     ) : null}
                   </div>
@@ -487,7 +495,8 @@ function QuickEditor({
     kind as (typeof activityKinds)[number],
   );
   const childcare = kind === 'daycare' || kind === 'kindergarten';
-  const timedActivity = kind === 'play' || kind === 'tummy';
+  const outing = kind === 'outing';
+  const timedActivity = kind === 'play' || kind === 'tummy' || outing;
   const timed = childcare || timedActivity;
   const sleepEditing = kind === 'sleep' && Boolean(active?.endedAt);
   const diaper = kind === 'diaper' || kind === 'stool';
@@ -580,7 +589,8 @@ function QuickEditor({
         localDateInput(new Date(currentTime - value * 60000).toISOString()),
       );
   };
-  const durationRequired = kind === 'breast' || kind === 'sleep' || childcare;
+  const durationRequired =
+    kind === 'breast' || kind === 'sleep' || childcare || outing;
   const durationNeeded =
     mode === 'record' && !sleepEditing && (feed || kind === 'sleep' || timed);
   return (
@@ -654,7 +664,13 @@ function QuickEditor({
         {mode === 'stop' ? (
           <div className="quick-stop-view">
             <span className="quick-live-dot" />
-            <p>{c.running}</p>
+            <p>
+              {outing
+                ? locale === 'ko'
+                  ? '나들이 중'
+                  : 'Out and about'
+                : c.running}
+            </p>
             <Timer start={active!.startedAt} showSeconds={kind !== 'sleep'} />
             <p className="small muted">{c.shared}</p>
           </div>
@@ -674,25 +690,33 @@ function QuickEditor({
                         setStart(localDateInput(new Date().toISOString()));
                     }}
                   >
-                    {childcare
+                    {outing
                       ? value === 'start'
                         ? locale === 'ko'
-                          ? '지금 등원해요'
-                          : 'Starting now'
+                          ? '지금 나가요'
+                          : 'Going out now'
                         : locale === 'ko'
-                          ? '귀가했어요'
+                          ? '다녀왔어요'
                           : 'Already back'
-                      : value === 'start'
-                        ? kind === 'sleep'
-                          ? c.sleepNow
-                          : c.startNow
-                        : kind === 'sleep'
-                          ? c.recordSleep
-                          : timedActivity
-                            ? locale === 'ko'
-                              ? '이미 마쳤어요'
-                              : 'Already finished'
-                            : c.recordAfter}
+                      : childcare
+                        ? value === 'start'
+                          ? locale === 'ko'
+                            ? '지금 등원해요'
+                            : 'Starting now'
+                          : locale === 'ko'
+                            ? '귀가했어요'
+                            : 'Already back'
+                        : value === 'start'
+                          ? kind === 'sleep'
+                            ? c.sleepNow
+                            : c.startNow
+                          : kind === 'sleep'
+                            ? c.recordSleep
+                            : timedActivity
+                              ? locale === 'ko'
+                                ? '이미 마쳤어요'
+                                : 'Already finished'
+                              : c.recordAfter}
                   </button>
                 ))}
               </div>
@@ -761,9 +785,24 @@ function QuickEditor({
                 <span>
                   <Icon size={42} />
                 </span>
-                <p>{kind === 'sleep' ? c.sleepNow : c.startNow}</p>
+                <p>
+                  {outing
+                    ? locale === 'ko'
+                      ? '나들이를 시작해요'
+                      : 'Start an outing'
+                    : kind === 'sleep'
+                      ? c.sleepNow
+                      : c.startNow}
+                </p>
                 <strong>{clock}</strong>
               </div>
+            )}
+            {outing && !active && mode === 'start' && (
+              <p className="small muted outing-start-help">
+                {locale === 'ko'
+                  ? '위치를 허용하면 나들이 중에 날씨·미세먼지와 가까운 소아과·약국·기저귀 교환 장소를 볼 수 있어요.'
+                  : 'Allow location to see weather, air quality, and nearby pediatric care, pharmacies, and changing tables during your outing.'}
+              </p>
             )}
             {durationNeeded && (
               <fieldset
@@ -771,27 +810,33 @@ function QuickEditor({
               >
                 <legend>
                   <QuickFieldTitle>
-                    {childcare
+                    {outing
                       ? locale === 'ko'
-                        ? '머문 시간'
-                        : 'Time spent'
-                      : kind === 'sleep'
-                        ? c.sleepDuration
-                        : timedActivity
-                          ? locale === 'ko'
-                            ? '소요 시간 (선택)'
-                            : 'Duration (optional)'
-                          : c.duration}
+                        ? '나들이 시간'
+                        : 'Outing duration'
+                      : childcare
+                        ? locale === 'ko'
+                          ? '머문 시간'
+                          : 'Time spent'
+                        : kind === 'sleep'
+                          ? c.sleepDuration
+                          : timedActivity
+                            ? locale === 'ko'
+                              ? '소요 시간 (선택)'
+                              : 'Duration (optional)'
+                            : c.duration}
                   </QuickFieldTitle>
                 </legend>
                 <div className="quick-choices">
-                  {(timedActivity
-                    ? [3, 5, 10, 15, 20, 30, 60]
-                    : childcare
-                      ? [60, 120, 180, 240, 300, 360, 480]
-                      : kind === 'sleep'
-                        ? [30, 60, 90, 120, 480, 600, 720]
-                        : [5, 10, 15, 20, 30, 45, 60]
+                  {(outing
+                    ? [30, 60, 90, 120, 180, 240, 360]
+                    : timedActivity
+                      ? [3, 5, 10, 15, 20, 30, 60]
+                      : childcare
+                        ? [60, 120, 180, 240, 300, 360, 480]
+                        : kind === 'sleep'
+                          ? [30, 60, 90, 120, 480, 600, 720]
+                          : [5, 10, 15, 20, 30, 45, 60]
                   ).map((value) => (
                     <button
                       type="button"
@@ -803,7 +848,9 @@ function QuickEditor({
                         else changeDuration(value, Date.now());
                       }}
                     >
-                      {kind === 'sleep' && value >= 60 && value % 60 === 0
+                      {(kind === 'sleep' || outing) &&
+                      value >= 60 &&
+                      value % 60 === 0
                         ? `${value / 60}${locale === 'ko' ? '시간' : 'h'}`
                         : `${value}${c.minutes}`}
                     </button>
@@ -1011,13 +1058,21 @@ function QuickEditor({
           <span>
             {pending
               ? c.saving
-              : mode === 'stop'
-                ? kind === 'sleep'
-                  ? c.sleepStop
-                  : c.stop
-                : mode === 'start'
-                  ? c.start
-                  : c.save}
+              : outing && mode !== 'record'
+                ? mode === 'start'
+                  ? locale === 'ko'
+                    ? '나들이 시작'
+                    : 'Start outing'
+                  : locale === 'ko'
+                    ? '나들이 종료'
+                    : 'End outing'
+                : mode === 'stop'
+                  ? kind === 'sleep'
+                    ? c.sleepStop
+                    : c.stop
+                  : mode === 'start'
+                    ? c.start
+                    : c.save}
           </span>
         </button>
       </footer>

@@ -257,3 +257,25 @@ it('shows sleep timers at hour and minute precision without seconds', () => {
   expect(markup).toContain('00:00');
   expect(markup).not.toContain('00:00:00');
 });
+
+it('keeps a running outing across dates and stops it from its stored end time', () => {
+  const record = {
+    id: 'outing',
+    service: 'activity',
+    kind: 'outing',
+    occurred_at: '2026-11-01T23:30:00Z',
+    ended_at: null,
+    timer_started: true,
+    version: 1,
+    title: '',
+  } as Row<'child_records'>;
+  const running = quickTimeline([], [record]);
+  expect(running[0].running).toBe(true);
+  expect(todayEntries(running, '2026-11-02', 'UTC')).toHaveLength(1);
+  const finished = quickTimeline(
+    [],
+    [{ ...record, ended_at: '2026-11-02T00:50:00Z', version: 2 }],
+  );
+  expect(finished[0].running).toBe(false);
+  expect(durationMinutes(finished[0])).toBe(80);
+});

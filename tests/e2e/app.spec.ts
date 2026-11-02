@@ -480,7 +480,7 @@ test('calendar loads the whole selected month and Today groups all care shortcut
   );
   await page.goto(`/ko/today?child=${child}`);
   await expect(page.locator('.events-panel .calendar-event')).toHaveCount(0);
-  await expect(page.locator('.quick-grid > *')).toHaveCount(19);
+  await expect(page.locator('.quick-grid > *')).toHaveCount(20);
   for (const label of ['수면', '기저귀', '배변'])
     await expect(page.locator('.quick-grid').getByRole('button', { name: label, exact: true })).toBeVisible();
   await page.locator('.quick-grid').getByRole('button', { name: '수면', exact: true }).click();
@@ -2074,7 +2074,7 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
     const readerPage = await readerContext.newPage();
     await readerPage.goto(`/en/today?child=${child}`);
     await expect(readerPage.locator('.quick-grid button:disabled')).toHaveCount(
-      19,
+      20,
     );
     await expect(readerPage.locator('.quick-grid a')).toHaveCount(0);
     await expect(
@@ -2287,6 +2287,7 @@ test('daily care picker scrolls by mouse drag and saves the new health and activ
     '기저귀',
     '배변',
     '수면',
+    '나들이',
     '목욕',
     '병원',
     '예방접종',
@@ -5146,6 +5147,7 @@ test('today and insights share mobile activity order, geometry and native draggi
     '기저귀',
     '배변',
     '수면',
+    '나들이',
     '목욕',
     '병원',
     '예방접종',
@@ -7052,6 +7054,7 @@ test('local facilities navigation is only available for families with Korea sele
 
 test('today location strip stays compact and is completely hidden when location is denied', async ({page,context}) => {
  const home=await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
  await context.grantPermissions(['geolocation']);
  await context.setGeolocation({latitude:37.545,longitude:126.98});
  let requests=0;
@@ -7062,6 +7065,13 @@ test('today location strip stays compact and is completely hidden when location 
    await route.fulfill({json:{ok:true,summary:{temperature:18,condition:'clear',dust:'good',station:'용산구',hospital:{id:'fixture-hospital',name:'소아청소년과',address:'서울특별시 용산구',distanceKm:.3},pharmacy:{id:'fixture-pharmacy',name:'약국',address:'서울특별시 용산구',distanceKm:.2},diaper:{id:'fixture-diaper',name:'기저귀 교환 장소',address:'서울특별시 용산구',distanceKm:.1}}}});
  });
  await page.goto(`/ko/today?child=${home.child}`);
+ await expect(page.locator('.today-nearby')).toHaveCount(0);
+ expect(requests).toBe(0);
+ await page.getByRole('button',{name:'나들이',exact:true}).click();
+ const editor=page.locator('.quick-editor-form');
+ await expect(editor).toContainText('위치를 허용하면');
+ await page.screenshot({path:'test-results/outing-start-mobile.png',fullPage:false});
+ await editor.getByRole('button',{name:'나들이 시작',exact:true}).click();
  await expect(page.locator('.today-nearby')).toContainText('미세먼지 좋음');
  for(const width of [320,390,1280]) {
    await page.setViewportSize({width,height:844});
@@ -7070,11 +7080,25 @@ test('today location strip stays compact and is completely hidden when location 
    expect(await strip.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
  }
  expect(requests).toBe(1);
+ await page.locator('.quick-running-list').getByRole('button',{name:'나들이 종료',exact:true}).click();
+ await page.locator('.quick-editor-form').getByRole('button',{name:'나들이 종료',exact:true}).click();
+ await expect(page.locator('.today-nearby')).toHaveCount(0);
+ await page.getByRole('button',{name:'나들이',exact:true}).click();
+ await editor.getByRole('button',{name:'다녀왔어요',exact:true}).click();
+ await editor.getByRole('button',{name:'1시간',exact:true}).click();
+ await editor.getByRole('button',{name:'저장하기',exact:true}).click();
+ await expect(editor).toHaveCount(0);
+ await expect(page.locator('.today-nearby')).toHaveCount(0);
+ expect(requests).toBe(1);
+ await page.getByRole('button',{name:'나들이',exact:true}).click();
+ await editor.getByRole('button',{name:'나들이 시작',exact:true}).click();
+ await expect(page.locator('.today-nearby')).toBeVisible();
+ const beforeDenial=requests;
  await page.addInitScript(()=>{
    Object.defineProperty(navigator,'geolocation',{value:{getCurrentPosition(_success:unknown,error:(error:{code:number})=>void){error({code:1});}}});
  });
  await page.reload();
  await expect(page.locator('.today-nearby')).toHaveCount(0);
  await page.waitForTimeout(500);
- expect(requests).toBe(1);
+ expect(requests).toBe(beforeDenial);
 });

@@ -13,7 +13,10 @@ function title(kind: Statistic['kind'], locale: Locale) {
       ? ko
         ? '총시간'
         : 'Total duration'
-      : kind === 'breast' || kind === 'play' || kind === 'tummy'
+      : kind === 'breast' ||
+          kind === 'play' ||
+          kind === 'tummy' ||
+          kind === 'outing'
         ? ko
           ? '시간'
           : 'Duration'

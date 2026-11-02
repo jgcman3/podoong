@@ -345,3 +345,17 @@ describe('timed play insights', () => {
     ).toEqual([2.5]);
   });
 });
+
+it('counts completed outing time while preserving unknown duration for a running outing', () => {
+  const input = empty();
+  input.children = [
+    child('outing', '2026-10-28T03:00:00Z', {
+      kind: 'outing',
+      ended_at: '2026-10-28T04:20:00Z',
+    }),
+    child('active-outing', '2026-10-29T03:00:00Z', { kind: 'outing' }),
+  ];
+  const category = aggregateWeek(input, start, 'Asia/Seoul', now).categories
+    .outing;
+  expect(weekValue(category, metrics.outing[0])).toBe(80);
+});

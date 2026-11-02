@@ -8,6 +8,7 @@ const amount = (max: number) =>
 export const activityKinds = [
   'gift',
   'allowance',
+  'outing',
   'daycare',
   'kindergarten',
   'bath',
