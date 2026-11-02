@@ -27,7 +27,7 @@ export function FacilityNavigationForm({
     );
     const query = new URLSearchParams();
     for (const [name, value] of values)
-      if (typeof value === 'string') query.append(name, value);
+      if (typeof value === 'string') query.set(name, value);
     startTransition(() => router.replace(`${action}?${query}`));
   }
   return (

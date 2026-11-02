@@ -10,6 +10,7 @@ import {
   facilityOrigin,
 } from './public-data.server';
 import nursing from './data/nursing-rooms.json';
+import { childcareList } from './childcare.server';
 
 export async function loadFacilityRows({
   kind,
@@ -24,7 +25,7 @@ export async function loadFacilityRows({
   referenceArea?: string;
   locale: Locale;
   page?: number;
-  query?: { open?: string; diaper?: string };
+  query?: { open?: string; diaper?: string; specialty?: string };
 }) {
   const ko = locale === 'ko';
   let rows: Facility[] = [],
@@ -72,6 +73,7 @@ export async function loadFacilityRows({
       const result = await medicalResults(kind, area, page, {
         origin: origin?.coordinates,
         openOnly: query.open === '1',
+        specialty: query.specialty === 'all' ? 'all' : 'pediatrics',
       });
       rows = result.facilities;
       total = result.total;
@@ -91,9 +93,11 @@ export async function loadFacilityRows({
     } catch {
       unavailable = true;
     }
-  } else if (kind === 'kindergarten' && area) {
+  } else if ((kind === 'kindergarten' || kind === 'daycare') && area) {
     try {
-      const result = await kindergartenList(area);
+      const result = await (kind === 'daycare'
+        ? childcareList(area)
+        : kindergartenList(area));
       const ranked = nearbyFacilities(result.facilities, origin?.coordinates);
       total = ranked.length;
       rows = ranked.slice((page - 1) * 10, page * 10);

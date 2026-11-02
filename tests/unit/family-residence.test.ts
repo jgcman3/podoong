@@ -7,7 +7,7 @@ const base = {
   version: '0',
 };
 describe('family residence selection', () => {
-  it('accepts country-only residence and rejects unknown or mismatched country codes', () => {
+  it('accepts valid overseas countries and rejects unknown or mismatched country codes', () => {
     expect(
       residenceSchema.safeParse({ ...base, countryCode: 'US', regionCode: '' })
         .success,
@@ -24,13 +24,17 @@ describe('family residence selection', () => {
       }).success,
     ).toBe(false);
   });
-  it('accepts a legal locality code or explicit removal, never a label', () => {
+  it('requires a Korean locality and rejects residence removal or invalid labels', () => {
     expect(
       residenceSchema.safeParse({ ...base, regionCode: '1168010100' }).success,
     ).toBe(true);
     expect(residenceSchema.safeParse({ ...base, regionCode: '' }).success).toBe(
-      true,
+      false,
     );
+    expect(
+      residenceSchema.safeParse({ ...base, countryCode: '', regionCode: '' })
+        .success,
+    ).toBe(false);
     for (const regionCode of [
       '역삼동',
       '116801010',

@@ -42,6 +42,10 @@ export async function Shell({
 }) {
   const t = await getTranslations();
   const { child, children: all, profile, today } = context;
+  const visibleNavigation = navigation.filter(
+    ([key]) =>
+      key !== 'facilities' || context.family.residence_country_code === 'KR',
+  );
   const date = new Intl.DateTimeFormat(locale === 'ko' ? 'ko-KR' : 'en-US', {
     dateStyle: 'full',
     timeZone: 'UTC',
@@ -85,7 +89,7 @@ export async function Shell({
         </Link>
         <p className="brand-tagline">{t('tagline')}</p>
         <nav aria-label={locale === 'ko' ? '주 메뉴' : 'Main navigation'}>
-          {navigation.map(([key, Icon]) => (
+          {visibleNavigation.map(([key, Icon]) => (
             <Link
               key={key}
               prefetch={key !== 'facilities'}
@@ -187,7 +191,7 @@ export async function Shell({
         className="mobile-nav"
         aria-label={locale === 'ko' ? '주 메뉴' : 'Main navigation'}
       >
-        {navigation.map(([key, Icon]) => (
+        {visibleNavigation.map(([key, Icon]) => (
           <Link
             key={key}
             prefetch={key !== 'facilities'}

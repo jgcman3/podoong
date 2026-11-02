@@ -187,8 +187,6 @@
   "residenceKorea": "South Korea · Korean regions",
   "residenceChoose": "Choose a region",
   "residenceSelectHelp": "Choose a legal locality. Only your neighborhood is saved, without a street address.",
-  "residenceRemove": "Remove residence",
-  "residenceRemovalPending": "Save to remove the registered residence.",
   "growthDiary": "Growth diary",
   "birthDateMissing": "Add a date of birth"
 }

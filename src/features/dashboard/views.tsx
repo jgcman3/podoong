@@ -805,6 +805,10 @@ export async function ChildAccount({
             <ChevronRight size={16} />
           </summary>
           <div className="account-service-links">
+            <Link href={`/${locale}/intro`} prefetch={false}>
+              <span>{ko ? '서비스 소개' : 'About podoong'}</span>
+              <ChevronRight size={16} />
+            </Link>
             {serviceAdmin.data && (
               <Link href={`/${locale}/admin`} prefetch={false}>
                 <span>{ko ? '관리자 사이트' : 'Admin site'}</span>

@@ -17,6 +17,7 @@ import {
 import type { Facility, Coordinates } from './public-data';
 
 export type MedicalKind = 'hospital' | 'pharmacy';
+export type MedicalSpecialty = 'pediatrics' | 'all';
 export const hasPublicDataKey = () =>
   Boolean(process.env.DATA_SERVICE_KEY || process.env.PUBLIC_DATA_SERVICE_KEY);
 
@@ -65,7 +66,12 @@ const medicalDetail = unstable_cache(
 
 // Only approved administrative area names enter the cache. Never patient/family IDs.
 export const medicalList = unstable_cache(
-  async (kind: MedicalKind, district: string, page: number) => {
+  async (
+    kind: MedicalKind,
+    district: string,
+    page: number,
+    specialty: MedicalSpecialty = 'all',
+  ) => {
     const [province, ...rest] = district.split(' ');
     if (!province || !rest.length) throw new Error('district-required');
     const path = kind === 'hospital' ? 'MdcncListInfoInqire' : 'ListInfoInqire';
@@ -73,6 +79,9 @@ export const medicalList = unstable_cache(
       await request(`${medicalPaths[kind]}${path}`, {
         Q0: province,
         Q1: rest.join(' '),
+        ...(kind === 'hospital' && specialty === 'pediatrics'
+          ? { QD: 'D002' }
+          : {}),
         _type: 'json',
         pageNo: String(page),
         numOfRows: '500',
@@ -84,7 +93,7 @@ export const medicalList = unstable_cache(
       checkedAt: new Date().toISOString(),
     };
   },
-  ['medical-list-v2'],
+  ['medical-list-v3'],
   { revalidate: 86400 },
 );
 
@@ -113,12 +122,18 @@ export async function medicalResults(
   kind: MedicalKind,
   district: string,
   page: number,
-  options: { origin?: Coordinates; openOnly?: boolean } = {},
+  options: {
+    origin?: Coordinates;
+    openOnly?: boolean;
+    specialty?: MedicalSpecialty;
+  } = {},
 ) {
   const now = new Date(),
     today = seoulTime(now);
+  const specialty =
+    kind === 'hospital' ? (options.specialty ?? 'pediatrics') : 'all';
   const [first, holidays] = await Promise.all([
-    medicalList(kind, district, 1),
+    medicalList(kind, district, 1, specialty),
     holidayMonth(today.date.slice(0, 6)).catch(() => null),
   ]);
   const holiday = holidays ? holidays.includes(today.date) : null;
@@ -128,7 +143,7 @@ export async function medicalResults(
   for (let start = 2; start <= pages; start += 4) {
     const group = await Promise.all(
       Array.from({ length: Math.min(4, pages - start + 1) }, (_, i) =>
-        medicalList(kind, district, start + i),
+        medicalList(kind, district, start + i, specialty),
       ),
     );
     for (const result of group) {

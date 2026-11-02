@@ -8503,8 +8503,8 @@ html[data-standalone] :is(input, select, textarea) {
 .community-region-form button { grid-column: 1/-1; justify-self: end; }
 
 /* Public facilities share the compact community cards; no embedded map SDK. */
-.facility-browser { display: grid; gap: .65rem; }
-.facility-kinds { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-block: .25rem; }
+.facility-browser { display: grid; gap: .2rem; }
+.facility-kinds { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-block: 0; }
 .facility-kinds::-webkit-scrollbar { display: none; }
 .facility-kinds button { flex: 0 0 auto; white-space: nowrap; }
 .facility-kinds button[aria-pressed="true"] { color: var(--brown); background: var(--bg); }
@@ -8627,9 +8627,9 @@ html[data-standalone] :is(input, select, textarea) {
   .weather-metric > small { grid-column: 1 / -1; grid-row: 3; text-align: center; }
 }
 
-.facility-list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-.facility-list-toolbar > p { min-width: 0; flex: 1; margin: 0; }
-.facility-list-toolbar .facility-filters { flex: 0 0 auto; }
+.facility-list-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; gap: .5rem; }
+.facility-list-toolbar > p { min-width: 0; margin: 0; }
+.facility-list-toolbar .facility-filters { grid-column: 2; grid-row: 1; justify-self: end; width: auto; margin: 0; flex-wrap: nowrap; }
 .facility-list-toolbar .facility-filters label { min-height: 44px; cursor: pointer; white-space: nowrap; }
 .facility-load-more { min-height: 8px; display: flex; align-items: center; justify-content: center; gap: .4rem; font-size: .8rem; color: var(--muted); padding-block: .4rem; }
 .facility-load-more:empty { padding: 0; }

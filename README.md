@@ -47,6 +47,87 @@ NEXT_PUBLIC_SITE_URL=http://your-mac.local:3187 npm run dev:lan
 
 공식 안내: [Next.js 실행 호스트](https://nextjs.org/docs/app/api-reference/cli/next), [Supabase 로그인 복귀 주소](https://supabase.com/docs/guides/auth/redirect-urls).
 
+## API 키와 비밀값 저장 위치
+
+확인일: 2026-11-02. API 호출에 필요한 키는 **호출하는 서버**에, 배포 인증값은 **GitHub Actions**에 보관합니다. GitHub를 모든 API 키의 원본으로 삼아 자동 동기화하는 구조는 사용하지 않습니다. 아래에는 이름과 저장 위치만 기록하며 실제 값은 기록하지 않습니다.
+
+### 원격 실행 환경
+
+| 용도 | 변수 이름 | 저장 위치 | 사용처 |
+| --- | --- | --- | --- |
+| 공공데이터 공통 키 | `DATA_SERVICE_KEY` | Vercel → podoong → Settings → Environment Variables | 병원·약국·공휴일·날씨·미세먼지·놀이시설의 서버 조회 |
+| 유치원 | `KINDERGARTEN_API_KEY` | 위 Vercel 환경변수 | 유치원알리미 조회 |
+| 어린이집 전국 목록 | `CHILDCARE_API_KEY` | 위 Vercel 환경변수 | `cpmsapi021` 전용. 개별 기본정보 API와 키를 혼용하지 않음 |
+| 어린이집 개별 기본정보 | `CHILDCARE_DETAIL_API_KEY` | 위 Vercel 환경변수 | `cpmsapi030` 전용. 2026-11-02 운영계정용 키로 실제 정보·좌표 조회 확인 |
+| 주소 좌표 보완(선택) | `KAKAO_REST_API_KEY` | 위 Vercel 환경변수 | 동네 수준의 주소 좌표 조회. 단말 GPS를 사용하지 않음 |
+| 놀이시설 별도 키(선택) | `PLAYGROUND_API_KEY` | 위 Vercel 환경변수 | 별도 키 발급 시 공통 키보다 우선 사용 |
+| Next.js 서버의 DB 관리자 작업 | `SUPABASE_SERVICE_ROLE_KEY` 또는 `SUPABASE_SECRET_KEY` | 위 Vercel 환경변수 | 비공개 사진·공유·계정 삭제 등 서버 작업. 해당 환경의 DB 키만 사용 |
+| 정부·지역 지원금 수집 | `GOV24_SERVICE_KEY` | 해당 Supabase 프로젝트 → Edge Functions → Secrets | `parenting-support` 정기 수집. 공통 인증키와 같은 값 사용 가능 |
+| 지원금 작업 호출 인증 | `SUPPORT_WORKER_TOKEN` | Supabase Edge Function Secrets와 해당 프로젝트 Vault | Cron이 수집 함수를 호출할 때 검증 |
+| 웹 푸시 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY` | 해당 Supabase 프로젝트 → Edge Functions → Secrets | `feeding-push`. 비밀키는 브라우저에 전달하지 않음 |
+
+- **개발:** Vercel `Preview`, Git branch `develop` → `dev.podoong.com` → 개발 Supabase `aacmsohijybjiyidfzgy`.
+- **운영:** Vercel `Production` → `podoong.com` → 운영 Supabase `atdyjsxfxlhwxmxgtnte`. 개발 키를 운영에 자동 복사하지 않습니다.
+- 2026-11-02 개발 Vercel 등록 확인: `DATA_SERVICE_KEY`, `KINDERGARTEN_API_KEY`, `CHILDCARE_API_KEY`, `CHILDCARE_DETAIL_API_KEY`. 어린이집 두 키는 운영계정용 키로 교체했습니다. 포털의 운영계정용 키와 포둥의 운영 배포 환경은 서로 다릅니다. 이번에는 개발 Vercel과 로컬만 갱신했으며 어린이집 화면 조회도 지역별 공유 캐시와 연결했습니다.
+- Vercel 환경변수를 변경하면 **다음 배포부터** 반영됩니다. Supabase Edge Function Secrets는 별도의 저장소이며 Vercel과 자동 공유되지 않습니다.
+- 일반 공공데이터 키를 Vercel에는 `DATA_SERVICE_KEY`, 지원금 함수에는 `GOV24_SERVICE_KEY`라는 이름으로 저장합니다. 로컬 비공개 파일의 `GOV24_SERVICE_KEY`는 다른 키로 덮어쓸 때만 필요하며, 비어 있으면 설정 스크립트가 `PUBLIC_DATA_SERVICE_KEY`를 사용합니다.
+- Kakao 등 소셜 로그인 제공자의 client secret은 **각 Supabase 프로젝트 → Authentication → Sign In / Providers**에서 관리합니다.
+
+### GitHub 배포 인증
+
+| 저장 위치 | 이름 | 역할 |
+| --- | --- | --- |
+| 저장소 Settings → Secrets and variables → Actions → Repository secrets | `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN` | 배포 CLI 인증. 공공데이터 API 키를 여기에 중복 보관하지 않음 |
+| 저장소 Settings → Environments → `development` / `production` → Environment secrets | `SUPABASE_SERVICE_ROLE_KEY` | 각 환경의 배포·작업 설정에 필요한 프로젝트별 서버 키 |
+| 같은 GitHub 환경의 Variables | `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `SUPABASE_PROJECT_REF`, `PODUNG_PRODUCTION_PROJECT_REF` | 대상 프로젝트 식별과 개발·운영 경계 검증. 비밀값이 아닌 설정 |
+
+배포 워크플로는 선택된 GitHub 환경의 값을 읽습니다. 새 API 키를 GitHub에 입력했다고 Vercel이나 Supabase에 반영되지는 않습니다. 배포 절차는 [개발·운영 배포 문서](docs/operations/launch-and-release.md)를 참고합니다.
+
+### 로컬 파일과 키 변경 절차
+
+- `.secrets/development-public-data.env`: 개발 공공 API 키의 로컬 보관 파일. 파일 전체를 원격에 업로드하지 않습니다.
+- `.secrets/development-app.env`, `.secrets/production-app.env`: 환경별 앱·DB 연결 설정의 로컬 보관 파일.
+- `.secrets/development-push.env`: 개발 알림 설정의 로컬 보관 파일.
+- `.env.local`: 로컬 Next.js가 실제 읽는 파일. 현재 공통 키의 `PUBLIC_DATA_SERVICE_KEY` 이름도 호환하며, 어린이집 두 키를 포함해 필요한 값을 여기에 반영합니다.
+- 이 파일들은 모두 Git에서 제외합니다. `.secrets`를 수정하는 것만으로 `.env.local`, Vercel, Supabase 또는 GitHub가 갱신되지 않습니다. 키가 들어 있는 파일은 소유자만 읽고 쓰도록 보관합니다.
+
+키 변경 시 **환경과 사용처 확인 → 해당 서버의 Secret 변경 → 로컬에서도 사용하면 `.env.local` 반영 → 필요한 재배포/서버 재시작 → 값 노출 없이 실제 요청 확인** 순서로 진행합니다. 운영·개발 프로젝트를 함께 변경하지 않습니다.
+
+### 키 유효기간과 갱신 일정
+
+관리 기준일: **2026-11-02**. 아래의 어린이집 날짜는 사용자 요청에 따라 오늘부터 1년으로 정한 관리 일정입니다. 발급 포털의 실제 이용 종료일이 다르면 **포털 날짜를 우선**하고 이 표를 수정합니다. 다른 키의 만료일을 어린이집과 동일하게 추정하지 않습니다. 이 표의 점검일은 문서상 일정이며 별도 예약 알림은 아직 없습니다.
+
+| 대상 | 유효기간·확인 상태 | 다음 갱신·점검 | 변경 위치와 절차 |
+| --- | --- | --- | --- |
+| `CHILDCARE_API_KEY` (`cpmsapi021`) | 운영계정 이용기간 12개월. 기준일 `2026-11-02` → 갱신 예정일 **`2027-11-02`** | **`2027-10-03`**부터 연장 확인, **`2027-10-26`** 최종 확인 | 어린이집정보공개포털 → 마이페이지 → 해당 API 운영계정 이용 신청현황에서 연장. 키가 변경되면 개발 Vercel `Preview/develop`·`.env.local` 갱신 후 재배포·재조회 |
+| `CHILDCARE_DETAIL_API_KEY` (`cpmsapi030`) | 위와 별도 운영계정·키. 기준일 `2026-11-02` → 갱신 예정일 **`2027-11-02`** | **`2027-10-03`**부터 연장 확인, **`2027-10-26`** 최종 확인 | 전국 목록과 개별 기본정보의 신청을 각각 확인. 목록 키만 연장하고 상세 키를 빠뜨리지 않음 |
+| 공공데이터 공통 키 (`DATA_SERVICE_KEY` / 로컬 `PUBLIC_DATA_SERVICE_KEY`)와 지원금 `GOV24_SERVICE_KEY` | 활용신청별 이용기간을 확인해야 함. 현재 신청별 종료일 **미확인** | `2026-12-02` 이용기간 점검. 종료일 확인 후 실제 갱신일 기록 | 공공데이터포털 → 마이페이지 → 데이터활용 → 활용신청 현황. 병원·약국·날씨·공휴일·미세먼지·놀이시설·지원금의 승인과 기간을 각각 확인. 같은 인증키를 쓴다고 모든 신청 기간이 같은 것은 아님 |
+| `KINDERGARTEN_API_KEY` | 유치원알리미의 승인 계정 이용기간·키 만료일 **미확인** | `2026-12-02` 발급 계정에서 확인 후 날짜 보완 | 유치원알리미 → OPEN API → 발급·신청 내역 확인. 변경 시 Vercel의 해당 환경과 로컬 갱신 |
+| `VERCEL_TOKEN` | 배포용 토큰의 실제 만료일 **미확인**. CLI 로그인 세션 및 소셜 로그인용 토큰과 구분 | `2026-12-02` 계정 Tokens에서 확인 후 만료 전 교체 | Vercel Account Settings → Tokens에서 새 배포 토큰 발급 → GitHub Repository secret 교체 → 개발 배포 검증 후 기존 토큰 폐기 |
+| `SUPABASE_ACCESS_TOKEN` | 발급 시 선택한 기간 또는 무기한 설정에 따름. 현재 CI 등록 토큰의 실제 만료일 **미확인** | `2026-12-02` 계정 Access Tokens에서 확인 후 만료 전 교체 | Supabase Account → Access Tokens → 새 토큰 발급 → GitHub Repository secret 교체 → 개발 배포 검증 |
+| Supabase 구형 JWT 서버·공개 키 | 로컬 보관본 `exp` 확인: 개발 `service_role`·공개 키 **`2036-10-29`**, 운영 `service_role` **`2036-10-27`** (UTC 날짜). 원격 등록본 일치 여부는 변경 시 재검증 | **`2026-12-01`** 신형 publishable/secret 키 전환 검토. JWT 만료일이 장기라고 지원 정책 점검을 생략하지 않음 | 각 Supabase 프로젝트 Settings → API Keys. Vercel 서버·공개 설정과 GitHub 환경별 서버 키를 함께 검토. 사용자 로그인 세션 만료와는 다른 키 |
+| 신형 Supabase publishable/secret 키 | 문자열 자체에서 만료일을 확인할 수 없음. 프로젝트 대시보드·지원 정책을 따름 | `2026-12-02` 키 상태 점검. 폐기·재발급 시 필요한 환경만 교체 | Vercel의 해당 환경과 로컬에 반영. 다른 프로젝트의 키를 혼용하지 않음 |
+| `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `SUPPORT_WORKER_TOKEN`, 선택적 지도·소셜 앱 키 | 이 저장소에서 별도의 연간 만료를 설정하지 않음. 공급자 만료 정책은 해당 앱 설정에서 확인 | `2026-12-02` 공급자 설정·작업 정상 동작 점검 | 푸시·작업 토큰은 Supabase Secret과 연동 Vault 설정을 함께 변경. 푸시 키 변경은 기존 구독에 영향이 있으므로 매년 일괄 재발급하지 않음 |
+| GitHub Actions 자동 `GITHUB_TOKEN` | 작업별 자동 발급·만료 | 수동 연장 불필요 | GitHub가 관리하며 위 `VERCEL_TOKEN`·`SUPABASE_ACCESS_TOKEN`을 자동 연장해 주지는 않음 |
+
+GitHub Secrets는 저장한 값을 다시 읽을 수 없으므로 등록 날짜만으로 원래 토큰의 만료일을 계산하지 않습니다. 실제 만료일을 확인한 뒤 `확인일·갱신일·점검일·변경 대상 환경`만 README에 남깁니다. 비밀값은 기록하지 않습니다.
+
+어린이집 포털은 운영계정 이용기간을 12개월로 제한하고 만료 30일·7일 전에 안내한다고 명시합니다. 연장 신청이 키 값까지 변경하는지는 포털 결과를 확인하며, 기존 키가 유지되면 불필요하게 재발급하지 않습니다. 새 키로 검증한 뒤에만 기존 키를 폐기합니다.
+
+근거: [어린이집 운영계정 기간](https://info.childcare.go.kr/info_html5/oais/introduction/Policy.jsp), [Supabase Access Token 만료 설정](https://supabase.com/changelog/38248-personal-access-tokens-expiration-usage-tracking), [Supabase API 키와 구형 키 정책](https://supabase.com/docs/guides/getting-started/api-keys), [Vercel 계정 Tokens](https://vercel.com/account/settings/tokens), [GitHub 자동 토큰 수명](https://docs.github.com/en/actions/concepts/security/github_token).
+
+## 시설 정보의 공유 캐시
+
+현재 결정은 **요청받은 지역의 공식 API 응답을 사용자끼리 공유 캐시**하는 방식입니다. 전국 모든 지역을 이용할 수 있도록 하되, 매일 전국 자료를 미리 수집하거나 시설용 DB 테이블을 새로 만들지 않습니다. API 키도 조회를 실행하는 Vercel에 둡니다. 지원금 정기 수집은 기존 Supabase 작업과 DB 저장을 유지합니다.
+
+병원·약국·유치원은 현재 코드에서 24시간 공유 캐시를 사용합니다. 어린이집도 목록·지역 기본정보를 각각 24시간 캐시하며, 시설 ID로 결합해 거리 정렬 후 10곳씩 표시합니다. 기본정보에만 있는 시설은 목록에 추가하지 않고, 기본정보 조회 실패 시 목록의 실제 이름·주소·전화는 유지하며 좌표를 임의로 만들지 않습니다. XML의 예시 값·중복 ID·잘못된 지역·인증 오류는 캐시나 화면에 게시하지 않습니다. 캐시 키는 시설 종류·정규화한 지역·진료과·목록 페이지 또는 시설 ID로 구성하고 사용자·아이·가족 ID를 넣지 않습니다. ‘운영중’은 캐시한 시간표와 현재 시각·공휴일로 계산합니다.
+
+캐시가 없으면 API를 조회하고, 오래된 캐시는 다음 요청 때 갱신합니다. 목록 페이지·상세 조회에는 각각 호출이 필요하므로 사용자 수와 별개로 실제 이용 지역·시설 수에 맞춰 API 호출량을 확인합니다. 첫 조회 지연·갱신 실패·캐시 보관 한계는 DB와 다른 특성이며, 단일 API 호출이나 무제한 조회를 보장하지 않습니다. 날씨·미세먼지는 더 짧은 캐시를 사용합니다.
+
+2026-11-02 어린이집 운영계정용 키 재검증: 용산구 전국 목록(`cpmsapi021`)은 **81건**, 지역 기본정보(`cpmsapi030`, `arcode`만 지정)는 **82건**이 반환됐습니다. 기본정보는 정상 80건·휴지 1건·재개 1건이며 82건 모두 한국 범위의 좌표가 있습니다. 새꿈어린이집은 이름·주소·좌표가 실제 값으로 반환됐습니다. 효창방과후어린이집은 최초 개별 ID 요청의 일시적 HTTP 500 이후 재시도에서 실제 이름·주소가 정상 반환됐습니다. 두 API의 건수 차이와 상태를 보존하고 불완전 응답을 임의로 합쳐 ‘전체 정상 시설’이라고 게시하지 않습니다.
+
+상세 규칙과 검증 상태는 [공공데이터 연결 문서](docs/implementation/public-data.md)를 참고합니다.
+
 ## 소셜 로그인 설정
 
 1. 개발·시험·운영 Supabase 프로젝트와 제공자 앱을 분리합니다. 운영 사이트 URL과 `/auth/callback`을 Supabase redirect 허용 목록에 등록합니다.
@@ -124,7 +205,7 @@ B4의 30–50가족 4주 파일럿, 세 소셜 제공자의 실제 계정 시험
 
 ### 가족 거주지역
 
-**우리 가족 → 가족이 사는 곳**에서 한국의 시·도 → 시·군·구 → 읍·면·동을 드롭다운으로 선택합니다. 동네별 커뮤니티 구성을 위해 국가 코드와 공식 법정동 코드를 함께 저장합니다. 같은 가족의 아이들이 공통으로 사용하며 소유자가 수정하고 가족 구성원이 조회합니다. 거주지역 삭제 후 저장하면 삭제됩니다. 마이그레이션 `014`–`016`이 필요합니다. 국가별 코드와 서로 다른 행정구역 단계 수를 지원하는 DB 구조를 준비했으며, 현재 화면과 활성 국가는 한국만 제공합니다. [저장 구조·권한·후속 서비스 연결 안내](docs/implementation/family-residence.md)를 참고하십시오.
+**우리 가족 → 가족이 사는 곳**에서 한국의 시·도 → 시·군·구 → 읍·면·동을 드롭다운으로 선택합니다. 동네별 커뮤니티 구성을 위해 국가 코드와 공식 법정동 코드를 함께 저장합니다. 같은 가족의 아이들이 공통으로 사용하며 소유자가 수정하고 가족 구성원이 조회합니다. 등록한 거주지역은 삭제할 수 없고 다른 지역으로 변경할 수 있습니다. 마이그레이션 `014`–`016`이 필요합니다. 국가별 코드와 서로 다른 행정구역 단계 수를 지원하는 DB 구조를 준비했으며, 현재 화면과 활성 국가는 한국만 제공합니다. [저장 구조·권한·후속 서비스 연결 안내](docs/implementation/family-residence.md)를 참고하십시오.
 
 ### 부모 커뮤니티 게시판
 

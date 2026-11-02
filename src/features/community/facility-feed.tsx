@@ -17,6 +17,7 @@ export function FacilityFeed({
   place,
   open,
   diaper,
+  specialty,
 }: {
   initialRows: Facility[];
   total: number;
@@ -28,6 +29,7 @@ export function FacilityFeed({
   place: string;
   open: boolean;
   diaper: boolean;
+  specialty: 'pediatrics' | 'all';
 }) {
   const [rows, setRows] = useState(initialRows),
     [page, setPage] = useState(1),
@@ -55,6 +57,7 @@ export function FacilityFeed({
         kind,
         place,
         page: String(page + 1),
+        specialty,
         open: open ? '1' : '0',
         diaper: diaper ? '1' : '0',
       });
@@ -94,7 +97,7 @@ export function FacilityFeed({
       pending.current = false;
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, [more, locale, childId, kind, place, page, open, diaper]);
+  }, [more, locale, childId, kind, place, page, open, diaper, specialty]);
   useEffect(() => () => request.current?.abort(), []);
   useEffect(() => {
     if (

@@ -57,7 +57,7 @@ it('loads the next page with the same region and open filter and disables respon
     referenceArea: '서울특별시 용산구 후암동',
     locale: 'ko',
     page: 2,
-    query: { open: '1', diaper: '0' },
+    query: { open: '1', diaper: '0', specialty: 'pediatrics' },
   });
   expect(await response.json()).toEqual({
     ok: true,
@@ -75,3 +75,25 @@ it('does not expose upstream failures as a successful empty page', async () => {
   expect(response.status).toBe(503);
   expect(await response.json()).toEqual({ ok: false });
 });
+
+it('preserves all-specialty selection on subsequent pages and rejects unsupported specialties', async () => {
+  expect((await GET(request('&specialty=all&open=1'))).status).toBe(200);
+  expect(loadFacilityRows).toHaveBeenCalledWith(
+    expect.objectContaining({
+      page: 2,
+      query: { specialty: 'all', open: '1', diaper: '0' },
+    }),
+  );
+  expect((await GET(request('&specialty=unsupported'))).status).toBe(400);
+});
+it.each([null, 'US'])(
+  'does not query Korean facilities for country %s',
+  async (country) => {
+    vi.mocked(loadCare).mockResolvedValue({
+      child: { id: childId },
+      family: { residence_country_code: country },
+    } as Awaited<ReturnType<typeof loadCare>>);
+    expect((await GET(request())).status).toBe(403);
+    expect(loadFacilityRows).not.toHaveBeenCalled();
+  },
+);

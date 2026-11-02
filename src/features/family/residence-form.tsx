@@ -43,7 +43,6 @@ export function ResidenceForm({
   const [province, setProvince] = useState(initial?.provinceCode ?? '');
   const [city, setCity] = useState(initial?.cityCode ?? '');
   const [regionCode, setRegionCode] = useState(initial?.code ?? '');
-  const [cleared, setCleared] = useState(false);
   const cities = [
     ...new Map(
       residenceRegions
@@ -64,6 +63,7 @@ export function ResidenceForm({
       <label>
         {t('residenceCountry')}
         <select
+          required
           name="countryCode"
           value={country}
           onChange={(e) => {
@@ -71,10 +71,11 @@ export function ResidenceForm({
             setProvince('');
             setCity('');
             setRegionCode('');
-            setCleared(false);
           }}
         >
-          <option value="">{t('residenceChoose')}</option>
+          <option value="" disabled>
+            {t('residenceChoose')}
+          </option>
           {countries.map((c) => (
             <option key={c.code} value={c.code}>
               {c[locale]}
@@ -87,12 +88,12 @@ export function ResidenceForm({
           <label>
             {t('residenceProvince')}
             <select
+              required
               value={province}
               onChange={(e) => {
                 setProvince(e.target.value);
                 setCity('');
                 setRegionCode('');
-                setCleared(false);
               }}
             >
               <option value="">{t('residenceChoose')}</option>
@@ -106,12 +107,12 @@ export function ResidenceForm({
           <label>
             {t('residenceCity')}
             <select
+              required
               value={city}
               disabled={!province}
               onChange={(e) => {
                 setCity(e.target.value);
                 setRegionCode('');
-                setCleared(false);
               }}
             >
               <option value="">{t('residenceChoose')}</option>
@@ -125,11 +126,11 @@ export function ResidenceForm({
           <label>
             {t('residenceLocality')}
             <select
+              required
               value={regionCode}
               disabled={!city}
               onChange={(e) => {
                 setRegionCode(e.target.value);
-                setCleared(false);
               }}
             >
               <option value="">{t('residenceChoose')}</option>
@@ -164,34 +165,14 @@ export function ResidenceForm({
         />
       )}
       <p className="small muted">
-        {cleared
-          ? t('residenceRemovalPending')
-          : country === 'KR'
-            ? t('residenceSelectHelp')
-            : locale === 'ko'
-              ? '등록된 지역을 선택하거나 새 이름을 입력하면 다른 가족도 선택할 수 있어요.'
-              : 'Select a registered area or enter a new name for other families to reuse.'}
+        {country === 'KR'
+          ? t('residenceSelectHelp')
+          : locale === 'ko'
+            ? '등록된 지역을 선택하거나 새 이름을 입력하면 다른 가족도 선택할 수 있어요.'
+            : 'Select a registered area or enter a new name for other families to reuse.'}
       </p>
       <div className="residence-actions">
-        <SaveButton
-          disabled={
-            (!country && !cleared) ||
-            (country === 'KR' && !!province && !regionCode)
-          }
-        />
-        <button
-          type="button"
-          className="button secondary"
-          onClick={() => {
-            setCountry('');
-            setProvince('');
-            setCity('');
-            setRegionCode('');
-            setCleared(true);
-          }}
-        >
-          {t('residenceRemove')}
-        </button>
+        <SaveButton disabled={!country || (country === 'KR' && !regionCode)} />
       </div>
     </form>
   );

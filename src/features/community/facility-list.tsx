@@ -185,16 +185,20 @@ export async function FacilityList({
 }) {
   const ko = locale === 'ko',
     kind = kinds.find(([id]) => id === query.kind)?.[0] ?? 'hospital';
+  const specialty = query.specialty === 'all' ? 'all' : 'pediatrics';
   const hidden = {
     child: context.child.id,
     place: query.place ?? '',
     scope: query.scope ?? 'all',
     kind,
+    specialty,
   };
   const inputs = () =>
-    Object.entries(hidden).map(([name, value]) => (
-      <input key={name} type="hidden" name={name} value={value} />
-    ));
+    Object.entries(hidden)
+      .filter(([name]) => kind !== 'hospital' || name !== 'specialty')
+      .map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ));
   if ((context.family.residence_country_code ?? 'KR') !== 'KR')
     return (
       <p className="panel">
@@ -268,12 +272,6 @@ export async function FacilityList({
             ? '시설 정보를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.'
             : 'Facility information is temporarily unavailable. Please try again.'}
         </p>
-      ) : kind === 'daycare' ? (
-        <p className="panel">
-          {ko
-            ? '공식 시설 정보 연결을 준비하고 있어요.'
-            : 'The official facility data connection is being prepared.'}
-        </p>
       ) : (
         <>
           <div className="facility-list-toolbar">
@@ -287,10 +285,24 @@ export async function FacilityList({
               <FacilityNavigationForm
                 action={`/${locale}/facilities`}
                 className="facility-filters"
-                key={`${kind}-${query.open}-${query.diaper}-${query.place}`}
+                key={`${kind}-${query.open}-${query.diaper}-${query.place}-${specialty}`}
                 autoSubmit
               >
                 {inputs()}
+                {kind === 'hospital' && (
+                  <>
+                    <input type="hidden" name="specialty" value="all" />
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="specialty"
+                        value="pediatrics"
+                        defaultChecked={specialty === 'pediatrics'}
+                      />
+                      {ko ? '소아청소년과' : 'Pediatrics'}
+                    </label>
+                  </>
+                )}
                 <label>
                   <input
                     type="checkbox"
@@ -302,21 +314,22 @@ export async function FacilityList({
                   />
                   {medical
                     ? ko
-                      ? '현재 운영중인 곳만'
+                      ? '현재 운영중'
                       : 'Open now only'
                     : ko
-                      ? '기저귀 교환대 있는 곳'
+                      ? '기저귀 교환대'
                       : 'With a changing table'}
                 </label>
               </FacilityNavigationForm>
             )}
           </div>
           <FacilityFeed
-            key={`${context.child.id}-${locale}-${kind}-${query.open}-${query.diaper}-${query.place}`}
+            key={`${context.child.id}-${locale}-${kind}-${query.open}-${query.diaper}-${query.place}-${specialty}`}
             locale={locale}
             childId={context.child.id}
             kind={kind}
             place={query.place || ''}
+            specialty={specialty}
             open={query.open === '1'}
             diaper={query.diaper === '1'}
             initialRows={rows}
@@ -330,9 +343,13 @@ export async function FacilityList({
                 ? ko
                   ? '등록된 시간 기준으로 현재 운영 중인 시설이 없어요.'
                   : 'No facilities are currently within their posted opening hours.'
-                : ko
-                  ? '해당 지역에 수집된 시설이 없어요.'
-                  : 'No collected facilities in this area.'}
+                : kind === 'hospital' && specialty === 'pediatrics'
+                  ? ko
+                    ? '소아청소년과 진료가 등록된 병원이 없어요.'
+                    : 'No hospitals with registered pediatric services in this area.'
+                  : ko
+                    ? '해당 지역에 수집된 시설이 없어요.'
+                    : 'No collected facilities in this area.'}
             </p>
           )}
         </>
@@ -342,13 +359,15 @@ export async function FacilityList({
           ? `${ko ? '출처: 서울교통공사 수유실현황 · 자료 기준' : 'Source: Seoul Metro nursing rooms · Dataset date'} ${nursing.sourceDate}`
           : medical
             ? `${ko ? '출처: 국립중앙의료원' : 'Source: National Emergency Medical Center'}${checkedAt ? ` · ${ko ? '조회' : 'Retrieved'} ${new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(checkedAt))}` : ''}`
-            : kind === 'kindergarten'
-              ? `${ko ? '출처: 유치원알리미 일반현황' : 'Source: Kindergarten Info basic information'}${checkedAt ? ` · ${ko ? '조회' : 'Retrieved'} ${new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(checkedAt))}` : ''}`
-              : kind === 'playground'
-                ? ko
-                  ? '출처: 행정안전부 어린이놀이시설 안전관리시스템 · 사유 시설은 이용 가능 여부를 확인해 주세요.'
-                  : 'Source: MOIS playground safety system · Confirm access to privately operated facilities.'
-                : ''}
+            : kind === 'daycare'
+              ? `${ko ? '출처: 어린이집정보공개포털' : 'Source: Childcare Information Portal'}${checkedAt ? ` · ${ko ? '조회' : 'Retrieved'} ${new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(checkedAt))}` : ''}`
+              : kind === 'kindergarten'
+                ? `${ko ? '출처: 유치원알리미 일반현황' : 'Source: Kindergarten Info basic information'}${checkedAt ? ` · ${ko ? '조회' : 'Retrieved'} ${new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(checkedAt))}` : ''}`
+                : kind === 'playground'
+                  ? ko
+                    ? '출처: 행정안전부 어린이놀이시설 안전관리시스템 · 사유 시설은 이용 가능 여부를 확인해 주세요.'
+                    : 'Source: MOIS playground safety system · Confirm access to privately operated facilities.'
+                  : ''}
       </p>
     </section>
   );

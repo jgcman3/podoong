@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { isLocale } from '@/lib/domain';
 import { loadCare } from '@/lib/data';
 import { Shell } from '@/components/shell';
@@ -15,6 +15,9 @@ export default async function Community({
   const query = await searchParams;
   const { child, error } = query;
   const context = await loadCare(locale, child, []);
+  if (context.family.residence_country_code !== 'KR') {
+    redirect(`/${locale}/community?child=${context.child.id}`);
+  }
   return (
     <Shell
       context={context}

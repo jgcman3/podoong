@@ -45,7 +45,7 @@ export async function saveFamilyResidence(form: FormData) {
   if (child.error || child.data?.family_id !== v.familyId)
     redirect(`${familyReturn(form, locale)}&child=${v.childId}&error=invalid`);
   const result =
-    v.countryCode && v.countryCode !== 'KR'
+    v.countryCode !== 'KR'
       ? await db.rpc('save_global_residence', {
           p_family: v.familyId,
           p_country: v.countryCode,
@@ -54,18 +54,12 @@ export async function saveFamilyResidence(form: FormData) {
           p_locality: String(form.get('localityName') ?? ''),
           p_version: v.version,
         })
-      : !v.regionCode && v.countryCode
-        ? await db.rpc('save_family_residence_country', {
-            p_family: v.familyId,
-            p_country_code: v.countryCode,
-            p_version: v.version,
-          })
-        : await db.rpc('save_family_residence_region', {
-            p_family: v.familyId,
-            p_region_code: v.regionCode,
-            p_country_code: v.countryCode,
-            p_version: v.version,
-          });
+      : await db.rpc('save_family_residence_region', {
+          p_family: v.familyId,
+          p_region_code: v.regionCode,
+          p_country_code: v.countryCode,
+          p_version: v.version,
+        });
   redirect(
     `${familyReturn(form, locale)}&child=${v.childId}&${result.error ? `error=${result.error.message.includes('conflict') ? 'conflict' : 'generic'}` : 'notice=saved'}`,
   );
@@ -217,12 +211,21 @@ export async function acceptInvite(form: FormData) {
   });
   if (error) {
     if (error.message.includes('reauthenticate'))
-      redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/invite/${token}`)}&error=reauth`);
-    const reason = error.code === '40001' ? 'changed' : error.code === '23514' ? 'blocked' : 'invite';
+      redirect(
+        `/${locale}/login?next=${encodeURIComponent(`/${locale}/invite/${token}`)}&error=reauth`,
+      );
+    const reason =
+      error.code === '40001'
+        ? 'changed'
+        : error.code === '23514'
+          ? 'blocked'
+          : 'invite';
     redirect(`/${locale}/invite/${token}?error=${reason}`);
   }
   revalidatePath(`/${locale}`, 'layout');
-  redirect(`/${locale}/${previousChildren.data.length ? 'today' : 'install'}?child=${data}`);
+  redirect(
+    `/${locale}/${previousChildren.data.length ? 'today' : 'install'}?child=${data}`,
+  );
 }
 
 export async function revoke(form: FormData) {

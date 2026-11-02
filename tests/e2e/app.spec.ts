@@ -209,7 +209,7 @@ async function setFamilyResidence(family: string, code: string) {
   if (result.error) throw new Error('Residence fixture failed');
 }
 
-test('family residence persists across children and sessions, respects family roles and can be cleared', async ({
+test('family residence persists across children and sessions, respects family roles and can only be changed', async ({
   page,
   context,
   browser,
@@ -386,22 +386,16 @@ test('family residence persists across children and sessions, respects family ro
     residence_locality: 'Sunset',
   });
 
-  await panel
-    .getByRole('button', { name: '거주지역 삭제', exact: true })
-    .click();
-  await panel
-    .getByRole('button', { name: '거주지역 저장', exact: true })
-    .click();
-  await expect
-    .poll(async () => {
-      const result = await admin
-        .from('families')
-        .select('residence_city,residence_locality')
-        .eq('id', family)
-        .single();
-      return result.data;
-    })
-    .toEqual({ residence_city: null, residence_locality: null });
+  await expect(panel.getByRole('button', {name: '거주지역 삭제', exact: true})).toHaveCount(0);
+  await expect(panel.getByRole('combobox', {name: '국가 / 지역', exact: true}).locator('option[value=""]')).toHaveJSProperty('disabled', true);
+  await panel.getByRole('combobox', {name: '국가 / 지역', exact: true}).selectOption('KR');
+  await expect(panel.getByRole('button', {name: '거주지역 저장', exact: true})).toBeDisabled();
+  await panel.getByRole('combobox', {name: '시·도', exact: true}).selectOption('11');
+  await panel.getByRole('combobox', {name: '시·군·구', exact: true}).selectOption('11680');
+  await panel.getByRole('combobox', {name: '읍·면·동', exact: true}).selectOption('1168010600');
+  await panel.getByRole('button', {name: '거주지역 저장', exact: true}).click();
+  await expect.poll(async () => (await admin.from('families').select('residence_country_code,residence_region_code').eq('id',family).single()).data).toEqual({residence_country_code: 'KR', residence_region_code: '1168010600'});
+
 });
 
 test('calendar loads the whole selected month and Today groups all care shortcuts', async ({
@@ -1285,12 +1279,12 @@ test('responsive dashboard and current navigation remain within the viewport', a
     });
   }
   await expect(page.locator('.mobile-nav a')).toHaveText([
-    '오늘', '일정', '인사이트', '성장 일기', '육아 소통', '동네 시설', '도담이',
+    '오늘', '일정', '인사이트', '성장 일기', '육아 소통', '도담이',
   ]);
   for (const section of ['today','calendar','insights','community/diaries','community','account']) {
     await page.goto(`/ko/${section}?child=${child.id}`);
     await expect(page.locator('.feature-nav')).toHaveCount(0);
-    await expect(page.locator('.mobile-nav > a')).toHaveCount(7);
+    await expect(page.locator('.mobile-nav > a')).toHaveCount(6);
     await expect(page.locator('.mobile-nav').getByRole('link', { name: '돌봄 기록', exact: true })).toHaveCount(0);
   }
   await page.goto(`/en/community?child=${child.id}`);
@@ -3573,7 +3567,7 @@ test('insights supports rolling seven days, multiple activity patterns and child
   await page.goto(`${base}&kind=formula&pattern=stats`);
   const kinds = page.locator('.insight-kind-rail'),
     feeding = page.locator('[data-statistic="feeding"]');
-  await expect(page.locator('.mobile-nav > a')).toHaveCount(7);
+  await expect(page.locator('.mobile-nav > a')).toHaveCount(6);
   await expect(kinds.getByRole('button')).toHaveCount(16);
   await expect(
     kinds.getByRole('button', { name: '성장', exact: true }),
@@ -4664,7 +4658,7 @@ test('compact mobile navigation switches children and opens language settings', 
     await page.goto(`/ko/today?child=${child}`);
     await expect(page.locator('.topbar')).toBeHidden();
     const picker = page.locator('.mobile-child-link');
-    await expect(page.locator('.mobile-nav > a')).toHaveCount(7);
+    await expect(page.locator('.mobile-nav > a')).toHaveCount(6);
     await expect(page.locator('.mobile-nav > :last-child')).toHaveClass(/mobile-child-link/);
     await picker.click();
     await expect(page.getByRole('heading', { name: '아이와 설정' })).toHaveCount(0);
@@ -6975,12 +6969,12 @@ test('public nursing facilities use compact lists, diaper filters and external m
   await setFamilyResidence(home.family, '1168010100');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/ko/community/map?child=${home.child}&kind=nursing`);
-  await expect(page.getByRole('button', { name: '수유실·기저귀 교환대', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '수유실', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.facility-card').first()).toBeVisible();
   await expect(page.locator('.facility-browser')).toContainText('2025-09-24');
   await expect(page.locator('.facility-card').first().getByRole('link', { name: '네이버 지도' })).toHaveAttribute('href', /^https:\/\/map\.naver\.com\/p\/search\//);
   await expect(page.locator('.facility-map')).toHaveCount(0);
-  await page.getByRole('checkbox', { name: '기저귀 교환대 있는 곳' }).check();
+  await page.getByRole('checkbox', { name: '기저귀 교환대', exact: true }).check();
   await expect(page).toHaveURL(/diaper=1/);
   for (const card of await page.locator('.facility-card').all()) await expect(card).toContainText('기저귀 교환대 있음');
   expect(await page.locator('.parenting-community').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
@@ -6994,7 +6988,8 @@ test('local facilities have an independent seven-item mobile menu and change fil
   const home = await childCareFamily(context);
   await page.setViewportSize({width:390,height:844});
   await page.goto(`/ko/facilities?child=${home.child}`);
-  await expect(page.getByRole('link',{name:'주소 설정',exact:true})).toHaveAttribute('href',/panel=residence/);
+  await expect(page).toHaveURL(/\/ko\/community\?/);
+  await expect(page.locator('.mobile-nav a[href*="/facilities?"]')).toHaveCount(0);
   await setFamilyResidence(home.family, '1168010100');
   for (const width of [320,390]) {
     await page.setViewportSize({width,height:844});
@@ -7005,13 +7000,25 @@ test('local facilities have an independent seven-item mobile menu and change fil
     await expect(page.locator('.facility-region-picker')).toBeHidden();
     await expect(page.locator('.community-location')).toHaveCount(0);
     await expect(page.locator('.parenting-tabs')).toHaveCount(0);
+    await expect(page.getByRole('button', {name: '놀이시설', exact: true})).toBeVisible();
+    await expect(page.getByRole('button', {name: '수유실', exact: true})).toHaveAttribute('aria-pressed', 'true');
+    const kindsBox = await page.locator('.facility-kinds:visible').boundingBox();
+    const toolbarBox = await page.locator('.facility-list-toolbar:visible').boundingBox();
+    const listBox = await page.locator('.facility-list:visible').boundingBox();
+    expect(toolbarBox!.y - kindsBox!.y - kindsBox!.height).toBeLessThanOrEqual(4);
+    expect(listBox!.y - toolbarBox!.y - toolbarBox!.height).toBeLessThanOrEqual(4);
+    const summary = await page.locator('.facility-list-toolbar:visible > p').boundingBox();
+    const filter = await page.getByRole('checkbox', {name: '기저귀 교환대', exact: true}).locator('..').boundingBox();
+    expect(filter!.x).toBeGreaterThanOrEqual(summary!.x + summary!.width);
+    expect(Math.abs((filter!.y + filter!.height / 2) - (summary!.y + summary!.height / 2))).toBeLessThan(2);
+
     for (const item of await page.locator('.mobile-nav > a').all()) {
       const box = await item.boundingBox(); expect(box!.width).toBeGreaterThanOrEqual(44); expect(box!.height).toBeGreaterThanOrEqual(44);
     }
     expect(await page.locator('.parenting-community').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
   }
   await page.evaluate(()=>{(window as Window & {facilityNavigationMarker?:boolean}).facilityNavigationMarker=true;});
-  await page.getByRole('checkbox',{name:'기저귀 교환대 있는 곳',exact:true}).check();
+  await page.getByRole('checkbox',{name:'기저귀 교환대',exact:true}).check();
   await expect(page).toHaveURL(/diaper=1/);
   expect(await page.evaluate(()=>(window as Window & {facilityNavigationMarker?:boolean}).facilityNavigationMarker)).toBe(true);
   await page.locator('.mobile-nav').getByRole('link',{name:'육아 소통',exact:true}).click();
@@ -7026,4 +7033,25 @@ test('local facilities have an independent seven-item mobile menu and change fil
     const box = await card.boundingBox(); expect(box!.height).toBeLessThanOrEqual(66);
   }
 
+});
+
+
+test('local facilities navigation is only available for families with Korea selected', async ({page,context}) => {
+  const home = await childCareFamily(context);
+  for (const country of [null, 'US', 'KR'] as const) {
+    if (country === 'KR') await setFamilyResidence(home.family, '1168010100');
+    else {
+      const result = await admin.from('families').update({residence_country_code:country,residence_region_code:null}).eq('id',home.family);
+      expect(result.error).toBeNull();
+    }
+    for (const width of [320,390,1280]) {
+      await page.setViewportSize({width,height:844});
+      await page.goto(`/ko/today?child=${home.child}`);
+      await expect(page.locator('.mobile-nav a[href*="/facilities?"]')).toHaveCount(country === 'KR' ? 1 : 0);
+      await expect(page.locator('.sidebar a[href*="/facilities?"]')).toHaveCount(country === 'KR' ? 1 : 0);
+      await expect(page.locator('.mobile-nav > a')).toHaveCount(country === 'KR' ? 7 : 6);
+    }
+    await page.goto(`/en/facilities?child=${home.child}`);
+    await expect(page).toHaveURL(country === 'KR' ? /\/en\/facilities\?/ : /\/en\/community\?/);
+  }
 });

@@ -14,6 +14,7 @@ const schema = z.object({
     .string()
     .regex(/^(\d{10})?$/)
     .default(''),
+  specialty: z.enum(['pediatrics', 'all']).default('pediatrics'),
   open: z.enum(['0', '1']).default('0'),
   diaper: z.enum(['0', '1']).default('0'),
 });
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
   }
   if (
     context.child.id !== input.childId ||
-    (context.family.residence_country_code ?? 'KR') !== 'KR'
+    context.family.residence_country_code !== 'KR'
   )
     return NextResponse.json({ ok: false }, { status: 403, headers });
   const selected = input.place
@@ -56,7 +57,11 @@ export async function GET(request: NextRequest) {
       referenceArea,
       locale: input.locale,
       page: input.page,
-      query: { open: input.open, diaper: input.diaper },
+      query: {
+        open: input.open,
+        diaper: input.diaper,
+        specialty: input.specialty,
+      },
     });
     if (result.unavailable)
       return NextResponse.json({ ok: false }, { status: 503, headers });

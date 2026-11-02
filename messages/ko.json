@@ -187,8 +187,6 @@
   "residenceKorea": "대한민국 · 한국 지역 선택",
   "residenceChoose": "선택해주세요",
   "residenceSelectHelp": "법정동 기준으로 선택합니다. 상세 주소 없이 동네까지만 저장합니다.",
-  "residenceRemove": "거주지역 삭제",
-  "residenceRemovalPending": "저장을 누르면 등록된 거주지역이 삭제됩니다.",
   "growthDiary": "성장 일기",
   "birthDateMissing": "태어난 날을 등록해 주세요"
 }

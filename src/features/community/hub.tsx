@@ -19,6 +19,7 @@ export type CommunityQuery = {
   beforeId?: string;
   place?: string;
   kind?: string;
+  specialty?: string;
   page?: string;
   open?: string;
   diaper?: string;
@@ -160,6 +161,8 @@ export async function CommunityHub({
           category={category}
           path={path}
           kind={area === 'map' ? query.kind : undefined}
+          specialty={area === 'map' ? query.specialty : undefined}
+          open={area === 'map' ? query.open : undefined}
           globalPlaces={globalPlaces}
         />
       </div>
@@ -186,7 +189,7 @@ export async function CommunityHub({
             </Suspense>
           )}
           <Suspense
-            key={`${place}-${query.kind}-${query.page}-${query.open}-${query.diaper}`}
+            key={`${place}-${query.kind}-${query.page}-${query.open}-${query.diaper}-${query.specialty}`}
             fallback={
               <p className="panel" role="status">
                 {ko ? '시설을 찾고 있어요.' : 'Finding facilities…'}
