@@ -1,11 +1,16 @@
 import { CloudSun, Thermometer, Droplets, CloudRain, Wind } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import type { CareContext } from '@/lib/data';
-import { positiveMeasurement } from './public-data';
+import {
+  airQuality,
+  weatherCondition,
+  positiveMeasurement,
+} from './public-data';
 import {
   airObservations,
   hasPublicDataKey,
   weatherObservation,
+  weatherSky,
 } from './public-data.server';
 import nursing from './data/nursing-rooms.json';
 import type { CommunityQuery } from './hub';
@@ -18,27 +23,23 @@ import Link from 'next/link';
 export async function LocalConditions({
   area,
   locale,
-  station,
-  hidden,
 }: {
   area: string;
   locale: Locale;
-  station?: string;
-  hidden: Record<string, string>;
 }) {
   const ko = locale === 'ko';
   if (!hasPublicDataKey() || !area) return null;
-  const [weather, air] = await Promise.all([
+  const [weather, air, sky] = await Promise.all([
     weatherObservation(area).catch(() => null),
     airObservations(area.split(' ')[0]).catch(() => null),
+    weatherSky(area).catch(() => undefined),
   ]);
   const localStation = area
     .split(' ')
     .reverse()
     .map((name) => air?.find((item) => item.station === name))
     .find(Boolean);
-  const selected =
-    air?.find((item) => item.station === station) ?? localStation ?? air?.[0];
+  const selected = localStation ?? air?.[0];
   const temperature = weather?.values.T1H,
     pm10 = positiveMeasurement(selected?.pm10),
     pm25 = positiveMeasurement(selected?.pm25);
@@ -47,6 +48,23 @@ export async function LocalConditions({
     Number.isFinite(Number(temperature)) &&
     Number(temperature) > -80 &&
     Number(temperature) < 60;
+  const condition = weatherCondition(weather?.values.PTY, sky);
+  const conditions = {
+    clear: ['☀️', '맑음', 'Clear'],
+    cloudy: ['⛅', '구름 많음', 'Partly cloudy'],
+    overcast: ['☁️', '흐림', 'Overcast'],
+    rain: ['🌧️', '비', 'Rain'],
+    sleet: ['🌨️', '비·눈', 'Rain & snow'],
+    snow: ['❄️', '눈', 'Snow'],
+  } as const;
+  const grades = {
+    good: ['좋음', 'Good'],
+    moderate: ['보통', 'Moderate'],
+    bad: ['나쁨', 'Unhealthy'],
+    'very-bad': ['매우 나쁨', 'Very unhealthy'],
+  } as const;
+  const pm10Grade = airQuality(pm10, 'pm10'),
+    pm25Grade = airQuality(pm25, 'pm25');
   return (
     <section
       className="panel local-conditions weather-overview"
@@ -62,10 +80,18 @@ export async function LocalConditions({
       <div className="weather-metrics">
         <div className="weather-metric temperature">
           <span className="weather-symbol">
-            <Thermometer size={23} aria-hidden />
+            {condition ? (
+              <span aria-hidden>{conditions[condition][0]}</span>
+            ) : (
+              <Thermometer size={23} aria-hidden />
+            )}
           </span>
           <span className="weather-metric-label">
-            {ko ? '기온' : 'Temperature'}
+            {condition
+              ? conditions[condition][ko ? 1 : 2]
+              : ko
+                ? '기온'
+                : 'Temperature'}
           </span>
           <strong>
             {validTemperature ? temperature : '—'}
@@ -90,8 +116,12 @@ export async function LocalConditions({
             {pm10 ?? '—'}
             {pm10 !== null && <small>µg/m³</small>}
           </strong>
-          <small className="muted">
-            {pm10 !== null ? 'PM10' : ko ? '관측 정보 없음' : 'No observation'}
+          <small className={pm10Grade ? `air-quality ${pm10Grade}` : 'muted'}>
+            {pm10Grade
+              ? grades[pm10Grade][ko ? 0 : 1]
+              : ko
+                ? '관측 정보 없음'
+                : 'No observation'}
           </small>
         </div>
         <div className="weather-metric pm25">
@@ -105,8 +135,12 @@ export async function LocalConditions({
             {pm25 ?? '—'}
             {pm25 !== null && <small>µg/m³</small>}
           </strong>
-          <small className="muted">
-            {pm25 !== null ? 'PM2.5' : ko ? '관측 정보 없음' : 'No observation'}
+          <small className={pm25Grade ? `air-quality ${pm25Grade}` : 'muted'}>
+            {pm25Grade
+              ? grades[pm25Grade][ko ? 0 : 1]
+              : ko
+                ? '관측 정보 없음'
+                : 'No observation'}
           </small>
         </div>
       </div>
@@ -127,45 +161,6 @@ export async function LocalConditions({
           {selected.station} · {selected.time} KST
         </p>
       )}
-      {air?.length ? (
-        <details className="weather-station">
-          <summary>{ko ? '측정소 변경' : 'Change air station'}</summary>
-          <FacilityNavigationForm
-            action={`/${locale}/facilities`}
-            className="air-station-picker"
-          >
-            {Object.entries(hidden).map(([name, value]) => (
-              <input key={name} type="hidden" name={name} value={value} />
-            ))}
-            <label>
-              <span className="small">
-                {ko ? '시·도 내 측정소' : 'Station in this province'}
-              </span>
-              <select
-                name="station"
-                defaultValue={selected?.station}
-                aria-label={ko ? '미세먼지 측정소' : 'Air quality station'}
-              >
-                {air.map((item) => (
-                  <option key={item.station} value={item.station}>
-                    {item.station}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button className="button secondary" type="submit">
-              {ko ? '보기' : 'View'}
-            </button>
-          </FacilityNavigationForm>
-        </details>
-      ) : null}
-      <p className="weather-source small muted">
-        {weather
-          ? `${ko ? '기상청' : 'KMA'} (${weather.label}) · ${ko ? '에어코리아' : 'AirKorea'}`
-          : ko
-            ? '기상청 · 에어코리아'
-            : 'KMA · AirKorea'}
-      </p>
     </section>
   );
 }

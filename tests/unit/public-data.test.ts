@@ -11,6 +11,8 @@ import {
   positiveMeasurement,
   readableHours,
   sourceItems,
+  airQuality,
+  weatherCondition,
 } from '@/features/community/public-data';
 import rooms from '@/features/community/data/nursing-rooms.json';
 
@@ -183,4 +185,27 @@ describe('public facility and measurement data', () => {
     ).toBe(true);
     expect(rooms.rooms[0]).not.toHaveProperty('hours');
   });
+});
+
+it('labels air-quality boundaries without treating missing readings as good', () => {
+  for (const [kind, limits] of [
+    ['pm10', [30, 80, 150]],
+    ['pm25', [15, 35, 75]],
+  ] as const) {
+    expect(airQuality(null, kind)).toBeNull();
+    expect(airQuality(0, kind)).toBe('good');
+    expect(airQuality(limits[0], kind)).toBe('good');
+    expect(airQuality(limits[0] + 1, kind)).toBe('moderate');
+    expect(airQuality(limits[1] + 1, kind)).toBe('bad');
+    expect(airQuality(limits[2] + 1, kind)).toBe('very-bad');
+  }
+});
+it('uses observed precipitation before sky forecasts and never guesses fog', () => {
+  expect(weatherCondition('1', '1')).toBe('rain');
+  expect(weatherCondition('2', '4')).toBe('sleet');
+  expect(weatherCondition('3', '1')).toBe('snow');
+  expect(weatherCondition('0', '1')).toBe('clear');
+  expect(weatherCondition('0', '3')).toBe('cloudy');
+  expect(weatherCondition('0', '4')).toBe('overcast');
+  expect(weatherCondition('0')).toBeNull();
 });

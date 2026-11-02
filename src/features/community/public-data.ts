@@ -235,3 +235,23 @@ export function positiveMeasurement(value: unknown) {
   const number = Number(value);
   return Number.isFinite(number) && number >= 0 ? number : null;
 }
+
+// AirKorea concentration bands (µg/m³); missing readings have no grade.
+export function airQuality(value: number | null, kind: 'pm10' | 'pm25') {
+  if (value === null || !Number.isFinite(value) || value < 0) return null;
+  const limits = kind === 'pm10' ? [30, 80, 150] : [15, 35, 75];
+  const index = limits.findIndex((limit) => value <= limit);
+  return (['good', 'moderate', 'bad', 'very-bad'] as const)[
+    index < 0 ? 3 : index
+  ];
+}
+export function weatherCondition(precipitation?: string, sky?: string) {
+  if (['1', '5'].includes(precipitation ?? '')) return 'rain';
+  if (['2', '6'].includes(precipitation ?? '')) return 'sleet';
+  if (['3', '7'].includes(precipitation ?? '')) return 'snow';
+  if (precipitation && precipitation !== '0') return null;
+  if (sky === '1') return 'clear';
+  if (sky === '3') return 'cloudy';
+  if (sky === '4') return 'overcast';
+  return null;
+}

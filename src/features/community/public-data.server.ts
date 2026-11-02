@@ -286,6 +286,40 @@ export const weatherObservation = unstable_cache(
   { revalidate: 600 },
 );
 
+// Ultra-short forecasts supply SKY; current observations do not.
+export const weatherSky = unstable_cache(
+  async (area: string) => {
+    const grid = weatherGrid(area);
+    if (!grid) throw new Error('weather-area-unavailable');
+    const slot = new Date(Date.now() + 9 * 3600000 - 45 * 60000);
+    const { rows } = sourceItems(
+      await request('1360000/VilageFcstInfoService_2.0/getUltraSrtFcst', {
+        base_date: slot.toISOString().slice(0, 10).replaceAll('-', ''),
+        base_time: String(slot.getUTCHours()).padStart(2, '0') + '30',
+        nx: String(grid.nx),
+        ny: String(grid.ny),
+        dataType: 'JSON',
+        pageNo: '1',
+        numOfRows: '1000',
+      }),
+    );
+    const now = new Date(Date.now() + 9 * 3600000).toISOString();
+    const target =
+      now.slice(0, 10).replaceAll('-', '') + now.slice(11, 13) + '00';
+    const sky = rows
+      .filter((row) => text(row, 'category') === 'SKY')
+      .filter((row) => text(row, 'fcstDate') + text(row, 'fcstTime') >= target)
+      .sort((a, b) =>
+        (text(a, 'fcstDate') + text(a, 'fcstTime')).localeCompare(
+          text(b, 'fcstDate') + text(b, 'fcstTime'),
+        ),
+      )[0];
+    return sky ? text(sky, 'fcstValue') : undefined;
+  },
+  ['kma-sky-v1'],
+  { revalidate: 600 },
+);
+
 const airProvinces: Record<string, string> = {
   서울특별시: '서울',
   부산광역시: '부산',
@@ -381,7 +415,7 @@ const playgroundPage = unstable_cache(
             .join(' '),
           phone: '',
           hours: {},
-          coordinates: coordinates(row.lotCrtsVl, row.latCrtsVl),
+          coordinates: coordinates(row.latCrtsVl, row.lotCrtsVl),
           detail: [
             text(row, 'instlPlaceCdNm'),
             text(row, 'prvtPblcYnCdNm'),
@@ -393,7 +427,7 @@ const playgroundPage = unstable_cache(
       }),
     };
   },
-  ['playground-national-page-v2'],
+  ['playground-national-page-v3'],
   { revalidate: 86400 },
 );
 
@@ -413,10 +447,7 @@ export const playgroundList = unstable_cache(
         found.push(...page.facilities);
       }
     }
-    if (
-      found.length !== first.total ||
-      new Set(found.map((row) => row.id)).size !== first.total
-    )
+    if (found.length !== first.total)
       throw new Error('incomplete-playground-source');
     return [
       ...new Map(
@@ -426,7 +457,7 @@ export const playgroundList = unstable_cache(
       ).values(),
     ];
   },
-  ['playground-district-v2'],
+  ['playground-district-v3'],
   { revalidate: 86400 },
 );
 

@@ -11,6 +11,7 @@ import {
   playgroundList,
   weatherGrid,
   weatherObservation,
+  weatherSky,
   officialAreaPoint,
 } from '@/features/community/public-data.server';
 
@@ -226,9 +227,8 @@ describe('public API adapters', () => {
     expect(station.pm25).toBe('0');
     expect(station.station).toBe('Fixture station');
   });
-  it('reads the playground source root schema and requires the entire national snapshot before filtering a district', async () => {
-    fetcher.mockImplementation(async (url: URL) => {
-      const page = Number(url.searchParams.get('pageIndex'));
+  it('reads every playground page and deduplicates facility IDs before displaying a district', async () => {
+    fetcher.mockImplementation(async () => {
       return new Response(
         JSON.stringify({
           header: { resultCode: '00' },
@@ -237,19 +237,20 @@ describe('public API adapters', () => {
             totalPageCnt: '2',
             items: [
               {
-                pfctSn: String(page),
+                pfctSn: 'duplicate-facility',
+                latCrtsVl: '37.5',
+                lotCrtsVl: '126.9',
                 pfctNm: 'Fixture playground',
-                ronaAddr:
-                  page === 1
-                    ? '서울특별시 강남구 테스트로 1'
-                    : '부산광역시 중구 테스트로 2',
+                ronaAddr: '서울특별시 강남구 테스트로 1',
               },
             ],
           },
         }),
       );
     });
-    expect(await playgroundList('서울특별시 강남구')).toHaveLength(1);
+    const facilities = await playgroundList('서울특별시 강남구');
+    expect(facilities).toHaveLength(1);
+    expect(facilities[0].coordinates).toEqual({ lat: 37.5, lon: 126.9 });
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });
@@ -410,4 +411,39 @@ describe('childcare facilities', () => {
     );
     expect(fetcher).not.toHaveBeenCalled();
   });
+});
+
+it('selects the next sky forecast from a published KST slot across midnight', async () => {
+  vi.setSystemTime(new Date('2026-11-01T15:05:00Z'));
+  fetcher.mockResolvedValue(
+    new Response(
+      JSON.stringify(
+        answer([
+          {
+            category: 'SKY',
+            fcstDate: '20261101',
+            fcstTime: '2300',
+            fcstValue: '4',
+          },
+          {
+            category: 'SKY',
+            fcstDate: '20261102',
+            fcstTime: '0100',
+            fcstValue: '3',
+          },
+          {
+            category: 'SKY',
+            fcstDate: '20261102',
+            fcstTime: '0200',
+            fcstValue: '1',
+          },
+        ]),
+      ),
+    ),
+  );
+  expect(await weatherSky('서울특별시 강남구 역삼동')).toBe('3');
+  const url = new URL(fetcher.mock.calls[0][0]);
+  expect(url.pathname).toContain('getUltraSrtFcst');
+  expect(url.searchParams.get('base_date')).toBe('20261101');
+  expect(url.searchParams.get('base_time')).toBe('2330');
 });

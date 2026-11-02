@@ -23,7 +23,6 @@ export type CommunityQuery = {
   page?: string;
   open?: string;
   diaper?: string;
-  station?: string;
 };
 const tabs = [
   ['boards', '게시판', 'Board', MessagesSquare],
@@ -176,16 +175,7 @@ export async function CommunityHub({
                 </p>
               }
             >
-              <LocalConditions
-                locale={locale}
-                area={home.locality}
-                station={query.station}
-                hidden={{
-                  child: context.child.id,
-                  place,
-                  kind: query.kind ?? 'hospital',
-                }}
-              />
+              <LocalConditions locale={locale} area={home.locality} />
             </Suspense>
           )}
           <Suspense
