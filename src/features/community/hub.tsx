@@ -1,109 +1,62 @@
 import Link from 'next/link';
-import { MessagesSquare, ShoppingBag, Landmark } from 'lucide-react';
+import Form from 'next/form';
+import { MessagesSquare, Trees, MessageSquareText, Search } from 'lucide-react';
 import { Flash } from '@/components/flash';
 import type { CareContext } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
-import { residenceRegions } from '@/features/family/residence-regions';
-import { CommunityRegionPicker } from './region-picker';
-import { neighborhoodAction } from './neighborhood-actions';
-import { SupportList } from './support-list';
-import {
-  homeArea,
-  parentingCategories,
-  parentingTags,
-  regionScopes,
-} from './options';
+import { FeedSortPicker } from './feed-sort-picker';
+import { PostComposer } from './post-composer';
+import { PostCard } from './post-card';
+import { postDetailSchema } from './post-model';
+import { parentingCategories, parentingTags } from './options';
 import { NeighborhoodFriends } from './friends';
+function minutesSince(createdAt: string) {
+  return Math.max(0, Math.floor((Date.now() - Date.parse(createdAt)) / 60000));
+}
 export type CommunityQuery = {
   child?: string;
   error?: string;
   category?: string;
-  scope?: string;
   before?: string;
   beforeId?: string;
-  place?: string;
+  sort?: string;
+  beforeScore?: string;
+  q?: string;
 };
-const tabs = [
-  ['boards', '육아 소통', 'Parenting talk', MessagesSquare],
-  ['market', '나눔-중고 거래', 'Share & trade', ShoppingBag],
-  ['support', '지원금', 'Support', Landmark],
-] as const;
 export async function CommunityHub({
   context,
   locale,
-  area = 'boards',
+  area = 'friends',
   error,
   query = {},
 }: {
   context: CareContext;
   locale: Locale;
-  area?: 'boards' | 'market' | 'support';
+  area?: 'friends' | 'neighborhood' | 'boards';
   error?: string;
   query?: CommunityQuery;
 }) {
-  const ko = locale === 'ko';
-  const country = context.family.residence_country_code ?? 'KR';
-  const globalPlaces =
-    context.family.residence_country_code &&
-    context.family.residence_country_code !== 'KR'
-      ? ((
-          await context.db
-            .from('global_residence_places')
-            .select('id,province,city,locality')
-            .eq('country_code', context.family.residence_country_code)
-            .order('province')
-            .limit(1000)
-        ).data ?? [])
-      : [];
-  const selectedKR =
-    country === 'KR'
-      ? residenceRegions.find((r) => r.code === query.place)
-      : undefined;
-  const selectedGlobal = globalPlaces.find((p) => p.id === query.place);
-  const place = selectedKR?.code ?? selectedGlobal?.id ?? '';
-  const family = selectedKR
-    ? {
-        ...context.family,
-        residence_country_code: 'KR',
-        residence_city: selectedKR.fullName.split(' ').slice(0, -1).join(' '),
-        residence_locality: selectedKR.locality,
-      }
-    : selectedGlobal
-      ? {
-          ...context.family,
-          residence_province: selectedGlobal.province,
-          residence_city: selectedGlobal.city,
-          residence_locality: selectedGlobal.locality,
-        }
-      : context.family;
-  const home = homeArea(family);
-  const scope =
-    query.scope === 'all'
-      ? 'all'
-      : (regionScopes.find((value) => value === query.scope) ??
-        (query.place ? 'district' : 'all'));
+  const ko = locale === 'ko',
+    neighborhood = area === 'neighborhood',
+    posts = area !== 'friends';
   const category =
     parentingCategories.find(([id]) => id === query.category)?.[0] ?? 'all';
-  const path = `/${locale}/community${area === 'boards' ? '' : `/${area}`}`;
+  const search = typeof query.q === 'string' ? query.q.trim().slice(0, 80) : '';
+  const sort = query.sort === 'popular' ? 'popular' : 'all';
+  const path = `/${locale}/community${neighborhood ? '/neighborhood' : '/boards'}`;
   const href = (values: Record<string, string>) =>
-    `${path}?${new URLSearchParams({ child: context.child.id, scope, category, place, ...values })}`;
-  const hidden = () => (
-    <>
-      <input type="hidden" name="locale" value={locale} />
-      <input type="hidden" name="child" value={context.child.id} />
-      <input type="hidden" name="feature" value={area} />
-      <input type="hidden" name="place" value={place} />
-      <input type="hidden" name="scope" value={scope} />
-    </>
-  );
-  const feed =
-    (area === 'boards' && category !== 'friends') || area === 'market'
-      ? await context.db.rpc('parenting_feed', {
-          p_family: context.child.family_id,
-          p_scope: scope,
-          p_category: area === 'market' ? 'all' : category,
-          p_place: place,
-          p_feature: area,
+    `${path}?${new URLSearchParams({ child: context.child.id, category, sort, ...(search ? { q: search } : {}), ...values })}`;
+  const [feed, topics] = posts
+    ? await Promise.all([
+        context.db.rpc('parenting_feed', {
+          p_family: context.family.id,
+          p_neighborhood: neighborhood,
+          p_category: category,
+          p_sort: sort,
+          p_query: search,
+          ...(query.beforeScore && /^\d{1,15}$/.test(query.beforeScore)
+            ? { p_before_score: Number(query.beforeScore) }
+            : {}),
           ...(query.before && !Number.isNaN(Date.parse(query.before))
             ? { p_before: new Date(query.before).toISOString() }
             : {}),
@@ -113,11 +66,22 @@ export async function CommunityHub({
           )
             ? { p_before_id: query.beforeId }
             : {}),
-        })
-      : null;
-  if (feed?.error) throw new Error('Community feed unavailable');
+        }),
+        context.db.rpc('parenting_topics', { p_family: context.family.id }),
+      ])
+    : [null, null];
+  if (feed?.error || topics?.error) throw Error('Community feed unavailable');
+  const orderedTags = topics?.data?.flatMap((topic) => {
+    const tag = parentingTags.find(([id]) => id === topic.category);
+    return tag ? [tag] : [];
+  }) ?? [...parentingTags];
+  const hasResidence =
+    !!context.family.residence_country_code &&
+    (!neighborhood || !!context.family.residence_locality);
   return (
-    <section className="community-hub parenting-community">
+    <section
+      className={`community-hub parenting-community${!posts ? ' parenting-playground' : ''}`}
+    >
       <Flash error={error} />
       <h1 className="visually-hidden">
         {ko ? '육아 소통' : 'Parenting community'}
@@ -126,180 +90,176 @@ export async function CommunityHub({
         className="parenting-tabs"
         aria-label={ko ? '육아 소통 메뉴' : 'Community sections'}
       >
-        {tabs.map(([id, k, e, Icon]) => (
+        {(
+          [
+            ['friends', '동네 놀이터', 'Playground', Trees],
+            ['neighborhood', '동네 이야기', 'Neighborhood', MessageSquareText],
+            ['boards', '전국 소통', 'Countrywide', MessagesSquare],
+          ] as const
+        ).map(([id, k, e, Icon]) => (
           <Link
             key={id}
             aria-current={area === id ? 'page' : undefined}
-            href={`/${locale}/community${id === 'boards' ? '' : `/${id}`}?child=${context.child.id}&place=${place}`}
+            href={`/${locale}/community${id === 'friends' ? '/playground' : `/${id}`}?child=${context.child.id}`}
           >
             <Icon size={17} />
             {ko ? k : e}
           </Link>
         ))}
       </nav>
-      <div>
-        <CommunityRegionPicker
-          key={place}
-          locale={locale}
-          country={country}
-          place={place || context.family.residence_region_code || ''}
-          child={context.child.id}
-          scope={scope}
-          category={category}
-          path={path}
-          globalPlaces={globalPlaces}
-        />
-      </div>
-      {area === 'support' ? (
-        <SupportList context={context} locale={locale} area={home} />
+      {!posts ? (
+        <NeighborhoodFriends context={context} locale={locale} />
       ) : (
         <>
-          {area === 'boards' && (
-            <>
-              <nav
-                className="community-pills category-pills"
-                aria-label={ko ? '게시판 카테고리' : 'Board categories'}
-              >
-                {parentingCategories.map(([id, k, e]) => (
-                  <Link
-                    key={id}
-                    href={href({
-                      category: id,
-                      before: '',
-                      beforeId: '',
-                      ...(id === 'friends' ? { scope: 'district' } : {}),
-                    })}
-                    aria-current={category === id ? 'page' : undefined}
-                  >
-                    {ko ? k : e}
-                  </Link>
-                ))}
-              </nav>
-              <nav
-                className="community-pills region-pills"
-                aria-label={ko ? '지역 범위' : 'Area scope'}
-              >
+          {posts && (
+            <nav
+              className="community-pills category-pills"
+              aria-label={ko ? '게시판 주제' : 'Post topics'}
+            >
+              <FeedSortPicker
+                locale={locale}
+                popular={sort === 'popular'}
+                selected={category === 'all'}
+                all={href({ category: 'all', sort: 'all' })}
+                popularHref={href({ category: 'all', sort: 'popular' })}
+              />
+              {orderedTags.map(([id, k, e]) => (
                 <Link
-                  href={href({ scope: 'all', place: '', before: '' })}
-                  aria-current={scope === 'all' ? 'page' : undefined}
+                  key={id}
+                  href={href({ category: id, sort: 'all' })}
+                  aria-current={category === id ? 'page' : undefined}
                 >
-                  {ko ? '전체 지역' : 'All areas'}
+                  {ko ? k : e}
                 </Link>
-                {regionScopes.map((id, i) => (
-                  <Link
-                    key={id}
-                    href={href({ scope: id, before: '' })}
-                    aria-current={scope === id ? 'page' : undefined}
-                  >
-                    <span>
-                      {ko
-                        ? ['시 단위', '구 단위', '동 단위'][i]
-                        : ['City', 'District', 'Neighborhood'][i]}
-                    </span>
-                    <small>{home[id].split(' ').at(-1) || '—'}</small>
-                  </Link>
-                ))}
-              </nav>
-            </>
+              ))}
+            </nav>
           )}
-          {area === 'boards' && category === 'friends' ? (
-            <NeighborhoodFriends
-              context={context}
+          <Form
+            action={path}
+            className="community-search"
+            role="search"
+            aria-label={ko ? '게시글 검색' : 'Search posts'}
+          >
+            <input type="hidden" name="child" value={context.child.id} />
+            <input type="hidden" name="category" value={category} />
+            <input type="hidden" name="sort" value={sort} />
+            <Search size={17} aria-hidden="true" />
+            <input
+              key={`${path}-${search}`}
+              type="search"
+              name="q"
+              maxLength={80}
+              defaultValue={search}
+              aria-label={ko ? '제목·본문 검색' : 'Search titles and posts'}
+              placeholder={ko ? '제목·본문 검색' : 'Search titles and posts'}
+            />
+            {search && (
+              <Link
+                href={href({ q: '' })}
+                aria-label={ko ? '검색 초기화' : 'Clear search'}
+              >
+                {ko ? '초기화' : 'Clear'}
+              </Link>
+            )}
+            <button type="submit">{ko ? '검색' : 'Search'}</button>
+          </Form>
+          {sort === 'popular' && (
+            <p className="community-popular-help">
+              {ko
+                ? '최근 7일의 공감·댓글 참여·조회수를 반영한 인기글이에요.'
+                : 'Popular posts from the past 7 days, ranked by likes, commenters and views.'}
+            </p>
+          )}
+          {hasResidence ? (
+            <PostComposer
+              child={context.child.id}
+              source={neighborhood ? 'neighborhood' : 'boards'}
               locale={locale}
-              scope={scope}
-              place={place}
-              before={query.before}
-              beforeId={query.beforeId}
+              tags={orderedTags}
+              initialTag={category}
             />
           ) : (
-            <>
-              {!home.district ? (
-                <p className="panel">
-                  {ko
-                    ? '지역을 선택하면 이야기를 나눌 수 있어요.'
-                    : 'Choose an area to join the conversation.'}
-                </p>
-              ) : (
-                <>
-                  <details className="panel community-compose">
-                    <summary>{ko ? '글쓰기' : 'Write a post'}</summary>
-                    <form action={neighborhoodAction} className="form-stack">
-                      {hidden()}
-                      {area === 'boards' && (
-                        <label>
-                          {ko ? '태그' : 'Tag'}
-                          <select
-                            name="category"
-                            defaultValue={
-                              parentingTags.some(([id]) => id === category)
-                                ? category
-                                : 'childcare'
-                            }
-                          >
-                            {parentingTags.map(([id, k, e]) => (
-                              <option key={id} value={id}>
-                                {ko ? k : e}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      )}
-                      <label>
-                        {ko ? '제목' : 'Title'}
-                        <input name="title" required maxLength={100} />
-                      </label>
-                      <label>
-                        {ko ? '내용' : 'Content'}
-                        <textarea name="body" required maxLength={3000} />
-                      </label>
-                      <button className="button primary">
-                        {ko ? '등록' : 'Post'}
-                      </button>
-                    </form>
-                  </details>
-                </>
+            <p className="community-feed-empty">
+              {ko
+                ? '거주 지역을 설정하면 이야기를 나눌 수 있어요.'
+                : 'Set your residence to join the conversation.'}
+            </p>
+          )}
+          {feed?.data?.length ? (
+            <div className="parenting-posts">
+              {feed.data.map((post) => {
+                const areaLabel = /^[A-Z]{2}$/.test(post.area_label)
+                  ? (new Intl.DisplayNames([locale], { type: 'region' }).of(
+                      post.area_label,
+                    ) ?? post.area_label)
+                  : post.area_label;
+                const elapsed = minutesSince(post.created_at);
+                const time =
+                  elapsed < 1
+                    ? ko
+                      ? '방금 전'
+                      : 'Just now'
+                    : new Intl.RelativeTimeFormat(locale, {
+                        numeric: 'auto',
+                      }).format(
+                        -(elapsed < 60
+                          ? elapsed
+                          : elapsed < 1440
+                            ? Math.floor(elapsed / 60)
+                            : Math.floor(elapsed / 1440)),
+                        elapsed < 60
+                          ? 'minute'
+                          : elapsed < 1440
+                            ? 'hour'
+                            : 'day',
+                      );
+                return (
+                  <PostCard
+                    key={post.id}
+                    post={{
+                      ...post,
+                      area_label: areaLabel,
+                      author_identity: postDetailSchema.shape.author.parse(
+                        post.author_identity,
+                      ),
+                    }}
+                    child={context.child.id}
+                    source={neighborhood ? 'neighborhood' : 'boards'}
+                    tag={
+                      parentingTags.find(([id]) => id === post.category)?.[
+                        ko ? 1 : 2
+                      ] ?? ''
+                    }
+                    time={time}
+                    locale={locale}
+                  />
+                );
+              })}
+              {feed.data.length === 50 && (
+                <Link
+                  className="button secondary"
+                  href={href({
+                    before: feed.data.at(-1)!.created_at,
+                    beforeId: feed.data.at(-1)!.id,
+                    ...(sort === 'popular'
+                      ? { beforeScore: String(feed.data.at(-1)!.rank_score) }
+                      : {}),
+                  })}
+                >
+                  {ko ? '이전 이야기' : 'Older posts'}
+                </Link>
               )}
-              {feed?.data?.length ? (
-                <div className="parenting-posts">
-                  {feed.data.map((post) => (
-                    <article className="panel" key={post.id}>
-                      <div className="small muted">
-                        {area === 'boards' && (
-                          <>
-                            {
-                              parentingCategories.find(
-                                ([id]) => id === post.category,
-                              )?.[ko ? 1 : 2]
-                            }{' '}
-                            ·{' '}
-                          </>
-                        )}
-                        {post.area_label}
-                      </div>
-                      <h2>{post.title}</h2>
-                      <p className="post-body">{post.body}</p>
-                    </article>
-                  ))}
-                  {feed.data.length === 50 && (
-                    <Link
-                      className="button secondary"
-                      href={href({
-                        before: feed.data.at(-1)!.created_at,
-                        beforeId: feed.data.at(-1)!.id,
-                      })}
-                    >
-                      {ko ? '이전 이야기' : 'Older posts'}
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <p className="panel">
-                  {ko
-                    ? '아직 등록된 이야기가 없어요.'
-                    : 'No conversations yet.'}
-                </p>
-              )}
-            </>
+            </div>
+          ) : (
+            <p className="community-feed-empty">
+              {search
+                ? ko
+                  ? '검색 결과가 없어요. 다른 검색어로 찾아보세요.'
+                  : 'No matching posts. Try another search.'
+                : ko
+                  ? '아직 등록된 이야기가 없어요.'
+                  : 'No conversations yet.'}
+            </p>
           )}
         </>
       )}

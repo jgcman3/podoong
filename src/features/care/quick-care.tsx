@@ -2,6 +2,7 @@
 import { requestOutingLocation } from '@/features/outing/location';
 import { formatCareDuration } from '@/lib/duration';
 import { QuickFieldTitle } from './quick-field-title';
+import amountStyles from './amount-ruler.module.css';
 import { QuickTimeField } from './quick-time-field';
 import { ActivityRail } from './activity-rail';
 import {
@@ -636,7 +637,6 @@ function QuickEditor({
       />
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="childId" value={childId} />
-      <input type="hidden" name="amountUnit" value={active?.unit ?? 'ml'} />
       <input type="hidden" name="version" value={active?.version ?? ''} />
       <input type="hidden" name="timezone" value={timezone} />
       <input type="hidden" name="kind" value={recordKind} />
@@ -779,9 +779,9 @@ function QuickEditor({
                 hideDuration={timedActivity}
               />
             )}
-            {feed && kind !== 'breast' && (
+            {feed && kind !== 'breast' && mode === 'record' && (
               <AmountRuler
-                unit={active?.unit === 'g' ? 'g' : 'ml'}
+                unit="ml"
                 locale={locale}
                 kind={kind}
                 value={amount}
@@ -808,8 +808,17 @@ function QuickEditor({
             {outing && !active && mode === 'start' && (
               <p className="small muted outing-start-help">
                 {locale === 'ko'
-                  ? '위치를 허용하면 나들이 중에 날씨·미세먼지와 가까운 소아과·약국·기저귀 교환 장소를 볼 수 있어요.'
-                  : 'Allow location to see weather, air quality, and nearby pediatric care, pharmacies, and changing tables during your outing.'}
+                  ? '위치 이용은 선택이에요. 허용하면 나들이 중 날씨·미세먼지와 가까운 시설을 볼 수 있어요. 기기 좌표는 조회에만 일시 사용하고 DB에 저장하지 않아요. 거절해도 나들이 기록은 가능해요.'
+                  : 'Location is optional. Allow it to see weather, air quality and nearby facilities during your outing. Device coordinates are used temporarily for the lookup and not stored in our database. You can record an outing without location.'}{' '}
+                <a
+                  href={`/${locale}/legal/terms?child=${childId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {locale === 'ko'
+                    ? '위치정보 이용 안내'
+                    : 'Location use details'}
+                </a>
               </p>
             )}
             {durationNeeded && (
@@ -1021,6 +1030,14 @@ function QuickEditor({
             )}
           </>
         )}
+        {feed && kind !== 'breast' && mode === 'stop' && (
+          <AmountRuler
+            locale={locale}
+            kind={kind}
+            value={amount}
+            onChange={setAmount}
+          />
+        )}
       </fieldset>
       <input
         type="hidden"
@@ -1096,7 +1113,7 @@ function AmountRuler({
 }: {
   locale: Locale;
   kind: 'formula' | 'solids';
-  unit?: 'ml' | 'g';
+  unit?: 'ml';
   value: string;
   onChange: (value: string) => void;
 }) {
@@ -1111,35 +1128,99 @@ function AmountRuler({
     kind === 'solids'
       ? [30, 50, 80, 100, 150, 200]
       : [60, 80, 120, 160, 200, 240];
+  const ratio = Number(value || 0) / max;
+  const changeAtPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    const track = event.currentTarget.querySelector<HTMLElement>(
+      '[data-amount-track]',
+    )!;
+    const bounds = track.getBoundingClientRect();
+    const position = Math.min(
+      1,
+      Math.max(0, (bounds.bottom - event.clientY) / bounds.height),
+    );
+    const raw = position * max;
+    const tick = Math.round(raw / 100) * 100;
+    // Mobile pointer coordinates may round fractional CSS pixels. Snap near a
+    // labelled tick so touching its line selects that exact amount.
+    const amount =
+      Math.abs(raw - tick) <= (max * 1.5) / bounds.height
+        ? tick
+        : Math.round(raw / step) * step;
+    onChange(String(amount));
+  };
   return (
-    <div className="quick-amount-picker">
+    <div className={`quick-amount-picker ${amountStyles.picker}`}>
       <div className="quick-amount-heading">
-        <output aria-live="polite" aria-label={c.amount}>
-          {value === '' ? (
-            c.unknown
-          ) : (
-            <>
-              {value}
-              <small>{unit}</small>
-            </>
-          )}
-        </output>
+        <label className={amountStyles.direct}>
+          <input
+            type="number"
+            inputMode="decimal"
+            style={{
+              width: `${Math.max(value.length || c.unknown.length, 1)}ch`,
+            }}
+            aria-label={
+              locale === 'ko' ? '먹인 양 직접 입력' : 'Enter feeding amount'
+            }
+            placeholder={c.unknown}
+            min={0}
+            max={3000}
+            step="any"
+            value={value}
+            onFocus={(event) => event.currentTarget.select()}
+            onChange={(event) => {
+              const next = event.target.value;
+              if (next === '' || (Number(next) >= 0 && Number(next) <= 3000))
+                onChange(next);
+            }}
+          />
+          <small>{unit}</small>
+        </label>
       </div>
       <div
-        className="quick-ruler"
+        className={`quick-ruler ${amountStyles.ruler}`}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          event.currentTarget
+            .querySelector('input')
+            ?.focus({ preventScroll: true });
+          event.currentTarget.setPointerCapture(event.pointerId);
+          changeAtPointer(event);
+        }}
+        onPointerMove={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId))
+            changeAtPointer(event);
+        }}
+        onPointerUp={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            changeAtPointer(event);
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
+        }}
         style={
           {
-            '--quick-level': `${(Number(value) / max) * 100}%`,
+            '--quick-level': `calc(42px + (100% - 84px) * ${ratio})`,
           } as React.CSSProperties
         }
       >
-        <div className="quick-ruler-ticks" aria-hidden="true">
+        <div
+          className={amountStyles.track}
+          data-amount-track
+          aria-hidden="true"
+        >
           {Array.from({ length: divisions + 1 }, (_, i) => (
-            <span key={i}>
+            <span
+              className={amountStyles.tick}
+              key={i}
+              style={{ top: `${(i / divisions) * 100}%` }}
+            >
               <i />
               {max - i * 100}
             </span>
           ))}
+          <span
+            className={amountStyles.thumb}
+            style={{ top: `${(1 - ratio) * 100}%` }}
+          />
         </div>
         <input
           type="range"
@@ -1147,10 +1228,14 @@ function AmountRuler({
           aria-valuetext={value === '' ? c.unknown : `${value} ${unit}`}
           min={0}
           max={max}
-          step={step}
+          step="any"
           value={value || 0}
           disabled={value === ''}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) =>
+            onChange(
+              String(Math.round(Number(event.target.value) / step) * step),
+            )
+          }
         />
         <div className="quick-ruler-cue" aria-hidden="true">
           <Plus size={14} />

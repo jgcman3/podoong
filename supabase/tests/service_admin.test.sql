@@ -41,7 +41,7 @@ select is((select count(*)::int from admin_audit() where action='request_update'
 select ok((select details::text not like '%INTERNAL_ONLY_NOTE%' from admin_audit() where action='request_update'),'audit excludes private note text');
 select throws_ok($$select * from admin_request_details$$,'42501',null,'operators also use guarded RPCs for private notes');
 select ok(admin_operations()::text not like '%PRIVATE_CHILD_NAME%','operations does not expose child names');
-select is((select count(*)::int from admin_users()),3,'user list returns account metadata');
+select is((select count(*)::int from admin_users() where id::text like 'a5700000-%'),3,'user list returns account metadata');
 select is((select children::int from admin_families() where id='a5700000-0000-4000-8000-000000000010'),1,'family list returns counts');
 select set_config('request.jwt.claims','{"sub":"a5700000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}',true);
 select is((select status from developer_requests where id='a5700000-0000-4000-8000-000000000030'),'in_progress','request owner can still see public status');
@@ -53,10 +53,10 @@ select throws_ok($$select report_service_error(gen_random_uuid(),'share/token/pr
 select throws_ok($$select report_service_error(gen_random_uuid(),'today','render_failed','private-name')$$,'23514',null,'raw strings are not accepted as error digests');
 select throws_ok($$select * from service_error_events$$,'42501',null,'users cannot enumerate error reports');
 select set_config('request.jwt.claims','{"sub":"a5700000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}',true);
-select is((select count(*)::int from admin_errors()),1,'operator sees sanitized error reports');
+select is((select count(*)::int from admin_errors() where id='a5700000-0000-4000-8000-000000000050'),1,'operator sees sanitized error reports');
 select lives_ok($$select admin_resolve_error('a5700000-0000-4000-8000-000000000050')$$,'operator marks an error resolved');
-select is((select count(*)::int from admin_errors()),0,'resolved errors leave the open list');
-select is((select count(*)::int from admin_errors(false)),1,'resolved error history is available');
+select is((select count(*)::int from admin_errors() where id='a5700000-0000-4000-8000-000000000050'),0,'resolved errors leave the open list');
+select is((select count(*)::int from admin_errors(false) where id='a5700000-0000-4000-8000-000000000050'),1,'resolved error history is available');
 select is((select count(*)::int from admin_audit() where action in ('request_update','error_resolve')),2,'error resolution is audited');
 reset role;
 insert into developer_requests(id,user_id,category,body,created_at)

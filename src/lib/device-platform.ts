@@ -1,3 +1,7 @@
+export type InAppBrowser = 'kakaotalk' | null;
+export function inAppBrowser(userAgent: string): InAppBrowser {
+  return /KAKAOTALK/i.test(userAgent) ? 'kakaotalk' : null;
+}
 export type DevicePlatform = 'ios' | 'android' | 'mac-safari' | 'desktop';
 export type DesktopBrowser = 'chrome' | 'edge' | 'safari' | 'other';
 export function desktopBrowser(userAgent: string): DesktopBrowser {

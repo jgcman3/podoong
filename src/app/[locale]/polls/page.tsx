@@ -27,7 +27,7 @@ export default async function Polls({
     .lte('day', today)
     .order('day', { ascending: false })
     .range(page * 10, page * 10 + 10);
-  if (error && error.code !== 'PGRST205') throw new Error('Polls unavailable');
+  if (error) throw new Error('Polls unavailable');
   const preview = page === 0 && !polls?.length;
   const visible = preview ? examplePolls(today) : (polls ?? []).slice(0, 10);
   const ownVotes =

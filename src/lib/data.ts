@@ -116,7 +116,7 @@ export async function loadCare(
           .from('care_records')
           .select('*')
           .eq('child_id', child.id)
-          .eq('kind', 'breast')
+          .or('kind.eq.breast,timer_started.eq.true')
           .is('ended_at', null)
       : Promise.resolve({ data: [] as Row<'care_records'>[], error: null }),
     datasets.includes('tasks')

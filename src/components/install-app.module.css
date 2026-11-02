@@ -190,3 +190,34 @@
   color: var(--brown);
   text-decoration: underline;
 }
+
+.inAppNotice {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: left;
+}
+.kakaoGuide h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+.kakaoGuide p {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.kakaoGuide ol {
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.kakaoGuide li + li {
+  margin-top: 10px;
+}
+.kakaoGuide > button {
+  margin-top: 8px;
+  min-height: 44px;
+}

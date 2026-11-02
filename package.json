@@ -14,7 +14,7 @@
     "test:e2e": "playwright test",
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
-    "db:test": "supabase test db && node scripts/verify-feeding-cleanup.mjs",
+    "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
     "env:local": "node scripts/local-env.mjs",
     "format": "prettier --write src tests messages scripts *.ts *.mjs *.json README.md docs/implementation .github",
@@ -23,11 +23,14 @@
     "backup:verify": "node scripts/verify-local-restore.mjs",
     "env:check": "node scripts/check-environment.mjs",
     "prebuild": "node scripts/build-outing-diaper-map.mjs --check",
-    "data:outing": "node scripts/build-outing-diaper-map.mjs"
+    "data:outing": "node scripts/build-outing-diaper-map.mjs",
+    "seed:playground": "node scripts/seed-playground-demo.mjs",
+    "dev:playground": "node scripts/local-playground-preview.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "^2.100.0",
+    "heic-to": "1.6.7",
     "lucide-react": "^0.577.0",
     "next": "16.4.3",
     "next-intl": "4.14.9",

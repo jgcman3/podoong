@@ -130,7 +130,7 @@ export async function createDiary(form: FormData) {
     try {
       await storePhotoVariants(db, id, registration.data, Buffer.from(bytes));
     } catch {
-      // Keep a successfully uploaded original readable; a backfill can retry derivatives.
+      // Keep a successfully uploaded original readable; derivatives can be retried.
     }
     uploaded.push(id);
   }

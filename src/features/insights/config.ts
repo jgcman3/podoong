@@ -52,12 +52,7 @@ const ml: Metric = {
 export const metrics: Record<InsightKind, Metric[]> = {
   breast: [minutes, count],
   formula: [ml, count, minutes],
-  solids: [
-    ml,
-    count,
-    { key: 'g', ko: '이전 g 기록', en: 'Legacy grams', unit: 'g', mode: 'sum' },
-    minutes,
-  ],
+  solids: [ml, count, minutes],
   sleep: [minutes, count],
   diaper: [
     count,

@@ -13,6 +13,8 @@ import type { Locale } from '@/lib/domain';
 import { DeviceGuide } from './device-guide';
 import {
   devicePlatform,
+  inAppBrowser,
+  type InAppBrowser,
   desktopBrowser,
   type DesktopBrowser,
   type DevicePlatform,
@@ -29,6 +31,7 @@ type InstallState = {
   platform: DevicePlatform;
   browser: DesktopBrowser;
   secure: boolean;
+  inAppBrowser: InAppBrowser;
   clearPrompt: () => void;
 };
 const InstallContext = createContext<InstallState | null>(null);
@@ -37,10 +40,12 @@ export function InstallAppProvider({
   children,
   initialPlatform = 'desktop',
   initialBrowser = 'other',
+  initialInAppBrowser = null,
 }: {
   children: ReactNode;
   initialPlatform?: DevicePlatform;
   initialBrowser?: DesktopBrowser;
+  initialInAppBrowser?: InAppBrowser;
 }) {
   useEffect(() => {
     const display = window.matchMedia('(display-mode: standalone)');
@@ -73,6 +78,7 @@ export function InstallAppProvider({
     platform: initialPlatform,
     browser: initialBrowser,
     secure: true,
+    inAppBrowser: initialInAppBrowser,
   });
   useEffect(() => {
     const display = window.matchMedia('(display-mode: standalone)');
@@ -90,6 +96,7 @@ export function InstallAppProvider({
         ),
         browser: desktopBrowser(navigator.userAgent),
         secure: window.isSecureContext,
+        inAppBrowser: inAppBrowser(navigator.userAgent),
       });
     const frame = requestAnimationFrame(update);
     const available = (event: Event) => {
@@ -146,7 +153,10 @@ export function InstallAppButton({
         ? '앱으로 설치'
         : 'Install app';
   const nativePrompt =
-    nativeReady && state.platform !== 'ios' && !state.installed
+    nativeReady &&
+    !state.inAppBrowser &&
+    state.platform !== 'ios' &&
+    !state.installed
       ? state.prompt
       : null;
   const openGuide = () => {
@@ -173,6 +183,13 @@ export function InstallAppButton({
   };
   return (
     <div className={styles.installControl}>
+      {state.inAppBrowser === 'kakaotalk' && !state.installed && (
+        <p className={styles.inAppNotice}>
+          {ko
+            ? '카카오톡에서 열려 있어요. 홈 화면 추가는 Safari·Chrome에서 이어가 주세요.'
+            : 'You’re in KakaoTalk. Continue in Safari or Chrome to add podoong to your Home Screen.'}
+        </p>
+      )}
       {nativePrompt && (
         <button
           type="button"
@@ -226,6 +243,7 @@ export function InstallAppButton({
             purpose="install"
             initialPlatform={state.platform}
             initialBrowser={state.browser}
+            initialInAppBrowser={state.inAppBrowser}
           />
           {!state.secure && (
             <p className="install-app-notice">

@@ -3,7 +3,7 @@ import { insightKinds, type InsightKind, type Metric } from './config';
 import { shiftCareDay } from '@/features/care/quick-model';
 export type FeedInput = Pick<
   Row<'care_records'>,
-  'id' | 'kind' | 'started_at' | 'ended_at' | 'amount_ml' | 'amount_g'
+  'id' | 'kind' | 'started_at' | 'ended_at' | 'amount_ml'
 >;
 export type ChildInput = Pick<
   Row<'child_records'>,
@@ -220,7 +220,7 @@ export function aggregateWeek(
       at = Date.parse(r.started_at),
       finished = r.ended_at ? Date.parse(r.ended_at) : null;
     if (finished === null && kind !== 'breast') {
-      point(kind, at, { ml: r.amount_ml, g: r.amount_g, minutes: null });
+      point(kind, at, { ml: r.amount_ml, minutes: null });
       continue;
     }
     if (finished === null) {
@@ -231,7 +231,6 @@ export function aggregateWeek(
       continue;
     point(kind, at, {
       ml: r.amount_ml,
-      g: r.amount_g,
       minutes: (finished - at) / 60000,
     });
   }

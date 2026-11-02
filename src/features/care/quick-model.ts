@@ -29,7 +29,7 @@ export type QuickEntry = {
   endedAt: string | null;
   version: number;
   amount: number | null;
-  unit: 'ml' | 'g' | null;
+  unit: 'ml' | null;
   title: string;
   running: boolean;
   childRecord?: Row<'child_records'>;
@@ -55,10 +55,10 @@ export function quickTimeline(
     startedAt: r.started_at,
     endedAt: r.ended_at,
     version: r.version,
-    amount: r.amount_ml ?? r.amount_g,
-    unit: r.amount_ml === null && r.amount_g !== null ? 'g' : 'ml',
+    amount: r.amount_ml,
+    unit: 'ml',
     title: '',
-    running: r.kind === 'breast' && !r.ended_at,
+    running: (r.kind === 'breast' || r.timer_started === true) && !r.ended_at,
   }));
   const other: QuickEntry[] = child.map((r) => ({
     id: r.id,

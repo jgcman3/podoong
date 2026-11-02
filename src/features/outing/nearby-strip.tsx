@@ -125,6 +125,7 @@ function ActiveNearbyStrip({
     })();
     return () => {
       active = false;
+      recent = undefined;
       controller.abort();
       window.clearInterval(refreshTimer);
       document.removeEventListener('visibilitychange', locate);

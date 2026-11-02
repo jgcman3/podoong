@@ -37,7 +37,6 @@ export const services = [
   ['growth', 'Ruler', 'available'],
   ['health', 'CalendarHeart', 'available'],
   ['vaccination', 'ShieldCheck', 'available'],
-  ['support', 'HandCoins', 'available'],
   ['nursery', 'School', 'planned'],
   ['kindergarten', 'Shapes', 'planned'],
   ['community', 'MessagesSquare', 'available'],

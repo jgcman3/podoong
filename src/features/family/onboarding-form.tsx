@@ -99,7 +99,7 @@ export function OnboardingForm({
   );
   const [step, setStep] = useState(0);
   const form = useRef<HTMLFormElement>(null);
-  const last = step === fields.length - 1;
+  const last = fields.length === 0 || step === fields.length - 1;
 
   function moveTo(
     index: number,
@@ -165,30 +165,31 @@ export function OnboardingForm({
           event.target.setCustomValidity('');
       }}
       className={`form-stack onboard-information ${styles.form}`}
-      data-mobile={mobile}
+      data-mobile={mobile && fields.length > 0}
       data-last-step={last}
     >
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="next" value={next} />
-      {mobile ? (
-        <div className={`onboard-progress ${styles.progress}`}>
-          <div>
-            <span aria-live="polite">
-              {step + 1} / {fields.length}
-            </span>
-            <span>{ko ? '필수 항목' : 'Required'}</span>
+      {fields.length > 0 &&
+        (mobile ? (
+          <div className={`onboard-progress ${styles.progress}`}>
+            <div>
+              <span aria-live="polite">
+                {step + 1} / {fields.length}
+              </span>
+              <span>{ko ? '필수 항목' : 'Required'}</span>
+            </div>
+            <progress
+              value={step + 1}
+              max={fields.length}
+              aria-label={ko ? '가입 정보 입력 진행' : 'Signup progress'}
+            />
           </div>
-          <progress
-            value={step + 1}
-            max={fields.length}
-            aria-label={ko ? '가입 정보 입력 진행' : 'Signup progress'}
-          />
-        </div>
-      ) : (
-        <p className="small muted">
-          {ko ? '모든 항목은 필수입니다.' : 'All fields are required.'}
-        </p>
-      )}
+        ) : (
+          <p className="small muted">
+            {ko ? '모든 항목은 필수입니다.' : 'All fields are required.'}
+          </p>
+        ))}
       <div className={`onboard-fields ${styles.fields}`}>
         {fields.map((field, index) => (
           <div

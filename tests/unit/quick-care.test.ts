@@ -37,14 +37,35 @@ describe('quick care records', () => {
       feedingRecordSchema.parse({ ...record, endedAt: '' }).endedAt,
     ).toBeNull();
   });
+  it('distinguishes active formula and solids timers from records without a duration', () => {
+    for (const kind of ['formula', 'solids']) {
+      const base = {
+        id: kind,
+        kind,
+        started_at: '2026-11-03T09:00:00Z',
+        ended_at: null,
+        amount_ml: null,
+        timer_started: false,
+      } as Row<'care_records'>;
+      expect(quickTimeline([base], [])[0].running).toBe(false);
+      expect(
+        quickTimeline([{ ...base, timer_started: true }], [])[0].running,
+      ).toBe(true);
+      expect(
+        quickTimeline(
+          [{ ...base, timer_started: true, ended_at: '2026-11-03T09:10:00Z' }],
+          [],
+        )[0].running,
+      ).toBe(false);
+    }
+  });
   it('merges sleep, diaper and feeding in time order with separate units and stable timer identity', () => {
     const feed = {
       id: 'f',
       kind: 'solids',
       started_at: '2026-10-25T09:20:00Z',
       ended_at: '2026-10-25T09:35:00Z',
-      amount_g: 80,
-      amount_ml: null,
+      amount_ml: 80,
       version: 1,
     } as Row<'care_records'>;
     const sleep = {
@@ -65,7 +86,11 @@ describe('quick care records', () => {
     } as Row<'child_records'>;
     const entries = quickTimeline([feed], [sleep, diaper, sleep]);
     expect(entries.map((r) => r.id)).toEqual(['d', 'f', 's']);
-    expect(entries[1]).toMatchObject({ amount: 80, unit: 'g', running: false });
+    expect(entries[1]).toMatchObject({
+      amount: 80,
+      unit: 'ml',
+      running: false,
+    });
     expect(entries[2]).toMatchObject({ running: true, version: 2 });
     expect(entries[0].running).toBe(false);
     expect(durationMinutes(entries[1])).toBe(15);
@@ -160,7 +185,6 @@ describe('daily volume total', () => {
       feed('formula', 120),
       feed('solids', 80),
       feed('breast', 50),
-      feed('solids', 35, { unit: 'g' }),
       feed('formula', 60, { running: true, endedAt: null }),
       feed('solids', null),
       feed('formula', 100, { startedAt: '2026-10-24T14:59:59Z' }),
@@ -233,7 +257,7 @@ describe('activity timer identity', () => {
       duration_minutes: null,
     };
     const rows = [
-      { ...base, id: 'legacy', timer_started: false, duration_minutes: 10 },
+      { ...base, id: 'manual', timer_started: false, duration_minutes: 10 },
       { ...base, id: 'running', timer_started: true },
       {
         ...base,
@@ -243,7 +267,7 @@ describe('activity timer identity', () => {
       },
     ] as Row<'child_records'>[];
     const entries = quickTimeline([], rows);
-    expect(entries.find((e) => e.id === 'legacy')?.running).toBe(false);
+    expect(entries.find((e) => e.id === 'manual')?.running).toBe(false);
     expect(entries.find((e) => e.id === 'running')?.running).toBe(true);
     expect(entries.find((e) => e.id === 'finished')?.running).toBe(false);
     expect(durationMinutes(entries.find((e) => e.id === 'finished')!)).toBe(10);

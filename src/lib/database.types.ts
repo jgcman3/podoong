@@ -23,16 +23,17 @@ export type Database = {
           }
         },"public": {
           Tables: {
+"parenting_post_photos": { Row: { id: string; post_id: string; path: string; sort_order: number }; Insert: { id: string; post_id: string; path: string; sort_order: number }; Update: { id?: string; post_id?: string; path?: string; sort_order?: number }; Relationships: [] },
 "parenting_friend_profiles": {
                   Row: {
-                    "child_id": string,"created_at": string,"enabled": boolean,"id": string,"nickname": string,"status": string
+                    "child_id": string,"created_at": string,"id": string,"nickname": string,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "child_id": string,"created_at"?: string,"enabled"?: boolean,"id"?: string,"nickname": string,"status"?: string
+                    "child_id": string,"created_at"?: string,"id"?: string,"nickname": string,"status"?: string
                   }
                   Update: {
-                    "child_id"?: string,"created_at"?: string,"enabled"?: boolean,"id"?: string,"nickname"?: string,"status"?: string
+                    "child_id"?: string,"created_at"?: string,"id"?: string,"nickname"?: string,"status"?: string
                   }
                   Relationships: [
                     {
@@ -42,51 +43,6 @@ isOneToOne: true
       referencedRelation: "children"
       referencedColumns: ["id"]
     }
-                  ]
-                },
-"parenting_support": {
-                  Row: {
-                    "active": boolean,"agency": string,"agency_type": string,"application_period": string,"benefit": string,"collected_at": string,"eligibility": string,"id": string,"national": boolean,"region_terms": (string)[],"run_id": string,"source_updated": string,"summary": string,"title": string,"url": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "active"?: boolean,"agency": string,"agency_type"?: string,"application_period"?: string,"benefit"?: string,"collected_at": string,"eligibility"?: string,"id": string,"national"?: boolean,"region_terms"?: (string)[],"run_id": string,"source_updated"?: string,"summary"?: string,"title": string,"url": string
-                  }
-                  Update: {
-                    "active"?: boolean,"agency"?: string,"agency_type"?: string,"application_period"?: string,"benefit"?: string,"collected_at"?: string,"eligibility"?: string,"id"?: string,"national"?: boolean,"region_terms"?: (string)[],"run_id"?: string,"source_updated"?: string,"summary"?: string,"title"?: string,"url"?: string
-                  }
-                  Relationships: [
-
-                  ]
-                },
-"parenting_support_config": {
-                  Row: {
-                    "singleton": boolean,"token_secret_id": string,"worker_url": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "singleton"?: boolean,"token_secret_id": string,"worker_url": string
-                  }
-                  Update: {
-                    "singleton"?: boolean,"token_secret_id"?: string,"worker_url"?: string
-                  }
-                  Relationships: [
-
-                  ]
-                },
-"parenting_support_sync": {
-                  Row: {
-                    "finished_at": string | null,"id": string,"item_count": number,"started_at": string,"status": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "finished_at"?: string | null,"id"?: string,"item_count"?: number,"started_at"?: string,"status": string
-                  }
-                  Update: {
-                    "finished_at"?: string | null,"id"?: string,"item_count"?: number,"started_at"?: string,"status"?: string
-                  }
-                  Relationships: [
-
                   ]
                 },
 
@@ -234,14 +190,14 @@ isOneToOne: false
                   ]
                 },"care_records": {
                   Row: {
-                    "amount_g": number | null,"amount_ml": number | null,"child_id": string,"created_at": string,"created_by": string | null,"ended_at": string | null,"food_name": string,"id": string,"kind": string,"note": string,"record_timezone": string | null,"started_at": string,"updated_at": string,"updated_by": string | null,"version": number
+                    "timer_started": boolean,"amount_ml": number | null,"child_id": string,"created_at": string,"created_by": string | null,"ended_at": string | null,"food_name": string,"id": string,"kind": string,"note": string,"record_timezone": string | null,"started_at": string,"updated_at": string,"updated_by": string | null,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_g"?: number | null,"amount_ml"?: number | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"ended_at"?: string | null,"food_name"?: string,"id": string,"kind": string,"note"?: string,"record_timezone"?: string | null,"started_at": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "timer_started"?: boolean,"amount_ml"?: number | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"ended_at"?: string | null,"food_name"?: string,"id": string,"kind": string,"note"?: string,"record_timezone"?: string | null,"started_at": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Update: {
-                    "amount_g"?: number | null,"amount_ml"?: number | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"ended_at"?: string | null,"food_name"?: string,"id"?: string,"kind"?: string,"note"?: string,"record_timezone"?: string | null,"started_at"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "timer_started"?: boolean,"amount_ml"?: number | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"ended_at"?: string | null,"food_name"?: string,"id"?: string,"kind"?: string,"note"?: string,"record_timezone"?: string | null,"started_at"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Relationships: [
                     {
@@ -1414,31 +1370,26 @@ isOneToOne: false
                 }
           }
           Functions: {
-"begin_parenting_support_sync":
-{ Args: Record<PropertyKey, never>; Returns: string
-                           },
 "community_home_area":
 { Args: { "p_family": string }; Returns: Json
                            },
-"configure_parenting_support":
-{ Args: { "p_token": string,"p_worker_url": string }; Returns: undefined
-                           },
-"dispatch_parenting_support":
-{ Args: Record<PropertyKey, never>; Returns: undefined
-                           },
-"parenting_friends":
-{ Args: { "p_before"?: string,"p_before_id"?: string,"p_family": string,"p_place"?: string,"p_scope"?: string }; Returns: {
-              "age_days": number,"area_label": string,"created_at": string,"id": string,"nickname": string,"sex": string,"status": string
-            }[]
-                           },
+"parenting_playground": { Args: { p_child: string; p_left?: number; p_right?: number; p_day?: string }; Returns: Json },
+"send_playground_reaction": { Args: { "p_child": string,"p_friend": string,"p_kind": string }; Returns: undefined },
+"playground_reactions": { Args: { "p_child": string,"p_before"?: string }; Returns: Json },
 "save_parenting_friend":
-{ Args: { "p_child": string,"p_enabled": boolean,"p_nickname": string,"p_status": string }; Returns: undefined
+{ Args: { "p_child": string,"p_status": string }; Returns: undefined
                            },
-"parenting_feed": { Args: { p_family: string; p_scope?: string; p_category?: string; p_before?: string; p_place?: string; p_feature?: string; p_before_id?: string }; Returns: { area_label: string; body: string; category: string; created_at: string; id: string; mine: boolean; title: string }[] },
-"publish_parenting_support":
-{ Args: { "p_rows": Json,"p_run": string }; Returns: undefined
-                           },
-"save_parenting_post": { Args: { p_family: string; p_category: string; p_title: string; p_body: string; p_place?: string; p_feature?: string }; Returns: string },
+"parenting_topics": { Args: { p_family: string }; Returns: { category: string; posts: number }[] },
+"parenting_feed": { Args: { p_family: string; p_neighborhood?: boolean; p_category?: string; p_before?: string; p_before_id?: string; p_sort?: string; p_before_score?: number }; Returns: { area_label: string; body: string; category: string; created_at: string; id: string; mine: boolean; photo_ids: string[]; author_identity: Json; likes: number; comments: number; views: number; rank_score: number; title: string }[] },
+"parenting_comment_replies": { Args: { p_comment: string; p_after?: string; p_after_id?: string }; Returns: Json },
+"parenting_comment_interact": { Args: { p_comment: string; p_child: string; p_kind: string; p_value: string }; Returns: Json },
+"edit_parenting_post": { Args: { p_post: string; p_category: string; p_title: string; p_body: string; p_keep: string[]; p_new: string[]; p_poll?: Json }; Returns: undefined },
+"delete_parenting_post": { Args: { p_post: string }; Returns: undefined },
+"record_parenting_post_view": { Args: { p_post: string }; Returns: Json },
+"parenting_post_detail": { Args: { p_post: string }; Returns: Json },
+"parenting_post_comments_page": { Args: { p_post: string; p_after?: string; p_after_id?: string }; Returns: Json },
+"parenting_post_interact": { Args: { p_post: string; p_child: string; p_kind: string; p_value?: string }; Returns: Json },
+"save_parenting_post": { Args: { p_family: string; p_category: string; p_title: string; p_body: string; p_id?: string; p_photo_ids?: string[]; p_child?: string; p_poll?: Json; p_audience?: string }; Returns: string },
       family_join_preview: { Args: { p_token: string }; Returns: Json };
       valid_iana_timezone: { Args: { p_timezone: string }; Returns: boolean };
       merge_family_from_invitation: {
@@ -1727,11 +1678,6 @@ isOneToOne: false
 "moderate_growth_diary":
 { Args: { "p_hidden": boolean,"p_reason": string,"p_record": string }; Returns: undefined
                            },
-"neighborhood_feed":
-{ Args: { "p_family": string,"p_feature": string }; Returns: {
-              "body": string,"created_at": string,"id": string,"mine": boolean,"title": string
-            }[]
-                           },
 "neighborhood_region":
 { Args: { "p_family": string }; Returns: string
                            },
@@ -1828,17 +1774,11 @@ isOneToOne: false
 "save_calendar_event":
 { Args: { "p_child_id": string,"p_date": string,"p_event_kind"?: string,"p_event_time"?: string,"p_event_timezone"?: string,"p_id": string,"p_note": string,"p_title": string }; Returns: string
                            },
-"save_care_record":
-{ Args: { "p_amount_ml": number,"p_child_id": string,"p_ended_at": string,"p_id": string,"p_kind": string,"p_note": string,"p_started_at": string,"p_version"?: number }; Returns: string
-                           },
 "save_child_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_service": string,"p_version"?: number }; Returns: string
                            },
 "save_daily_poll":
 { Args: { "p_day": string,"p_id": string,"p_options": Json,"p_question_en": string,"p_question_ko": string }; Returns: string
-                           },
-"save_event":
-{ Args: { "p_child_id": string,"p_date": string,"p_id": string,"p_note": string,"p_title": string }; Returns: string
                            },
 "save_family_residence_country":
 { Args: { "p_country_code": string,"p_family": string,"p_version": number }; Returns: undefined
@@ -1853,16 +1793,13 @@ isOneToOne: false
 { Args: { "p_enabled": boolean,"p_interval": number,"p_quiet": boolean }; Returns: undefined
                            },
 "save_feeding_record":
-{ Args: { "p_amount_g": number,"p_amount_ml": number,"p_child_id": string,"p_ended_at": string,"p_food_name": string,"p_id": string,"p_kind": string,"p_note": string,"p_started_at": string,"p_timezone": string,"p_version"?: number }; Returns: string
+{ Args: { "p_amount_ml": number,"p_child_id": string,"p_ended_at": string,"p_food_name": string,"p_id": string,"p_kind": string,"p_note": string,"p_started_at": string,"p_timezone": string,"p_timer_started"?: boolean,"p_version"?: number }; Returns: string
                            },
 "save_global_residence":
 { Args: { "p_city": string,"p_country": string,"p_family": string,"p_locality": string,"p_province": string,"p_version": number }; Returns: undefined
                            },
 "save_growth_diary":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_private"?: boolean,"p_version"?: number }; Returns: string
-                           },
-"save_neighborhood_post":
-{ Args: { "p_body": string,"p_family": string,"p_feature": string,"p_title": string }; Returns: string
                            },
 "save_notification_preferences":
 { Args: { "p_event": boolean,"p_feeding": boolean,"p_frequency": number,"p_hour": number,"p_interval": number,"p_quiet_end": string,"p_quiet_start": string,"p_snooze_minutes"?: number,"p_task": boolean }; Returns: undefined

@@ -16,9 +16,12 @@ import {
   Ruler,
   Baby,
   Utensils,
+  MessageCircle,
+  Trees,
 } from 'lucide-react';
 import { BrandImage } from '@/components/brand-image';
 import { careIcons, careLabels } from '@/features/care/activity-config';
+import { BabyCharacter } from '@/features/community/baby-character';
 import { InsightPreview } from './insight-preview';
 import type { PatternCategory } from '@/features/insights/model';
 import { safeReturnPath, type Locale } from '@/lib/domain';
@@ -96,6 +99,34 @@ const copy = {
     diaryPeerNote: '뒤집기 성공! 매일 조금씩 새로운 얼굴을 보여줘요.',
     diaryPrivacy:
       '공개한 일기만 다른 사람에게 보여요. 비공개 일기는 가족과 간직해요.',
+    parentingLead: '우리 동네에, 함께 크는 친구가 있어요.',
+    parentingBody:
+      '오늘은 뒤집기에 성공했나요? 잠 못 이룬 밤이었나요? 한 줄 안부부터 육아 고민까지, 비슷한 하루를 보내는 부모들과 나눠요.',
+    parentingItems: [
+      [
+        '동네 놀이터',
+        '가상 놀이터에서 오늘 만난 아기 친구들에게 인사·하트·위로를 전해요.',
+      ],
+      [
+        '동네 이야기',
+        '같은 동네 부모들과 어린이집, 나들이, 일상의 이야기를 나눠요.',
+      ],
+      [
+        '전국 소통',
+        '우리나라 부모들과 주제별로 질문하고, 사진·투표·댓글로 생각을 모아요.',
+      ],
+    ],
+    parentingTabs: ['동네 놀이터', '동네 이야기', '전국 소통'],
+    parentingStatuses: [
+      '오늘 뒤집기 성공!',
+      '낮잠 충전 완료',
+      '산책 친구 구해요',
+    ],
+    parentingNames: ['포둥네 봄이', '햇살네 하준', '구름네 다온'],
+    parentingPost: '아기랑 가기 좋은 산책길, 어디 있나요?',
+    parentingTag: '놀이·나들이',
+    parentingReply: '유모차로 다니기 편한 길을 함께 찾아요.',
+    parentingNote: '예시 화면 · 놀이터의 배치는 실제 위치가 아니에요.',
     notifyTitle: '다음 식사 시간도, 함께 챙겨요.',
     notifyBody:
       '마지막 식사 후 일정 간격, 또는 어제 먹었던 시각. 우리 가족에게 맞는 한 가지를 고르고, 필요 없을 땐 꺼두세요. 밤에는 알림을 쉬게 할 수도 있어요.',
@@ -184,6 +215,35 @@ const copy = {
       'Rolled over today! Every day brings a little something new.',
     diaryPrivacy:
       'Only public entries appear to others. Keep private entries within your family.',
+    parentingLead: 'Little neighbors. A little more support.',
+    parentingBody:
+      'A first roll, a sleepless night, or a question on your mind. Meet parents sharing the same little milestones and everyday challenges.',
+    parentingItems: [
+      [
+        'Neighborhood playground',
+        'Meet today’s little neighbors in a virtual playground. Send a hello, a heart, or a little comfort.',
+      ],
+      [
+        'Neighborhood stories',
+        'Swap local tips on childcare, family outings, and everyday life with nearby parents.',
+      ],
+      [
+        'Countrywide conversations',
+        'Ask parents across your country. Share photos, add a poll, and keep the conversation going in comments.',
+      ],
+    ],
+    parentingTabs: ['Playground', 'Local stories', 'Countrywide'],
+    parentingStatuses: [
+      'I rolled over today!',
+      'All charged up!',
+      'Ready for a stroll',
+    ],
+    parentingNames: ['Bom’s family', 'Hajun’s family', 'Daon’s family'],
+    parentingPost: 'Where’s your favorite baby-friendly walking spot?',
+    parentingTag: 'Play & outings',
+    parentingReply: 'Let’s find a stroller-friendly route together.',
+    parentingNote:
+      'Example screen · Playground positions are not real locations.',
     notifyTitle: 'A little help with the next feed.',
     notifyBody:
       'Choose an interval after the last feed, or a reference to yesterday’s feeding time. Pick one, turn reminders off anytime, and keep nights quiet.',
@@ -514,9 +574,78 @@ export function Introduction({
           </figure>
         </section>
 
+        <section
+          className={styles.spotlight}
+          aria-labelledby="parenting-intro-title"
+        >
+          <div className={styles.spotlightCopy}>
+            <span className={styles.number}>04 / PARENTING, TOGETHER</span>
+            <h2 id="parenting-intro-title">{t.parentingLead}</h2>
+            <p>{t.parentingBody}</p>
+            <ul className={styles.benefits}>
+              {t.parentingItems.map(([title, body], index) => {
+                const Icon = [Trees, MessageCircle, Users][index];
+                return (
+                  <li key={title}>
+                    <Icon size={21} aria-hidden="true" />
+                    <div>
+                      <h3>{title}</h3>
+                      <p>{body}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+          <figure className={styles.parentingDemo}>
+            <div className={styles.parentingTabs}>
+              {t.parentingTabs.map((tab, i) => (
+                <span key={tab} data-active={i === 0}>
+                  {tab}
+                </span>
+              ))}
+            </div>
+            <div className={styles.playgroundPreview}>
+              {(['sitting', 'crawling', 'standing'] as const).map((pose, i) => (
+                <div key={pose} className={styles.previewFriend}>
+                  <span className={styles.friendStatus}>
+                    {t.parentingStatuses[i]}
+                  </span>
+                  <BabyCharacter
+                    pose={pose}
+                    sex={i === 1 ? 'male' : 'female'}
+                    variant={i}
+                  />
+                  <strong>{t.parentingNames[i]}</strong>
+                  <small>
+                    {i === 2
+                      ? locale === 'ko'
+                        ? '2살'
+                        : 'Age 2'
+                      : `D+${i ? 180 : 238}`}
+                  </small>
+                </div>
+              ))}
+              <span className={styles.friendHearts} aria-hidden="true">
+                <Heart size={18} fill="currentColor" />{' '}
+                <Heart size={12} fill="currentColor" />
+              </span>
+            </div>
+            <div className={styles.parentingPost}>
+              <span>{t.parentingTag}</span>
+              <h3>{t.parentingPost}</h3>
+              <p>{t.parentingReply}</p>
+              <div>
+                <Heart size={14} /> 8 <MessageCircle size={14} /> 5
+              </div>
+            </div>
+            <figcaption>{t.parentingNote}</figcaption>
+          </figure>
+        </section>
+
         <section className={styles.notificationSection}>
           <div>
-            <span className={styles.number}>04 / A GENTLE REMINDER</span>
+            <span className={styles.number}>05 / A GENTLE REMINDER</span>
             <h2>{t.notifyTitle}</h2>
             <p>{t.notifyBody}</p>
             <small>{t.notifyNote}</small>
@@ -548,9 +677,7 @@ export function Introduction({
           <BrandImage large />
           <h2>{t.closing}</h2>
           <p>{t.closingBody}</p>
-          <div className={styles.closingActions}>
-            {start()}
-          </div>
+          <div className={styles.closingActions}>{start()}</div>
         </section>
         <footer className={styles.footer}>
           <span>podoong</span>

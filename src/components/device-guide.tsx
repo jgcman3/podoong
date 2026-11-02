@@ -4,9 +4,12 @@ import { useSyncExternalStore } from 'react';
 import type { Locale } from '@/lib/domain';
 import {
   devicePlatform,
+  inAppBrowser,
+  type InAppBrowser,
   type DevicePlatform,
   type DesktopBrowser,
 } from '@/lib/device-platform';
+import { KakaoBrowserGuide } from './kakao-browser-guide';
 import { DesktopInstallGuide } from './desktop-install-guide';
 import {
   InstallVisualGuide,
@@ -32,7 +35,7 @@ function snapshot() {
   const installed =
     matchMedia('(display-mode: standalone)').matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone;
-  return `${platform}:${installed ? 'installed' : 'browser'}`;
+  return `${platform}:${installed ? 'installed' : 'browser'}:${inAppBrowser(navigator.userAgent) || ''}`;
 }
 
 export function DeviceGuide({
@@ -40,21 +43,30 @@ export function DeviceGuide({
   purpose = 'notifications',
   initialPlatform = 'desktop',
   initialBrowser = 'other',
+  initialInAppBrowser = null,
 }: {
   locale: Locale;
   purpose?: 'install' | 'notifications';
   initialPlatform?: DevicePlatform;
   initialBrowser?: DesktopBrowser;
+  initialInAppBrowser?: InAppBrowser;
 }) {
   const environment = useSyncExternalStore(
     subscribe,
     snapshot,
-    () => `${initialPlatform}:browser`,
+    () => `${initialPlatform}:browser:${initialInAppBrowser || ''}`,
   );
   const ko = locale === 'ko',
-    [platform, state] = environment.split(':');
+    [platform, state, browser] = environment.split(':');
   if (platform === 'checking') return null;
   const installed = state === 'installed';
+  if (browser === 'kakaotalk' && !installed)
+    return (
+      <KakaoBrowserGuide
+        locale={locale}
+        platform={platform as DevicePlatform}
+      />
+    );
   const name =
     platform === 'ios'
       ? ko

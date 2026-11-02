@@ -9,7 +9,7 @@ import { kindLabel } from '@/features/child-care/copy';
 import { careDuration, careElapsed } from './last-care-model';
 type Feed = Pick<
   Row<'care_records'>,
-  'id' | 'kind' | 'started_at' | 'ended_at' | 'amount_ml' | 'amount_g'
+  'id' | 'kind' | 'started_at' | 'ended_at' | 'amount_ml' | 'timer_started'
 >;
 type Record = Pick<
   Row<'child_records'>,
@@ -63,12 +63,7 @@ export function LastCare({
         : ko
           ? '분유'
           : 'Formula';
-  const amount =
-    feeding?.amount_ml != null
-      ? `${feeding.amount_ml} ml`
-      : feeding?.amount_g != null
-        ? `${feeding.amount_g} g`
-        : '';
+  const amount = feeding?.amount_ml != null ? `${feeding.amount_ml} ml` : '';
   const cards = [
     {
       key: 'diaper',
@@ -91,12 +86,23 @@ export function LastCare({
             : Milk,
       at: feeding?.started_at,
       value: feeding
-        ? feeding.ended_at
+        ? !(
+            !feeding.ended_at &&
+            (feeding.kind === 'breast' || feeding.timer_started)
+          )
           ? careElapsed(feeding.started_at, now, locale)
           : running(feeding.started_at)
         : null,
       detail: feeding
-        ? [foodName, feeding.ended_at ? amount : ko ? '수유 중' : 'In progress']
+        ? [
+            foodName,
+            !feeding.ended_at &&
+            (feeding.kind === 'breast' || feeding.timer_started)
+              ? ko
+                ? '수유 중'
+                : 'In progress'
+              : amount,
+          ]
             .filter(Boolean)
             .join(' · ')
         : '',

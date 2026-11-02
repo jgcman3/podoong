@@ -1,19 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { aggregateWeek, type InsightInput } from '@/features/insights/model';
 import { buildStatistics } from '@/features/insights/statistics-model';
-const feed = (
-  id: string,
-  at: string,
-  ml: number | null,
-  kind = 'formula',
-  g: number | null = null,
-) => ({
+const feed = (id: string, at: string, ml: number | null, kind = 'formula') => ({
   id,
   kind,
   started_at: at,
   ended_at: new Date(Date.parse(at) + 600000).toISOString(),
   amount_ml: ml,
-  amount_g: g,
 });
 const record = (
   id: string,
@@ -36,12 +29,12 @@ const record = (
 });
 const now = '2026-10-26T12:00:00Z';
 describe('primary insight statistics', () => {
-  it('combines selected feeding volumes on one chart without converting breast minutes or grams', () => {
+  it('combines selected feeding volumes on one chart without converting breast minutes or missing amounts', () => {
     const input = {
       feeds: [
         feed('a', '2026-10-12T02:00:00Z', 120),
         feed('b', '2026-10-12T03:00:00Z', 60, 'solids'),
-        feed('c', '2026-10-13T02:00:00Z', null, 'solids', 55),
+        feed('c', '2026-10-13T02:00:00Z', null, 'solids'),
         feed('d', '2026-10-12T04:00:00Z', null, 'breast'),
         feed('zero', '2026-10-14T02:00:00Z', 0),
       ],

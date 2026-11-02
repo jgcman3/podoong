@@ -1,0 +1,83 @@
+/* Let the playground occupy the page below its tabs, without a card frame. */
+.app-shell .main-content:has(.parenting-playground) {
+  padding: 0;
+  max-width: none;
+  height: calc(100dvh - 82px);
+}
+.parenting-playground {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0;
+  min-height: 0;
+}
+.parenting-playground > .parenting-tabs {
+  flex: none;
+  margin: 0;
+  padding: 8px 18px;
+}
+.parenting-playground .neighborhood-friends {
+  flex: 1;
+  min-height: 0;
+  display: block;
+}
+.parenting-playground .friend-world-section {
+  height: 100%;
+  position: relative;
+}
+.parenting-playground .friend-world-heading {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 13px;
+  z-index: 1250;
+  margin: 0;
+  pointer-events: none;
+}
+.parenting-playground .world-eyebrow {
+  padding: 5px 8px;
+  border-radius: 9px;
+  background: #fffdf5a0;
+  backdrop-filter: blur(8px);
+}
+.parenting-playground .side-world {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.parenting-playground .world-return-own {
+  top: 50px;
+  right: 14px;
+}
+body:has(.parenting-playground) .app-footer {
+  display: none;
+}
+:root[data-theme='dark'] .parenting-playground .world-eyebrow {
+  background: #24362a99;
+  color: #dde9cd;
+}
+@media (max-width: 760px) {
+  .app-shell .main-content:has(.parenting-playground) {
+    height: calc(
+      100dvh - var(--mobile-main-nav-height) - env(safe-area-inset-bottom)
+    );
+  }
+  .parenting-playground > .parenting-tabs {
+    padding: 7px 12px;
+  }
+}
+.parenting-playground .world-speech {
+  width: max-content;
+  max-width: 140px;
+  min-width: 0;
+  padding: 6px 9px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+.parenting-playground .world-speech:after {
+  width: 8px;
+  height: 8px;
+  bottom: -4px;
+}

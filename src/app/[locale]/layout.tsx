@@ -6,7 +6,11 @@ import '../globals.css';
 import { InstallAppProvider } from '@/components/install-app';
 import type { Metadata, Viewport } from 'next';
 import { cookies, headers } from 'next/headers';
-import { desktopBrowser, devicePlatform } from '@/lib/device-platform';
+import {
+  desktopBrowser,
+  devicePlatform,
+  inAppBrowser,
+} from '@/lib/device-platform';
 import {
   AppearanceProvider,
   type ThemePreference,
@@ -63,12 +67,14 @@ export default async function LocaleLayout({
       : preference;
   return (
     <html lang={locale} data-theme={resolved}>
-      <body>
+      {/* Browser extensions can inject body attributes before hydration. */}
+      <body suppressHydrationWarning>
         <NextIntlClientProvider>
           <AppearanceProvider initialPreference={preference}>
             <InstallAppProvider
               initialPlatform={devicePlatform(userAgent, '', 0)}
               initialBrowser={desktopBrowser(userAgent)}
+              initialInAppBrowser={inAppBrowser(userAgent)}
             >
               {children}
             </InstallAppProvider>

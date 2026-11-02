@@ -23,7 +23,7 @@ export default async function CommunitySettings({
   ]);
   if (
     [blocks, reports].some(
-      (result) => result.error && result.error.code !== 'PGRST205',
+      (result) => result.error,
     )
   )
     throw new Error('Community settings unavailable');

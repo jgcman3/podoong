@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: '포둥 · podoong',
     short_name: '포둥',
     description: '가족과 함께하는 육아 기록',
-    start_url: '/',
+    start_url: '/today',
     scope: '/',
     display: 'standalone',
     background_color: '#f7f9fc',

@@ -72,9 +72,9 @@ export async function onboard(form: FormData) {
     redirect(`/${locale}/onboarding?error=invalid`);
   const parsed = z
     .object({
+      name: z.string().trim().min(1).max(60),
       family: z.string().trim().min(1).max(60),
       child: z.string().trim().min(1).max(60),
-      name: z.string().trim().min(1).max(60),
       birth: birthDate,
       relationship:
         z.custom<import('./relationship').Relationship>(isRelationship),

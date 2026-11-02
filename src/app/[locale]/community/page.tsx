@@ -20,9 +20,10 @@ export default async function Community({
       context={context}
       locale={locale}
       section="neighborhood"
-      childRoute="community"
+      childRoute="community/playground"
     >
       <CommunityHub
+        area="friends"
         query={query}
         error={error}
         context={context}

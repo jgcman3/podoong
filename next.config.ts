@@ -2,10 +2,19 @@ import type { NextConfig } from 'next';
 import { hostname } from 'node:os';
 import createNextIntlPlugin from 'next-intl/plugin';
 const config: NextConfig = {
-  distDir: process.env.PODUNG_E2E === '1' ? '.next-e2e' : '.next',
+  distDir:
+    process.env.PODUNG_LOCAL_PLAYGROUND_DEMO === '1'
+      ? '.next-playground'
+      : process.env.PODUNG_E2E === '1'
+        ? '.next-e2e'
+        : '.next',
   typescript: {
     tsconfigPath:
-      process.env.PODUNG_E2E === '1' ? 'tsconfig.e2e.json' : 'tsconfig.json',
+      process.env.PODUNG_LOCAL_PLAYGROUND_DEMO === '1'
+        ? 'tsconfig.playground.json'
+        : process.env.PODUNG_E2E === '1'
+          ? 'tsconfig.e2e.json'
+          : 'tsconfig.json',
   },
   poweredByHeader: false,
   outputFileTracingIncludes: {

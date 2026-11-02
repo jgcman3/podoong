@@ -17,7 +17,6 @@ const feed = (
   at: string,
   end: string | null,
   ml: number | null = null,
-  g: number | null = null,
   kind = 'formula',
 ): FeedInput => ({
   id,
@@ -25,7 +24,6 @@ const feed = (
   started_at: at,
   ended_at: end,
   amount_ml: ml,
-  amount_g: g,
 });
 const child = (
   id: string,
@@ -122,33 +120,12 @@ describe('weekly insights from recorded data', () => {
     ]);
     expect(weekValue(c, metrics.formula[0])).toBe(700);
   });
-  it('never converts legacy grams to milliliters and keeps missing amounts distinct from zero', () => {
+  it('keeps missing feeding amounts distinct from zero', () => {
     const input = empty();
     input.feeds = [
-      feed(
-        'a',
-        '2026-10-26T02:00:00Z',
-        '2026-10-26T02:10:00Z',
-        60,
-        null,
-        'solids',
-      ),
-      feed(
-        'b',
-        '2026-10-27T02:00:00Z',
-        '2026-10-27T02:10:00Z',
-        null,
-        55,
-        'solids',
-      ),
-      feed(
-        'c',
-        '2026-10-28T02:00:00Z',
-        '2026-10-28T02:10:00Z',
-        0,
-        null,
-        'solids',
-      ),
+      feed('a', '2026-10-26T02:00:00Z', '2026-10-26T02:10:00Z', 60, 'solids'),
+      feed('b', '2026-10-27T02:00:00Z', '2026-10-27T02:10:00Z', null, 'solids'),
+      feed('c', '2026-10-28T02:00:00Z', '2026-10-28T02:10:00Z', 0, 'solids'),
     ];
     const c = aggregateWeek(input, start, 'Asia/Seoul', now).categories.solids;
     expect(dailyValues(c, metrics.solids[0])).toEqual([
@@ -160,7 +137,7 @@ describe('weekly insights from recorded data', () => {
       null,
       null,
     ]);
-    expect(weekValue(c, metrics.solids[2])).toBe(55);
+    expect(weekValue(c, metrics.solids[0])).toBe(60);
     expect(c.count).toBe(3);
   });
   it('splits overnight sleep at local midnight and merges overlap without inflating duration', () => {
@@ -320,14 +297,14 @@ describe('weekly insights from recorded data', () => {
 });
 
 describe('timed play insights', () => {
-  it('uses elapsed start/end time for new timers and retains manual legacy durations', () => {
+  it('uses elapsed timer time and current manual durations', () => {
     const input = empty();
     input.children = [
       child('timed', '2026-10-26T02:00:00Z', {
         kind: 'play',
         ended_at: '2026-10-26T02:10:00Z',
       }),
-      child('legacy', '2026-10-26T03:00:00Z', {
+      child('manual', '2026-10-26T03:00:00Z', {
         kind: 'play',
         duration_minutes: 7,
       }),

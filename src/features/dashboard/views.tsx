@@ -211,7 +211,7 @@ export async function Today({ context, locale }: Props) {
   ] = await Promise.all([
     context.db
       .from('care_records')
-      .select('id,kind,started_at,ended_at,amount_ml,amount_g')
+      .select('id,kind,started_at,ended_at,amount_ml,timer_started')
       .eq('child_id', child.id)
       .in('kind', ['breast', 'formula', 'solids'])
       .lte('started_at', now)
@@ -262,7 +262,10 @@ export async function Today({ context, locale }: Props) {
       <NearbyStrip
         locale={locale}
         childId={child.id}
-        enabled={quickEntries.some(entry => entry.kind === 'outing' && entry.running && entry.startedAt <= now)}
+        enabled={quickEntries.some(
+          (entry) =>
+            entry.kind === 'outing' && entry.running && entry.startedAt <= now,
+        )}
       />
       <LastCare
         locale={locale}
@@ -730,10 +733,15 @@ export async function ChildAccount({
             ))}
           </div>
         </section>
-        <details className="panel account-settings-section" open={panel === 'join'}>
+        <details
+          className="panel account-settings-section"
+          open={panel === 'join'}
+        >
           <summary>
             <Users size={18} />
-            <span>{ko ? '기존 가족에 참여하기' : 'Join an existing family'}</span>
+            <span>
+              {ko ? '기존 가족에 참여하기' : 'Join an existing family'}
+            </span>
             <ChevronRight size={16} />
           </summary>
           <FamilyJoinEntry locale={locale} settings />
@@ -933,8 +941,13 @@ export async function ChildAccount({
         <DataSettings context={context} locale={locale} panel={panel} />
       </div>
       <section className="panel settings-install">
-        <Link className="button secondary" href={`/${locale}/install?child=${context.child.id}`}>
-          {ko ? '아이 사진으로 홈 화면에 추가' : 'Install with your child’s photo'}
+        <Link
+          className="button secondary"
+          href={`/${locale}/install?child=${context.child.id}`}
+        >
+          {ko
+            ? '아이 사진으로 홈 화면에 추가'
+            : 'Install with your child’s photo'}
         </Link>
       </section>
     </div>
@@ -955,8 +968,13 @@ export async function Settings({
       )}
       {mode === 'all' && (
         <section className="panel settings-install">
-          <Link className="button secondary" href={`/${locale}/install?child=${context.child.id}`}>
-            {locale === 'ko' ? '아이 사진으로 홈 화면에 추가' : 'Install with your child’s photo'}
+          <Link
+            className="button secondary"
+            href={`/${locale}/install?child=${context.child.id}`}
+          >
+            {locale === 'ko'
+              ? '아이 사진으로 홈 화면에 추가'
+              : 'Install with your child’s photo'}
           </Link>
         </section>
       )}

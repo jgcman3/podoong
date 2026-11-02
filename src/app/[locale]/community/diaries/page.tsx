@@ -1,3 +1,4 @@
+import '@/features/growth-community/diary-actions.css';
 import { relationshipLabel } from '@/features/family/relationship';
 import { DiaryShare } from '@/features/growth-community/diary-share';
 import { DiaryComposer } from '@/features/growth-community/composer';

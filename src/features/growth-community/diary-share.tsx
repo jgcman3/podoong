@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Link2Off,
 } from 'lucide-react';
+import { copyTextToClipboard } from '@/lib/clipboard';
 import { manageDiaryLink } from './link-actions';
 
 export function DiaryShare({ child, ko }: { child: string; ko: boolean }) {
@@ -37,7 +38,6 @@ function LinkSheet({
   close: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const input = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
@@ -95,13 +95,21 @@ function LinkSheet({
     }
   }
   async function copy() {
+    setBusy(true);
+    setHint('');
     try {
-      await navigator.clipboard.writeText(url);
-      setHint(ko ? '링크를 복사했어요' : 'Link copied');
-    } catch {
-      input.current?.focus();
-      input.current?.select();
-      setHint(ko ? '선택된 링크를 복사해 주세요.' : 'Copy the selected link.');
+      const copied = await copyTextToClipboard(url);
+      setHint(
+        copied
+          ? ko
+            ? '링크를 복사했어요'
+            : 'Link copied'
+          : ko
+            ? '복사하지 못했어요. 다시 시도해 주세요.'
+            : 'Could not copy. Please try again.',
+      );
+    } finally {
+      setBusy(false);
     }
   }
   async function share() {
@@ -151,7 +159,6 @@ function LinkSheet({
         <label className="diary-share-url">
           <span>{ko ? '공유 링크' : 'Share link'}</span>
           <input
-            ref={input}
             readOnly
             value={url}
             onFocus={(event) => event.target.select()}

@@ -33,7 +33,7 @@ export async function loadQuickTimeline(
         .select('*')
         .eq('child_id', context.child.id)
         .or(
-          `and(started_at.gte.${lower},started_at.lt.${upper}),and(started_at.lt.${upper},ended_at.gte.${lower}),and(kind.eq.breast,ended_at.is.null)`,
+          `and(started_at.gte.${lower},started_at.lt.${upper}),and(started_at.lt.${upper},ended_at.gte.${lower}),and(kind.eq.breast,ended_at.is.null),and(timer_started.eq.true,ended_at.is.null)`,
         )
         .order('started_at', { ascending: false })
         .order('id')

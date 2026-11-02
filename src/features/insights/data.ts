@@ -20,7 +20,7 @@ export async function loadInsights(
     readPages((from, to) =>
       context.db
         .from('care_records')
-        .select('id,kind,started_at,ended_at,amount_ml,amount_g')
+        .select('id,kind,started_at,ended_at,amount_ml')
         .eq('child_id', context.child.id)
         .gte('started_at', lower)
         .lt('started_at', upper)

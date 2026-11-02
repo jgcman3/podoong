@@ -21,7 +21,7 @@ select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000
 select is((select count(*)::int from public.children),0,'another family cannot read children');
 select throws_ok($$select public.update_child_details('20000000-0000-4000-8000-000000000001','No','male','2026-10-20')$$,'42501','forbidden','outsider cannot update child details');
 select is((select count(*)::int from public.family_members),0,'another family cannot read membership');
-select throws_ok($$select public.save_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','x','2026-10-12','')$$,'42501','forbidden','another family cannot write events');
+select throws_ok($$select public.save_calendar_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','x','2026-10-12','','general','','')$$,'42501','forbidden','another family cannot write events');
 select throws_ok($$select * from public.list_caregivers('20000000-0000-4000-8000-000000000001')$$,'42501','forbidden','caregiver names cannot cross family boundaries');
 
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
@@ -29,22 +29,22 @@ select is((select count(*)::int from public.children),1,'viewer sees only invite
 select ok(public.can_read_child('20000000-0000-4000-8000-000000000001'),'viewer reads assigned child');
 select throws_ok($$select public.update_child_details('20000000-0000-4000-8000-000000000001','No','male','2026-10-20')$$,'42501','forbidden','viewer cannot update child details');
 select ok(not public.can_read_child('20000000-0000-4000-8000-000000000002'),'viewer cannot read sibling');
-select throws_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula',now(),now(),100,'',null)$$,'42501','forbidden','viewer cannot save care');
+select throws_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula',now(),now(),100,'','UTC','',null)$$,'42501','forbidden','viewer cannot save care');
 select throws_ok($$select public.update_child_birth_date('20000000-0000-4000-8000-000000000001','2026-10-21')$$,'42501','forbidden','viewer cannot change dates');
 select throws_ok($$insert into public.family_members values('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003','owner')$$,'42501',null,'direct member escalation denied');
 
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select is((select count(*)::int from public.children),2,'owner sees both children');
-select lives_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T10:10Z',100,'first',null)$$,'owner saves record');
-select lives_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T10:10Z',100,'first',null)$$,'repeated save is idempotent');
+select lives_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T10:10Z',100,'','UTC','first',null)$$,'owner saves record');
+select lives_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T10:10Z',100,'','UTC','first',null)$$,'repeated save is idempotent');
 select is((select count(*)::int from public.care_records),1,'retry does not duplicate record');
-select lives_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T10:10Z',120,'edited',1)$$,'record edit succeeds');
-select throws_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T10:10Z',140,'stale',1)$$,'P0001','conflict','stale edit rejected');
-select throws_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T09:00Z',100,'',null)$$,'23514',null,'backwards time rejected');
-select lives_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000001','breast',now(),null,null,'',null)$$,'timer persisted');
-select throws_ok($$select public.save_care_record('30000000-0000-4000-8000-000000000004','20000000-0000-4000-8000-000000000001','breast',now(),null,null,'',null)$$,'23505',null,'second active timer rejected');
+select lives_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T10:10Z',120,'','UTC','edited',1)$$,'record edit succeeds');
+select throws_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T10:10Z',140,'','UTC','stale',1)$$,'P0001','conflict','stale edit rejected');
+select throws_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T09:00Z',100,'','UTC','',null)$$,'23514',null,'backwards time rejected');
+select lives_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000001','breast',now(),null,null,'','UTC','',null)$$,'timer persisted');
+select throws_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000004','20000000-0000-4000-8000-000000000001','breast',now(),null,null,'','UTC','',null)$$,'23505',null,'second active timer rejected');
 select public.save_task('40000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Manual','health','2026-10-25','todo',null);
-select public.save_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Visit','2026-10-25','Note');
+select public.save_calendar_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Visit','2026-10-25','Note','general','','');
 select lives_ok($$select public.update_child_birth_date('20000000-0000-4000-8000-000000000001','2026-10-12')$$,'birth transition succeeds');
 select is((select id::text from public.children where name='Shared'),'20000000-0000-4000-8000-000000000001','child identity preserved');
 select is((select due_date::text from public.tasks where title='Manual'),'2026-10-25','manual task preserved');
@@ -76,7 +76,7 @@ select is((select assignee_id from public.tasks where title='Assigned'),null::uu
 select lives_ok($$select public.save_task('40000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','Assigned','general','2026-10-25','done',null)$$,'unassigned task can be completed after revoke');
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 select is((select count(*)::int from public.children),0,'revoked editor immediately loses read access');
-select throws_ok($$select public.save_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','x','2026-10-12','')$$,'42501','forbidden','revoked editor loses write access');
+select throws_ok($$select public.save_calendar_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','x','2026-10-12','','general','','')$$,'42501','forbidden','revoked editor loses write access');
 set local role anon;
 select is((select count(*)::int from public.content_items),0,'draft content hidden from signed-out users');
 select is((select count(*)::int from public.content_translations),0,'draft translations hidden');

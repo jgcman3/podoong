@@ -98,14 +98,15 @@ export async function saveQuickCare(
       const r = existing.data;
       if (existing.error || !r || r.ended_at || r.version !== v.version)
         return { status: 'error', error: 'conflict' };
+      const amount = feedingRecordSchema.shape.amount.safeParse(input.amount);
+      if (!amount.success) return { status: 'error', error: 'invalid' };
       const result = await db.rpc('save_feeding_record', {
         p_id: r.id,
         p_child_id: v.childId,
         p_kind: r.kind,
         p_started_at: r.started_at,
         p_ended_at: new Date().toISOString(),
-        p_amount_ml: r.amount_ml,
-        p_amount_g: r.amount_g,
+        p_amount_ml: r.kind === 'breast' ? null : amount.data,
         p_food_name: r.food_name,
         p_timezone: r.record_timezone ?? v.timezone,
         p_note: r.note,
@@ -156,7 +157,10 @@ export async function saveQuickCare(
       (v.mode === 'record' &&
         parsed.data.kind === 'breast' &&
         !parsed.data.endedAt) ||
-      (v.mode === 'start' && (parsed.data.endedAt || v.version !== null))
+      (v.mode === 'start' &&
+        (parsed.data.kind !== 'breast' ||
+          parsed.data.endedAt ||
+          v.version !== null))
     )
       return { status: 'error', error: 'invalid' };
     const r = parsed.data;
@@ -166,10 +170,8 @@ export async function saveQuickCare(
       p_kind: r.kind,
       p_started_at: r.startedAt,
       p_ended_at: r.endedAt,
-      p_amount_ml:
-        r.kind === 'solids' && input.amountUnit === 'g' ? null : r.amount,
-      p_amount_g:
-        r.kind === 'solids' && input.amountUnit === 'g' ? r.amount : null,
+      p_amount_ml: r.amount,
+      p_timer_started: v.mode === 'start',
       p_food_name: r.foodName,
       p_timezone: r.timezone,
       p_note: r.note,

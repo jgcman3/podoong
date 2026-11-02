@@ -31,8 +31,8 @@ select is((select count(*)::int from public.calendar_entries),3,'all plan types 
 select lives_ok($$select public.save_vaccination_record('40000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','{"vaccine":"other","custom_name":"Calendar vaccine","status":"planned","scheduled_date":"2026-11-04","timezone":"Asia/Seoul"}',1)$$,'vaccination date updates');
 select is((select date::text from public.calendar_entries where source='vaccination'),'2026-11-04','calendar automatically reflects vaccine edits');
 select is((select count(*)::int from public.calendar_entries where source='vaccination'),1,'no duplicate vaccine schedule');
-select lives_ok($$select public.save_event('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Updated clinic','2026-11-05','')$$,'old event API is compatible');
-select is((select event_kind from public.events where id='30000000-0000-4000-8000-000000000001'),'hospital','legacy edits retain event type');
+select lives_ok($$select public.save_calendar_event('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Updated clinic','2026-11-05','','hospital','','')$$,'current event API updates the event');
+select is((select event_kind from public.events where id='30000000-0000-4000-8000-000000000001'),'hospital','event edits retain the explicitly selected type');
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 select is((select count(*)::int from public.calendar_entries),3,'read-only family sees unified plans');
 select throws_ok($$select public.save_calendar_event(gen_random_uuid(),'20000000-0000-4000-8000-000000000001','No','2026-11-01','','hospital','','')$$,'42501','forbidden','reader cannot register a plan');

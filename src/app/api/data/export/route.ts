@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     .select('*')
     .eq('child_id', child)
     .maybeSingle();
-  if (meal.error && meal.error.code !== 'PGRST205')
+  if (meal.error)
     return NextResponse.json({ error: 'Export unavailable' }, { status: 503 });
   const payload =
     result.data &&

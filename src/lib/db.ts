@@ -6,7 +6,6 @@ type NullableParameter =
   | 'p_birth_date'
   | 'p_ended_at'
   | 'p_amount_ml'
-  | 'p_amount_g'
   | 'p_version'
   | 'p_assignee_id';
 type Functions = {

@@ -15,3 +15,5 @@ supabase/.branches/
 .vercel
 
 .secrets/
+
+.next-playground/
