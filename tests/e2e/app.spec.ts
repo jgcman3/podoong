@@ -6300,7 +6300,7 @@ test('diaper dirty and mixed choices remain diaper records after saving and edit
     await quick.locator('.quick-grid').getByRole('button',{name:'기저귀',exact:true}).click();
     await expect(sheet.getByRole('button',{name:'단순 교체',exact:true})).toHaveCount(0);
     await sheet.getByRole('button',{name:label,exact:true}).click();
-    await sheet.getByRole('button',{name:'저장',exact:true}).click();
+    await sheet.getByRole('button',{name:'저장하기',exact:true}).click();
     await expect(sheet).toBeHidden();
     const saved = await admin.from('child_records').select('id,kind').eq('child_id',child).eq('kind',kind);
     expect(saved.error).toBeNull();
@@ -6310,13 +6310,13 @@ test('diaper dirty and mixed choices remain diaper records after saving and edit
     await entry.click();
     await expect(sheet.locator('h3')).toHaveText('기저귀');
     await expect(sheet.getByRole('button',{name:label,exact:true})).toHaveAttribute('aria-pressed','true');
-    await sheet.getByRole('button',{name:'저장',exact:true}).click();
+    await sheet.getByRole('button',{name:'저장하기',exact:true}).click();
     await expect(sheet).toBeHidden();
   }
   await expect(quick.locator('.quick-timeline-entry.quick-color-stool')).toHaveCount(0);
   await quick.locator('.quick-grid').getByRole('button',{name:'배변',exact:true}).click();
   await sheet.getByRole('button',{name:'대변',exact:true}).click();
-  await sheet.getByRole('button',{name:'저장',exact:true}).click();
+  await sheet.getByRole('button',{name:'저장하기',exact:true}).click();
   await expect(sheet).toBeHidden();
   await expect(quick.locator('.quick-timeline-entry.quick-color-stool')).toHaveCount(1);
 });
@@ -6722,11 +6722,11 @@ test('gifts and allowance save in quick sheets and appear in child-scoped insigh
  const quick=page.locator('.quick-grid'),sheet=page.locator('dialog.quick-composer');
  const gift=quick.getByRole('button',{name:'선물',exact:true});await gift.scrollIntoViewIfNeeded();await gift.click();
  await expect(sheet).toBeVisible();await sheet.getByRole('textbox',{name:'준 사람',exact:true}).fill('할머니');await sheet.getByRole('textbox',{name:'선물 이름',exact:true}).fill('첫 그림책');
- await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const giftRow=page.locator('.quick-color-gift.quick-timeline-entry').filter({hasText:'첫 그림책'});await expect(giftRow).toContainText('할머니');await giftRow.click();
- await expect(sheet.getByRole('textbox',{name:'선물 이름',exact:true})).toHaveValue('첫 그림책');await sheet.getByRole('textbox',{name:'선물 이름',exact:true}).fill('할머니의 그림책');await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await expect(sheet.getByRole('textbox',{name:'선물 이름',exact:true})).toHaveValue('첫 그림책');await sheet.getByRole('textbox',{name:'선물 이름',exact:true}).fill('할머니의 그림책');await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const allowance=quick.getByRole('button',{name:'용돈',exact:true});await allowance.scrollIntoViewIfNeeded();await allowance.click();
- await sheet.getByRole('textbox',{name:'준 사람',exact:true}).fill('이모');await sheet.getByRole('spinbutton',{name:'받은 금액',exact:true}).fill('12000');await sheet.getByRole('combobox',{name:'통화',exact:true}).selectOption('KRW');await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await sheet.getByRole('textbox',{name:'준 사람',exact:true}).fill('이모');await sheet.getByRole('spinbutton',{name:'받은 금액',exact:true}).fill('12000');await sheet.getByRole('combobox',{name:'통화',exact:true}).selectOption('KRW');await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const saved=await admin.from('child_records').select('kind,title,sender_name,received_amount,received_currency').eq('child_id',child).in('kind',['gift','allowance']);expect(saved.error).toBeNull();expect(saved.data).toHaveLength(2);expect(saved.data).toContainEqual({kind:'allowance',title:'',sender_name:'이모',received_amount:12000,received_currency:'KRW'});
  const olderAt=new Date(Date.now()-86400000).toISOString();
  const older=Array.from({length:21},(_,i)=>({id:crypto.randomUUID(),child_id:child,service:'activity',kind:'gift',title:`이전 선물 ${i+1}`,sender_name:'친구',occurred_at:olderAt,record_timezone:'Asia/Seoul',created_by:owner,updated_by:owner}));
@@ -6760,20 +6760,20 @@ test('gift photo is previewed, stored privately, replaced and removed with its r
  const png=await sharp({create:{width:160,height:120,channels:3,background:'#f4b88a'}}).png().toBuffer();
  const upload=async()=>sheet.getByLabel('선물 사진 추가',{exact:true}).setInputFiles({name:'gift.png',mimeType:'image/png',buffer:png});
  await upload();await expect(sheet.getByRole('img',{name:'선물 사진',exact:true})).toBeVisible();
- await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const record=await admin.from('child_records').select('id').eq('child_id',child).eq('kind','gift').single();expect(record.error).toBeNull();
  async function photos(){const result=await admin.from('child_record_photos').select('id,path,variants_ready').eq('record_id',record.data!.id);expect(result.error).toBeNull();for(const photo of result.data??[])createdChildPhotos.push(photo.path,`${photo.path}.display-v1-480.webp`,`${photo.path}.display-v1-1600.webp`);return result.data!;}
  const first=await photos();expect(first).toHaveLength(1);expect(first[0].variants_ready).toBe(true);
  const image=await page.request.get(`/api/care/photos/${first[0].id}?size=480`);expect(image.status()).toBe(200);expect(image.headers()['content-type']).toContain('image/webp');
  const anonymous=await context.browser()!.newContext();const response=await anonymous.request.get(`http://127.0.0.1:3188/api/care/photos/${first[0].id}?size=480`);expect([401,404]).toContain(response.status());await anonymous.close();
  const row=page.locator('.quick-color-gift.quick-timeline-entry').filter({hasText:'곰 인형'});await row.click();await expect(sheet.getByRole('img',{name:'선물 사진',exact:true})).toBeVisible();
- await upload();await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await upload();await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const second=await photos();expect(second).toHaveLength(1);expect(second[0].id).not.toBe(first[0].id);
  await page.goto(`/ko/insights?child=${child}&pattern=received`);await expect(page.getByRole('region',{name:'받은 선물',exact:true}).getByRole('img',{name:'곰 인형',exact:true})).toBeVisible();
  await page.screenshot({ caret: 'initial',path:'/tmp/podung-gift-photo-mobile.png',fullPage:true});
  await page.goto(`/ko/today?child=${child}`);await page.locator('.quick-color-gift.quick-timeline-entry').filter({hasText:'곰 인형'}).click();
  await sheet.getByRole('button',{name:'선물 사진 제거',exact:true}).click();await sheet.getByRole('button',{name:'취소',exact:true}).click();expect(await photos()).toHaveLength(1);
- await row.click();await sheet.getByRole('button',{name:'선물 사진 제거',exact:true}).click();await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});expect(await photos()).toHaveLength(0);
+ await row.click();await sheet.getByRole('button',{name:'선물 사진 제거',exact:true}).click();await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});expect(await photos()).toHaveLength(0);
 });
 
 test('service documents are readable from account settings and retain the child on return',async({page,context})=>{
@@ -6807,7 +6807,7 @@ test('sleep editing supports ten hours and preserves a duration beyond the quick
  const historyGate = new Promise<void>(resolve => { releaseHistory = resolve; });
  await page.route('**/api/care/history?**', async route => { await historyGate; await route.continue(); });
  try {
- await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const saved=await admin.from('child_records').select('occurred_at,ended_at').eq('id',id).single();expect(saved.error).toBeNull();expect(Date.parse(saved.data!.ended_at!)-Date.parse(saved.data!.occurred_at)).toBe(615*60000);
  await target.click();await expect(sheet.getByLabel('종료 시각',{exact:true})).toHaveValue(endClock);await expect(sheet.locator('.quick-sleep-total')).toContainText('10시간 15분');
  await expect(target).toContainText('10시간 15분');
@@ -6884,7 +6884,7 @@ test('play and tummy time can start, survive reload and stop alongside manual re
   const ended=await admin.from('child_records').select('occurred_at,ended_at,timer_started,duration_minutes').eq('id',saved.data!.id).single();expect(ended.error).toBeNull();expect(ended.data!.timer_started).toBe(true);expect(ended.data!.ended_at).not.toBeNull();expect(ended.data!.duration_minutes).toBeNull();
  }
  const play=quick.getByRole('button',{name:'놀이',exact:true});await play.scrollIntoViewIfNeeded();await play.click();
- await sheet.getByRole('button',{name:'이미 마쳤어요',exact:true}).click();await sheet.getByRole('button',{name:'3분',exact:true}).click();await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await sheet.getByRole('button',{name:'이미 마쳤어요',exact:true}).click();await sheet.getByRole('button',{name:'3분',exact:true}).click();await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const completed=await admin.from('child_records').select('occurred_at,ended_at').eq('child_id',child).eq('kind','play').eq('timer_started',true);expect(completed.error).toBeNull();expect(completed.data!.some(record=>record.ended_at&&Date.parse(record.ended_at)-Date.parse(record.occurred_at)===180000)).toBe(true);
  const old=await admin.from('child_records').select('timer_started,duration_minutes,ended_at').eq('id',manual).single();expect(old.data).toEqual({timer_started:false,duration_minutes:10,ended_at:null});
 });
