@@ -2059,7 +2059,7 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
     const readerPage = await readerContext.newPage();
     await readerPage.goto(`/en/today?child=${child}`);
     await expect(readerPage.locator('.quick-grid button:disabled')).toHaveCount(
-      20,
+      19,
     );
     await expect(readerPage.locator('.quick-grid a')).toHaveCount(0);
     await expect(
