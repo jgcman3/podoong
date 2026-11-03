@@ -7175,10 +7175,14 @@ test('playground double-tap waves and hearts appear in the receiving child’s h
  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto(`/ko/community/playground?child=${home.child}`);
  expect((await page.request.get(`/api/community/playground?${new URLSearchParams({child:peer,left:'-1000',right:'1000',day:new Date().toISOString().slice(0,10)})}`)).ok()).toBe(true);
+ // Keep reaction coverage independent of the randomized, depth-scaled placement.
+ const position=await admin.from('parenting_playground_positions').select('x,y,day').eq('child_id',home.child).single();
+ expect(position.error).toBeNull();
+ expect((await admin.from('parenting_playground_positions').update({x:position.data!.x+120,y:position.data!.y}).eq('child_id',peer).eq('day',position.data!.day)).error).toBeNull();
  await page.reload();
  const friend=page.locator('.world-player').filter({has:page.locator('.world-name',{hasText:'인사 친구'})});
  const sent=page.waitForResponse(r=>r.url().includes('/api/community/playground/reactions')&&r.request().method()==='POST');
- await friend.dblclick();expect((await sent).ok()).toBe(true);
+ await friend.locator('.world-name').dblclick();expect((await sent).ok()).toBe(true);
  await expect(page.getByRole('button',{name:'인사 보내기',exact:true})).toBeDisabled();
  await page.getByRole('button',{name:'하트 보내기',exact:true}).click();
  await expect(page.getByRole('button',{name:'하트 보내기',exact:true})).toBeDisabled();
