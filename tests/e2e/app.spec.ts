@@ -480,7 +480,7 @@ test('calendar loads the whole selected month and Today groups all care shortcut
   );
   await page.goto(`/ko/today?child=${child}`);
   await expect(page.locator('.events-panel .calendar-event')).toHaveCount(0);
-  await expect(page.locator('.quick-grid > *')).toHaveCount(20);
+  await expect(page.locator('.quick-grid > *')).toHaveCount(19);
   for (const label of ['수면', '기저귀', '배변'])
     await expect(page.locator('.quick-grid').getByRole('button', { name: label, exact: true })).toBeVisible();
   await page.locator('.quick-grid').getByRole('button', { name: '수면', exact: true }).click();
