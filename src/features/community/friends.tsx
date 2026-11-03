@@ -1,3 +1,4 @@
+import { chooseChildVisibility } from '@/features/privacy/actions';
 import { FriendWorld } from './friend-world';
 import { publicChildName } from './friend-world-model';
 import { loadPlayground } from './playground-data.server';
@@ -13,6 +14,26 @@ export async function NeighborhoodFriends({
   locale: Locale;
 }) {
   const ko = locale === 'ko';
+  if (!context.privacy.neighborhood)
+    return (
+      <section className="panel form-stack">
+        <h2>{ko ? '동네 친구들과 만나요' : 'Meet neighborhood friends'}</h2>
+        <p className="small muted">
+          {ko
+            ? '참여하면 가족·아이 닉네임, 성별·나이, 한 줄 상태와 가상 캐릭터가 같은 동네 이용자에게 보여요. 기기 위치는 사용하지 않아요. 선택은 이 아이에게 저장되어 이후에도 참여하며, 개인정보 설정에서 참여를 중단하면 숨겨집니다. 참여하지 않아도 다른 기능은 이용할 수 있어요.'
+            : 'Joining shows your family/child nickname, sex, age, status and character to neighborhood users. No device location is used. Your choice is saved for this child until you leave in Privacy settings. Other features are available without joining.'}
+        </p>
+        <form action={chooseChildVisibility}>
+          <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="child" value={context.child.id} />
+          <input type="hidden" name="scope" value="neighborhood" />
+          <input type="hidden" name="enabled" value="on" />
+          <button className="button primary">
+            {ko ? '참여하기' : 'Join playground'}
+          </button>
+        </form>
+      </section>
+    );
   const [world, profile] = await Promise.all([
     loadPlayground(context),
     context.db

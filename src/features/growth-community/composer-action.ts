@@ -86,7 +86,7 @@ export async function createDiary(form: FormData) {
   const result = await db.rpc('save_growth_diary', {
     p_id: value.id,
     p_child: value.childId,
-    p_private: form.get('private') === 'on',
+    p_private: form.get('publish') !== 'on',
     p_version: value.version,
     p_data: {
       kind: value.kind,

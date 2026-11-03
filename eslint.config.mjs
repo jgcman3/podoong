@@ -6,6 +6,7 @@ export default defineConfig([
   ...nextTs,
   globalIgnores([
     '.next/**',
+    '.vercel/**',
     '.next-e2e/**',
     '.next-playground/**',
     'test-results/**',

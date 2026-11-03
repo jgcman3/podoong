@@ -6,6 +6,7 @@ const related: Record<string, string> = {
   'privacy-policy.ko.md': 'privacy',
   'community-policy.ko.md': 'community',
   'consent-notices.ko.md': 'consent',
+  'signup-privacy.ko.md': 'signup-privacy',
 };
 type ReturnTo = { source: 'signup' | 'login'; next: string };
 function inline(

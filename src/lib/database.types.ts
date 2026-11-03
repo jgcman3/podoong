@@ -23,127 +23,6 @@ export type Database = {
           }
         },"public": {
           Tables: {
-"growth_diary_likes": {
-                  Row: {
-                    "created_at": string,"record_id": string,"user_id": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "created_at"?: string,"record_id": string,"user_id": string
-                  }
-                  Update: {
-                    "created_at"?: string,"record_id"?: string,"user_id"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "growth_diary_likes_record_id_fkey"
-      columns: ["record_id"]
-isOneToOne: false
-      referencedRelation: "child_records"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "growth_diary_likes_user_id_fkey"
-      columns: ["user_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },
-
-"parenting_post_photos": { Row: { id: string; post_id: string; path: string; sort_order: number }; Insert: { id: string; post_id: string; path: string; sort_order: number }; Update: { id?: string; post_id?: string; path?: string; sort_order?: number }; Relationships: [] },
-"parenting_friend_profiles": {
-                  Row: {
-                    "child_id": string,"created_at": string,"id": string,"nickname": string,"status": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "child_id": string,"created_at"?: string,"id"?: string,"nickname": string,"status"?: string
-                  }
-                  Update: {
-                    "child_id"?: string,"created_at"?: string,"id"?: string,"nickname"?: string,"status"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "parenting_friend_profiles_child_id_fkey"
-      columns: ["child_id"]
-isOneToOne: true
-      referencedRelation: "children"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },
-
-      child_app_icons: {
-        Row: { child_id: string; token: string; path: string; created_at: string; layout_version: number };
-        Insert: { child_id: string; token: string; path: string; created_at?: string; layout_version?: number };
-        Update: { child_id?: string; token?: string; path?: string; created_at?: string; layout_version?: number };
-        Relationships: [];
-      };
-      signup_agreements: {
-        Row: {
-          accepted_at: string;
-          interface_locale: string;
-          kind: string;
-          user_id: string;
-          version: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          accepted_at?: string;
-          interface_locale: string;
-          kind: string;
-          user_id: string;
-          version: string;
-        };
-        Update: {
-          accepted_at?: string;
-          interface_locale?: string;
-          kind?: string;
-          user_id?: string;
-          version?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'signup_agreements_kind_version_fkey';
-            columns: ['kind', 'version'];
-            isOneToOne: false;
-            referencedRelation: 'signup_document_versions';
-            referencedColumns: ['kind', 'version'];
-          },
-        ];
-      };
-      signup_document_versions: {
-        Row: {
-          document_locale: string;
-          is_current: boolean;
-          kind: string;
-          sha256: string | null;
-          snapshot: string;
-          status: string;
-          version: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          document_locale: string;
-          is_current?: boolean;
-          kind: string;
-          sha256?: never;
-          snapshot: string;
-          status?: string;
-          version: string;
-        };
-        Update: {
-          document_locale?: string;
-          is_current?: boolean;
-          kind?: string;
-          sha256?: never;
-          snapshot?: string;
-          status?: string;
-          version?: string;
-        };
-        Relationships: [];
-      };
             "admin_audit_log": {
                   Row: {
                     "action": string,"actor_id": string | null,"created_at": string,"details": NonNullable<Json>,"id": string,"subject_id": string
@@ -218,14 +97,14 @@ isOneToOne: false
                   ]
                 },"care_records": {
                   Row: {
-                    "timer_started": boolean,"amount_ml": number | null,"child_id": string,"created_at": string,"created_by": string | null,"ended_at": string | null,"food_name": string,"id": string,"kind": string,"note": string,"record_timezone": string | null,"started_at": string,"updated_at": string,"updated_by": string | null,"version": number
+                    "amount_ml": number | null,"child_id": string,"created_at": string,"created_by": string | null,"ended_at": string | null,"food_name": string,"id": string,"kind": string,"note": string,"record_timezone": string | null,"started_at": string,"timer_started": boolean,"updated_at": string,"updated_by": string | null,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "timer_started"?: boolean,"amount_ml"?: number | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"ended_at"?: string | null,"food_name"?: string,"id": string,"kind": string,"note"?: string,"record_timezone"?: string | null,"started_at": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "amount_ml"?: number | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"ended_at"?: string | null,"food_name"?: string,"id": string,"kind": string,"note"?: string,"record_timezone"?: string | null,"started_at": string,"timer_started"?: boolean,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Update: {
-                    "timer_started"?: boolean,"amount_ml"?: number | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"ended_at"?: string | null,"food_name"?: string,"id"?: string,"kind"?: string,"note"?: string,"record_timezone"?: string | null,"started_at"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "amount_ml"?: number | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"ended_at"?: string | null,"food_name"?: string,"id"?: string,"kind"?: string,"note"?: string,"record_timezone"?: string | null,"started_at"?: string,"timer_started"?: boolean,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Relationships: [
                     {
@@ -272,6 +151,26 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "family_members"
       referencedColumns: ["family_id","user_id"]
+    }
+                  ]
+                },"child_app_icons": {
+                  Row: {
+                    "child_id": string,"created_at": string,"layout_version": number,"path": string,"token": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"created_at"?: string,"layout_version"?: number,"path": string,"token": string
+                  }
+                  Update: {
+                    "child_id"?: string,"created_at"?: string,"layout_version"?: number,"path"?: string,"token"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_app_icons_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: true
+      referencedRelation: "children"
+      referencedColumns: ["id"]
     }
                   ]
                 },"child_diary_links": {
@@ -360,6 +259,26 @@ isOneToOne: false
                   Relationships: [
 
                   ]
+                },"child_privacy_consents": {
+                  Row: {
+                    "accepted_at": string,"accepted_by": string,"authority": boolean,"child_id": string,"child_information": boolean,"health": boolean,"neighborhood": boolean,"public_sharing": boolean,"version": string,"withdrawn_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accepted_at"?: string,"accepted_by": string,"authority": boolean,"child_id": string,"child_information": boolean,"health": boolean,"neighborhood": boolean,"public_sharing": boolean,"version": string,"withdrawn_at"?: string | null
+                  }
+                  Update: {
+                    "accepted_at"?: string,"accepted_by"?: string,"authority"?: boolean,"child_id"?: string,"child_information"?: boolean,"health"?: boolean,"neighborhood"?: boolean,"public_sharing"?: boolean,"version"?: string,"withdrawn_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_privacy_consents_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "children"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"child_record_photos": {
                   Row: {
                     "child_id": string,"content_type": string,"created_at": string,"id": string,"path": string,"record_id": string,"size_bytes": number,"sort_order": number,"uploaded_by": string | null,"variants_ready": boolean
@@ -388,9 +307,9 @@ isOneToOne: false
                   ]
                 },"child_records": {
                   Row: {
-                    "attendance_status": string | null,"author_relationship": Database["public"]['Enums']["caregiver_relationship"] | null,"child_id": string,"created_at": string,"created_by": string | null,"dose_amount": number | null,"dose_unit": string | null,"duration_minutes": number | null,"ended_at": string | null,"head_cm": number | null,"height_cm": number | null,"id": string,"kind": string,"medicine_name": string,"note": string,"occurred_at": string,"received_amount": number | null,"received_currency": string | null,"record_timezone": string,"sender_name": string | null,"service": string,"stool_color": string | null,"stool_texture": string | null,"temperature_c": number | null,"timer_started": boolean,"title": string,"updated_at": string,"updated_by": string | null,"version": number,"weight_kg": number | null
+                    "attendance_status": string | null,"author_relationship": Database["public"]['Enums']["caregiver_relationship"] | null,"child_id": string,"created_at": string,"created_by": string | null,"dose_amount": number | null,"dose_unit": string | null,"duration_minutes": number | null,"ended_at": string | null,"head_cm": number | null,"height_cm": number | null,"id": string,"kind": string,"medicine_name": string,"note": string,"occurred_at": string,"received_amount": number | null,"received_currency": string | null,"record_timezone": string,"sender_name": string | null,"service": string,"stool_color": string | null,"stool_texture": string | null,"temperature_c": number | null,"timer_started": boolean,"title": string,"updated_at": string,"updated_by": string | null,"version": number,"weight_kg": number | null,"child_record_contains_health": boolean | null
                   }
-                  ComputedFields: never
+                  ComputedFields: "child_record_contains_health"
                   Insert: {
                     "attendance_status"?: string | null,"author_relationship"?: Database["public"]['Enums']["caregiver_relationship"] | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"dose_amount"?: number | null,"dose_unit"?: string | null,"duration_minutes"?: number | null,"ended_at"?: string | null,"head_cm"?: number | null,"height_cm"?: number | null,"id": string,"kind": string,"medicine_name"?: string,"note"?: string,"occurred_at": string,"received_amount"?: number | null,"received_currency"?: string | null,"record_timezone": string,"sender_name"?: string | null,"service": string,"stool_color"?: string | null,"stool_texture"?: string | null,"temperature_c"?: number | null,"timer_started"?: boolean,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"weight_kg"?: number | null
                   }
@@ -415,6 +334,26 @@ isOneToOne: false
       columns: ["updated_by"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"child_visibility_choices": {
+                  Row: {
+                    "accepted_at": string,"child_id": string,"enabled": boolean,"id": string,"scope": string,"user_id": string,"version": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accepted_at"?: string,"child_id": string,"enabled": boolean,"id"?: string,"scope": string,"user_id": string,"version": string
+                  }
+                  Update: {
+                    "accepted_at"?: string,"child_id"?: string,"enabled"?: boolean,"id"?: string,"scope"?: string,"user_id"?: string,"version"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_visibility_choices_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "children"
       referencedColumns: ["id"]
     }
                   ]
@@ -882,14 +821,14 @@ isOneToOne: false
                   ]
                 },"families": {
                   Row: {
-                    "created_at": string,"global_place_id": string | null,"id": string,"name": string,"merged_into": string | null,"residence_city": string | null,"residence_country_code": string | null,"residence_locality": string | null,"residence_province": string | null,"residence_region_code": string | null,"residence_updated_at": string | null,"residence_version": number
+                    "created_at": string,"global_place_id": string | null,"id": string,"merged_into": string | null,"name": string,"residence_city": string | null,"residence_country_code": string | null,"residence_locality": string | null,"residence_province": string | null,"residence_region_code": string | null,"residence_updated_at": string | null,"residence_version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"global_place_id"?: string | null,"id"?: string,"name": string,"merged_into"?: string | null,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_province"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
+                    "created_at"?: string,"global_place_id"?: string | null,"id"?: string,"merged_into"?: string | null,"name": string,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_province"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"global_place_id"?: string | null,"id"?: string,"name"?: string,"merged_into"?: string | null,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_province"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
+                    "created_at"?: string,"global_place_id"?: string | null,"id"?: string,"merged_into"?: string | null,"name"?: string,"residence_city"?: string | null,"residence_country_code"?: string | null,"residence_locality"?: string | null,"residence_province"?: string | null,"residence_region_code"?: string | null,"residence_updated_at"?: string | null,"residence_version"?: number
                   }
                   Relationships: [
                     {
@@ -897,6 +836,12 @@ isOneToOne: false
       columns: ["global_place_id"]
 isOneToOne: false
       referencedRelation: "global_residence_places"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "families_merged_into_fkey"
+      columns: ["merged_into"]
+isOneToOne: false
+      referencedRelation: "families"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "family_residence_country_fk"
@@ -1004,6 +949,32 @@ isOneToOne: false
       referencedColumns: ["code"]
     }
                   ]
+                },"growth_diary_likes": {
+                  Row: {
+                    "created_at": string,"record_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"record_id": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"record_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "growth_diary_likes_record_id_fkey"
+      columns: ["record_id"]
+isOneToOne: false
+      referencedRelation: "child_records"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "growth_diary_likes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"growth_diary_shares": {
                   Row: {
                     "everyone": boolean,"hidden": boolean,"published_by": string,"record_id": string,"same_birth_date": boolean,"updated_at": string
@@ -1084,14 +1055,14 @@ isOneToOne: false
                   ]
                 },"neighborhood_posts": {
                   Row: {
-                    "author_id": string | null,"body": string,"created_at": string,"family_id": string,"feature": string,"id": string,"region": string,"title": string
+                    "area_city": string | null,"area_district": string | null,"area_locality": string | null,"audience": string,"author_id": string | null,"author_identity": NonNullable<Json>,"body": string,"category": string,"country": string | null,"created_at": string,"family_id": string,"feature": string,"id": string,"region": string,"title": string,"view_count": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "author_id"?: string | null,"body": string,"created_at"?: string,"family_id": string,"feature": string,"id"?: string,"region": string,"title": string
+                    "area_city"?: string | null,"area_district"?: string | null,"area_locality"?: string | null,"audience"?: string,"author_id"?: string | null,"author_identity"?: NonNullable<Json>,"body": string,"category"?: string,"country"?: string | null,"created_at"?: string,"family_id": string,"feature": string,"id"?: string,"region": string,"title": string,"view_count"?: number
                   }
                   Update: {
-                    "author_id"?: string | null,"body"?: string,"created_at"?: string,"family_id"?: string,"feature"?: string,"id"?: string,"region"?: string,"title"?: string
+                    "area_city"?: string | null,"area_district"?: string | null,"area_locality"?: string | null,"audience"?: string,"author_id"?: string | null,"author_identity"?: NonNullable<Json>,"body"?: string,"category"?: string,"country"?: string | null,"created_at"?: string,"family_id"?: string,"feature"?: string,"id"?: string,"region"?: string,"title"?: string,"view_count"?: number
                   }
                   Relationships: [
                     {
@@ -1169,6 +1140,294 @@ isOneToOne: false
     },{
       foreignKeyName: "notifications_recipient_id_fkey"
       columns: ["recipient_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parenting_comment_likes": {
+                  Row: {
+                    "comment_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "comment_id": string,"user_id": string
+                  }
+                  Update: {
+                    "comment_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_comment_likes_comment_id_fkey"
+      columns: ["comment_id"]
+isOneToOne: false
+      referencedRelation: "parenting_post_comments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parenting_comment_likes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parenting_friend_profiles": {
+                  Row: {
+                    "child_id": string,"created_at": string,"id": string,"nickname": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"created_at"?: string,"id"?: string,"nickname": string,"status"?: string
+                  }
+                  Update: {
+                    "child_id"?: string,"created_at"?: string,"id"?: string,"nickname"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_friend_profiles_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: true
+      referencedRelation: "children"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parenting_playground_positions": {
+                  Row: {
+                    "child_id": string,"created_at": string,"day": string,"region_id": string,"slot": number,"x": number,"y": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"created_at"?: string,"day": string,"region_id": string,"slot": number,"x": number,"y": number
+                  }
+                  Update: {
+                    "child_id"?: string,"created_at"?: string,"day"?: string,"region_id"?: string,"slot"?: number,"x"?: number,"y"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_playground_positions_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "children"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parenting_playground_positions_region_id_fkey"
+      columns: ["region_id"]
+isOneToOne: false
+      referencedRelation: "parenting_playground_regions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parenting_playground_reactions": {
+                  Row: {
+                    "created_at": string,"day": string,"id": string,"kind": string,"receiver_child": string,"sender_child": string,"sender_name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"day": string,"id"?: string,"kind": string,"receiver_child": string,"sender_child": string,"sender_name": string
+                  }
+                  Update: {
+                    "created_at"?: string,"day"?: string,"id"?: string,"kind"?: string,"receiver_child"?: string,"sender_child"?: string,"sender_name"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_playground_reactions_receiver_child_fkey"
+      columns: ["receiver_child"]
+isOneToOne: false
+      referencedRelation: "children"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parenting_playground_reactions_sender_child_fkey"
+      columns: ["sender_child"]
+isOneToOne: false
+      referencedRelation: "children"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parenting_playground_regions": {
+                  Row: {
+                    "city": string,"country": string,"id": string,"locality": string,"province": string,"timezone": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "city": string,"country": string,"id": string,"locality": string,"province": string,"timezone": string
+                  }
+                  Update: {
+                    "city"?: string,"country"?: string,"id"?: string,"locality"?: string,"province"?: string,"timezone"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },"parenting_post_announcements": {
+                  Row: {
+                    "city": string,"country": string,"district": string,"locality": string,"post_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "city": string,"country": string,"district": string,"locality": string,"post_id": string,"user_id": string
+                  }
+                  Update: {
+                    "city"?: string,"country"?: string,"district"?: string,"locality"?: string,"post_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_post_announcements_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "neighborhood_posts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parenting_post_announcements_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parenting_post_comments": {
+                  Row: {
+                    "author_identity": NonNullable<Json>,"body": string,"created_at": string,"id": string,"parent_id": string | null,"post_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "author_identity": NonNullable<Json>,"body": string,"created_at"?: string,"id"?: string,"parent_id"?: string | null,"post_id": string,"user_id": string
+                  }
+                  Update: {
+                    "author_identity"?: NonNullable<Json>,"body"?: string,"created_at"?: string,"id"?: string,"parent_id"?: string | null,"post_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_post_comments_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "parenting_post_comments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parenting_post_comments_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "neighborhood_posts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parenting_post_comments_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parenting_post_likes": {
+                  Row: {
+                    "post_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "post_id": string,"user_id": string
+                  }
+                  Update: {
+                    "post_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_post_likes_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "neighborhood_posts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parenting_post_likes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parenting_post_photos": {
+                  Row: {
+                    "id": string,"path": string,"post_id": string,"sort_order": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id": string,"path": string,"post_id": string,"sort_order": number
+                  }
+                  Update: {
+                    "id"?: string,"path"?: string,"post_id"?: string,"sort_order"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_post_photos_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "neighborhood_posts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parenting_post_polls": {
+                  Row: {
+                    "options": NonNullable<Json>,"post_id": string,"question": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "options": NonNullable<Json>,"post_id": string,"question": string
+                  }
+                  Update: {
+                    "options"?: NonNullable<Json>,"post_id"?: string,"question"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_post_polls_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: true
+      referencedRelation: "neighborhood_posts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parenting_post_views": {
+                  Row: {
+                    "post_id": string,"user_id": string,"view_day": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "post_id": string,"user_id": string,"view_day": string
+                  }
+                  Update: {
+                    "post_id"?: string,"user_id"?: string,"view_day"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_post_views_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "neighborhood_posts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parenting_post_views_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"parenting_post_votes": {
+                  Row: {
+                    "option_index": number,"post_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "option_index": number,"post_id": string,"user_id": string
+                  }
+                  Update: {
+                    "option_index"?: number,"post_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parenting_post_votes_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "parenting_post_polls"
+      referencedColumns: ["post_id"]
+    },{
+      foreignKeyName: "parenting_post_votes_user_id_fkey"
+      columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
@@ -1274,6 +1533,68 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"service_usage_daily": {
+                  Row: {
+                    "day": string,"screen": string,"views": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "day": string,"screen": string,"views"?: number
+                  }
+                  Update: {
+                    "day"?: string,"screen"?: string,"views"?: number
+                  }
+                  Relationships: [
+
+                  ]
+                },"signup_agreements": {
+                  Row: {
+                    "accepted_at": string,"interface_locale": string,"kind": string,"user_id": string,"version": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accepted_at"?: string,"interface_locale": string,"kind": string,"user_id": string,"version": string
+                  }
+                  Update: {
+                    "accepted_at"?: string,"interface_locale"?: string,"kind"?: string,"user_id"?: string,"version"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "signup_agreements_kind_version_fkey"
+      columns: ["kind","version"]
+isOneToOne: false
+      referencedRelation: "signup_document_versions"
+      referencedColumns: ["kind","version"]
+    }
+                  ]
+                },"signup_document_versions": {
+                  Row: {
+                    "document_locale": string,"is_current": boolean,"kind": string,"sha256": string | null,"snapshot": string,"status": string,"version": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "document_locale": string,"is_current"?: boolean,"kind": string,"sha256"?: never,"snapshot": string,"status"?: string,"version": string
+                  }
+                  Update: {
+                    "document_locale"?: string,"is_current"?: boolean,"kind"?: string,"sha256"?: never,"snapshot"?: string,"status"?: string,"version"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },"signup_privacy_choices": {
+                  Row: {
+                    "accepted_at": string,"authority": boolean,"child_information": boolean,"health": boolean,"locale": string,"neighborhood": boolean,"public_sharing": boolean,"updated_at": string,"user_id": string,"version": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accepted_at"?: string,"authority": boolean,"child_information": boolean,"health": boolean,"locale": string,"neighborhood": boolean,"public_sharing": boolean,"updated_at"?: string,"user_id": string,"version": string
+                  }
+                  Update: {
+                    "accepted_at"?: string,"authority"?: boolean,"child_information"?: boolean,"health"?: boolean,"locale"?: string,"neighborhood"?: boolean,"public_sharing"?: boolean,"updated_at"?: string,"user_id"?: string,"version"?: string
+                  }
+                  Relationships: [
+
+                  ]
                 },"tasks": {
                   Row: {
                     "anchor": string | null,"assignee_id": string | null,"child_id": string,"created_by": string | null,"due_date": string | null,"id": string,"offset_days": number | null,"service": string,"source": string,"status": string,"template_key": string | null,"title": string,"updated_at": string
@@ -1301,32 +1622,6 @@ isOneToOne: false
     },{
       foreignKeyName: "tasks_created_by_fkey"
       columns: ["created_by"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"usage_events": {
-                  Row: {
-                    "family_id": string | null,"id": number,"kind": string,"occurred_at": string,"user_id": string | null
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "family_id"?: string | null,"id"?: never,"kind": string,"occurred_at"?: string,"user_id"?: string | null
-                  }
-                  Update: {
-                    "family_id"?: string | null,"id"?: never,"kind"?: string,"occurred_at"?: string,"user_id"?: string | null
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "usage_events_family_id_fkey"
-      columns: ["family_id"]
-isOneToOne: false
-      referencedRelation: "families"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "usage_events_user_id_fkey"
-      columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
@@ -1398,65 +1693,14 @@ isOneToOne: false
                 }
           }
           Functions: {
-"growth_diary_reaction_allowed":
-{ Args: { "p_record": string }; Returns: boolean
-                           },
-"growth_diary_reactions":
-{ Args: { "p_records": (string)[] }; Returns: {
-              "id": string,"liked": boolean,"likes": number
-            }[]
-                           },
-"set_growth_diary_like":
-{ Args: { "p_liked": boolean,"p_record": string }; Returns: {
-              "liked": boolean,"likes": number
-            }[]
-                           },
-
-"community_home_area":
-{ Args: { "p_family": string }; Returns: Json
-                           },
-"parenting_playground": { Args: { p_child: string; p_left?: number; p_right?: number; p_day?: string }; Returns: Json },
-"send_playground_reaction": { Args: { "p_child": string,"p_friend": string,"p_kind": string }; Returns: undefined },
-"playground_reactions": { Args: { "p_child": string,"p_before"?: string }; Returns: Json },
-"save_parenting_friend":
-{ Args: { "p_child": string,"p_status": string }; Returns: undefined
-                           },
-"parenting_topics": { Args: { p_family: string }; Returns: { category: string; posts: number }[] },
-"parenting_feed": { Args: { p_family: string; p_neighborhood?: boolean; p_category?: string; p_before?: string; p_before_id?: string; p_sort?: string; p_before_score?: number }; Returns: { area_label: string; body: string; category: string; created_at: string; id: string; mine: boolean; photo_ids: string[]; author_identity: Json; likes: number; comments: number; views: number; rank_score: number; title: string }[] },
-"parenting_comment_replies": { Args: { p_comment: string; p_after?: string; p_after_id?: string }; Returns: Json },
-"parenting_comment_interact": { Args: { p_comment: string; p_child: string; p_kind: string; p_value: string }; Returns: Json },
-"edit_parenting_post": { Args: { p_post: string; p_category: string; p_title: string; p_body: string; p_keep: string[]; p_new: string[]; p_poll?: Json }; Returns: undefined },
-"delete_parenting_post": { Args: { p_post: string }; Returns: undefined },
-"record_parenting_post_view": { Args: { p_post: string }; Returns: Json },
-"parenting_post_detail": { Args: { p_post: string }; Returns: Json },
-"parenting_post_comments_page": { Args: { p_post: string; p_after?: string; p_after_id?: string }; Returns: Json },
-"parenting_post_interact": { Args: { p_post: string; p_child: string; p_kind: string; p_value?: string }; Returns: Json },
-"save_parenting_post": { Args: { p_family: string; p_category: string; p_title: string; p_body: string; p_id?: string; p_photo_ids?: string[]; p_child?: string; p_poll?: Json; p_audience?: string }; Returns: string },
-      family_join_preview: { Args: { p_token: string }; Returns: Json };
-      valid_iana_timezone: { Args: { p_timezone: string }; Returns: boolean };
-      merge_family_from_invitation: {
-        Args: { p_token: string; p_relationship: Database['public']['Enums']['caregiver_relationship']; p_revision: string; p_confirmation: string };
-        Returns: string;
-      };
-      accept_signup_agreements: {
-        Args: {
-          p_collection: boolean;
-          p_collection_version: string;
-          p_locale: string;
-          p_terms: boolean;
-          p_terms_version: string;
-        };
-        Returns: undefined;
-      };
-      has_signup_agreement: {
-        Args: Record<PropertyKey, never>;
-        Returns: boolean;
-      };
             "accept_invitation":
 { Args: { "p_relationship": Database["public"]['Enums']["caregiver_relationship"],"p_token": string }; Returns: string
                            },
 "accept_invitation_before_relationship":
 { Args: { "p_token": string }; Returns: string
+                           },
+"accept_signup_agreements":
+{ Args: { "p_authority": boolean,"p_child_information": boolean,"p_collection": boolean,"p_collection_version": string,"p_health": boolean,"p_locale": string,"p_neighborhood": boolean,"p_public_sharing": boolean,"p_terms": boolean,"p_terms_version": string }; Returns: undefined
                            },
 "account_active":
 { Args: Record<PropertyKey, never>; Returns: boolean
@@ -1501,6 +1745,9 @@ isOneToOne: false
 "admin_resolve_error":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"admin_service_page_views":
+{ Args: { "p_days"?: number }; Returns: Json
+                           },
 "admin_update_request":
 { Args: { "p_id": string,"p_note": string,"p_priority": string,"p_status": string,"p_version": number }; Returns: undefined
                            },
@@ -1511,6 +1758,9 @@ isOneToOne: false
 { Args: { "p_before"?: string,"p_before_id"?: string }; Returns: {
               "created_at": string,"deletion_requested": boolean,"display_name": string,"family_count": number,"id": string,"is_admin": boolean,"locale": string
             }[]
+                           },
+"bind_declared_children":
+{ Args: { "p_user": string }; Returns: undefined
                            },
 "can_read_child":
 { Args: { "cid": string }; Returns: boolean
@@ -1531,6 +1781,12 @@ isOneToOne: false
                            },
 "child_photo_original_path":
 { Args: { "p_path": string }; Returns: string
+                           },
+"child_privacy_allowed":
+{ Args: { "p_child": string,"p_scope"?: string }; Returns: boolean
+                           },
+"child_record_contains_health":
+{ Args: { "p": Omit<Database["public"]['Tables']["child_records"]['Row'], Database["public"]['Tables']["child_records"]['ComputedFields']> }; Returns: boolean
                            },
 "child_record_day_count":
 { Args: { "p_child": string,"p_day": string,"p_service": string,"p_timezone": string }; Returns: number
@@ -1561,6 +1817,9 @@ isOneToOne: false
 "cleanup_admin_logs":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"cleanup_service_usage":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "community_author_visible":
 { Args: { "p_author": string }; Returns: boolean
                            },
@@ -1580,6 +1839,9 @@ isOneToOne: false
                            },
 "community_comment_visible":
 { Args: { "p_id": string }; Returns: boolean
+                           },
+"community_home_area":
+{ Args: { "p_family": string }; Returns: Json
                            },
 "community_participant":
 { Args: Record<PropertyKey, never>; Returns: boolean
@@ -1605,6 +1867,9 @@ isOneToOne: false
 "create_invitation":
 { Args: { "p_child_id": string,"p_role": string }; Returns: string
                            },
+"current_signup_privacy_version":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "daily_poll_visible":
 { Args: { "p_id": string }; Returns: boolean
                            },
@@ -1619,6 +1884,9 @@ isOneToOne: false
                            },
 "delete_child_record":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"delete_parenting_post":
+{ Args: { "p_post": string }; Returns: undefined
                            },
 "delete_vaccination_record":
 { Args: { "p_id": string }; Returns: undefined
@@ -1637,6 +1905,9 @@ isOneToOne: false
 "dispatch_feeding_push":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"edit_parenting_post":
+{ Args: { "p_body": string,"p_category": string,"p_keep": (string)[],"p_new": (string)[],"p_poll"?: Json,"p_post": string,"p_title": string }; Returns: undefined
+                           },
 "enable_feeding_push":
 { Args: { "p_interval": number,"p_locale": string,"p_quiet": boolean,"p_subscription": Json }; Returns: string
                            },
@@ -1648,13 +1919,16 @@ isOneToOne: false
               "caregivers": Json,"family": Json,"members": Json,"owner": boolean,"writable": boolean
             }[]
                            },
-"feeding_reference_time":
-{ Args: { "p_started": string,"p_timezone": string }; Returns: string
+"family_join_preview":
+{ Args: { "p_token": string }; Returns: Json
                            },
 "feeding_push_candidates":
 { Args: Record<PropertyKey, never>; Returns: {
               "child_id": string,"record_id": string,"scheduled_at": string,"subscription_id": string
             }[]
+                           },
+"feeding_reference_time":
+{ Args: { "p_started": string,"p_timezone": string }; Returns: string
                            },
 "finish_data_operation":
 { Args: { "p_job": string,"p_lease": string,"p_success": boolean }; Returns: undefined
@@ -1694,6 +1968,20 @@ isOneToOne: false
 "growth_diary_photo_by_path":
 { Args: { "p_path": string }; Returns: boolean
                            },
+"growth_diary_reaction_allowed":
+{ Args: { "p_record": string }; Returns: boolean
+                           },
+"growth_diary_reactions":
+{ Args: { "p_records": (string)[] }; Returns: {
+              "id": string,"liked": boolean,"likes": number
+            }[]
+                           },
+"guardian_declared":
+{ Args: { "p_user": string }; Returns: boolean
+                           },
+"has_signup_agreement":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "hide_daily_poll":
 { Args: { "p_hidden": boolean,"p_id": string,"p_reason": string }; Returns: undefined
                            },
@@ -1717,10 +2005,16 @@ isOneToOne: false
 "manage_child_diary_link":
 { Args: { "p_action": string,"p_child": string }; Returns: string
                            },
+"merge_family_from_invitation":
+{ Args: { "p_confirmation": string,"p_relationship": Database["public"]['Enums']["caregiver_relationship"],"p_revision": string,"p_token": string }; Returns: string
+                           },
 "moderate_growth_diary":
 { Args: { "p_hidden": boolean,"p_reason": string,"p_record": string }; Returns: undefined
                            },
 "neighborhood_region":
+{ Args: { "p_family": string }; Returns: string
+                           },
+"neighborhood_region_before_family_merge":
 { Args: { "p_family": string }; Returns: string
                            },
 "notification_child_access":
@@ -1741,14 +2035,60 @@ isOneToOne: false
 "operation_metrics":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"parenting_comment_interact":
+{ Args: { "p_child": string,"p_comment": string,"p_kind": string,"p_value": string }; Returns: Json
+                           },
+"parenting_comment_json":
+{ Args: { "p_comment": string }; Returns: Json
+                           },
+"parenting_comment_replies":
+{ Args: { "p_after"?: string,"p_after_id"?: string,"p_comment": string }; Returns: Json
+                           },
+"parenting_feed":
+{ Args: { "p_before"?: string,"p_before_id"?: string,"p_before_score"?: number,"p_category"?: string,"p_family": string,"p_neighborhood"?: boolean,"p_query"?: string,"p_sort"?: string }; Returns: {
+              "area_label": string,"author_identity": Json,"body": string,"category": string,"comments": number,"created_at": string,"id": string,"likes": number,"mine": boolean,"photo_ids": (string)[],"rank_score": number,"title": string,"views": number
+            }[]
+                           },
+"parenting_identity":
+{ Args: { "p_child": string,"p_family": string }; Returns: Json
+                           },
+"parenting_playground":
+{ Args: { "p_child": string,"p_day"?: string,"p_left"?: number,"p_right"?: number }; Returns: Json
+                           },
+"parenting_post_comments_page":
+{ Args: { "p_after"?: string,"p_after_id"?: string,"p_post": string }; Returns: Json
+                           },
+"parenting_post_detail":
+{ Args: { "p_post": string }; Returns: Json
+                           },
+"parenting_post_interact":
+{ Args: { "p_child": string,"p_kind": string,"p_post": string,"p_value"?: string }; Returns: Json
+                           },
+"parenting_post_visible":
+{ Args: { "p_post": string }; Returns: boolean
+                           },
+"parenting_topics":
+{ Args: { "p_family": string }; Returns: {
+              "category": string,"posts": number
+            }[]
+                           },
 "permit_account_deletion":
 { Args: { "p_user": string }; Returns: string
                            },
 "place_name_key":
 { Args: { "p_name": string }; Returns: string
                            },
+"playground_reactions":
+{ Args: { "p_before"?: string,"p_child": string }; Returns: Json
+                           },
+"playground_region":
+{ Args: { "p_family": string }; Returns: string
+                           },
 "poll_results":
 { Args: { "p_id": string }; Returns: Json
+                           },
+"privacy_state":
+{ Args: { "p_child"?: string }; Returns: Json
                            },
 "queue_orphan_photos":
 { Args: Record<PropertyKey, never>; Returns: number
@@ -1770,6 +2110,12 @@ isOneToOne: false
 { Args: { "p_child": string }; Returns: {
               "latest_at": string,"sender_name": string,"total_count": number
             }[]
+                           },
+"record_parenting_post_view":
+{ Args: { "p_post": string }; Returns: Json
+                           },
+"record_service_page_view":
+{ Args: { "p_screen": string }; Returns: undefined
                            },
 "register_feeding_push":
 { Args: { "p_auth": string,"p_endpoint": string,"p_locale": string,"p_p256dh": string }; Returns: string
@@ -1828,14 +2174,14 @@ isOneToOne: false
 "save_family_residence_region":
 { Args: { "p_country_code"?: string,"p_family": string,"p_region_code": string,"p_version": number }; Returns: undefined
                            },
-"save_feeding_reminder":
-{ Args: { "p_interval": number,"p_locale"?: string,"p_mode": string,"p_quiet": boolean,"p_subscription"?: Json }; Returns: string
-                           },
 "save_feeding_push_preferences":
 { Args: { "p_enabled": boolean,"p_interval": number,"p_quiet": boolean }; Returns: undefined
                            },
 "save_feeding_record":
-{ Args: { "p_amount_ml": number,"p_child_id": string,"p_ended_at": string,"p_food_name": string,"p_id": string,"p_kind": string,"p_note": string,"p_started_at": string,"p_timezone": string,"p_timer_started"?: boolean,"p_version"?: number }; Returns: string
+{ Args: { "p_amount_ml": number,"p_child_id": string,"p_ended_at": string,"p_food_name": string,"p_id": string,"p_kind": string,"p_note": string,"p_started_at": string,"p_timer_started"?: boolean,"p_timezone": string,"p_version"?: number }; Returns: string
+                           },
+"save_feeding_reminder":
+{ Args: { "p_interval": number,"p_locale"?: string,"p_mode": string,"p_quiet": boolean,"p_subscription"?: Json }; Returns: string
                            },
 "save_global_residence":
 { Args: { "p_city": string,"p_country": string,"p_family": string,"p_locality": string,"p_province": string,"p_version": number }; Returns: undefined
@@ -1846,6 +2192,12 @@ isOneToOne: false
 "save_notification_preferences":
 { Args: { "p_event": boolean,"p_feeding": boolean,"p_frequency": number,"p_hour": number,"p_interval": number,"p_quiet_end": string,"p_quiet_start": string,"p_snooze_minutes"?: number,"p_task": boolean }; Returns: undefined
                            },
+"save_parenting_friend":
+{ Args: { "p_child": string,"p_status": string }; Returns: undefined
+                           },
+"save_parenting_post":
+{ Args: { "p_audience"?: string,"p_body": string,"p_category": string,"p_child"?: string,"p_family": string,"p_id"?: string,"p_photo_ids"?: (string)[],"p_poll"?: Json,"p_title": string }; Returns: string
+                           },
 "save_received_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_version"?: number }; Returns: string
                            },
@@ -1855,6 +2207,9 @@ isOneToOne: false
 "save_vaccination_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_version"?: number }; Returns: string
                            },
+"send_playground_reaction":
+{ Args: { "p_child": string,"p_friend": string,"p_kind": string }; Returns: undefined
+                           },
 "service_admin_access":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
@@ -1863,6 +2218,14 @@ isOneToOne: false
                            },
 "set_child_milestone":
 { Args: { "p_achieved": boolean,"p_child": string,"p_key": string }; Returns: undefined
+                           },
+"set_child_visibility":
+{ Args: { "p_child": string,"p_enabled": boolean,"p_scope": string }; Returns: undefined
+                           },
+"set_growth_diary_like":
+{ Args: { "p_liked": boolean,"p_record": string }; Returns: {
+              "liked": boolean,"likes": number
+            }[]
                            },
 "share_growth_diary":
 { Args: { "p_everyone": boolean,"p_record": string,"p_same_birth_date": boolean,"p_sex": string }; Returns: undefined
@@ -1881,6 +2244,12 @@ isOneToOne: false
                            },
 "update_child_details":
 { Args: { "p_birth_date": string,"p_child_id": string,"p_name": string,"p_sex": string }; Returns: undefined
+                           },
+"update_health_consent":
+{ Args: { "p_confirmation"?: string,"p_health": boolean }; Returns: undefined
+                           },
+"valid_iana_timezone":
+{ Args: { "p_timezone": string }; Returns: boolean
                            },
 "valid_meal_times":
 { Args: { "times": (string)[] }; Returns: boolean

@@ -1,3 +1,5 @@
+import { caregiverName } from '@/features/auth/caregiver-name';
+import { privacyStateSchema } from '@/features/privacy/model';
 import { RelationshipField } from '@/features/family/relationship-field';
 import { ChildSexField } from '@/features/family/sex-field';
 import { getTranslations } from 'next-intl/server';
@@ -35,7 +37,20 @@ export default async function Onboarding({
   if (profileResult.error || agreement.error || children.error)
     throw new Error('Signup information unavailable');
   const profile = profileResult.data;
-  if (agreement.data && profile?.consented_at && children.data?.length)
+  let childGranted = false;
+  if (agreement.data && children.data?.length) {
+    const result = await db.rpc('privacy_state', {
+      p_child: children.data[0].id,
+    });
+    if (result.error) throw new Error('Privacy information unavailable');
+    childGranted = privacyStateSchema.parse(result.data).childGranted;
+  }
+  if (
+    agreement.data &&
+    profile?.consented_at &&
+    children.data?.length &&
+    childGranted
+  )
     redirect(next);
   const ko = locale === 'ko';
   const choosing = !invitation && q.mode !== 'new' && q.mode !== 'join';
@@ -146,14 +161,10 @@ export default async function Onboarding({
                       required
                       maxLength={60}
                       enterKeyHint={invitation ? 'done' : 'next'}
-                      defaultValue={
-                        profile?.display_name ||
-                        String(
-                          user.user_metadata?.name ??
-                            user.user_metadata?.full_name ??
-                            '',
-                        ).slice(0, 60)
-                      }
+                      defaultValue={caregiverName(
+                        profile?.display_name,
+                        user.user_metadata,
+                      )}
                     />
                   </label>
                 ),

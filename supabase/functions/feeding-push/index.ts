@@ -27,7 +27,7 @@ Deno.serve(async (request: Request) => {
             TTL: 300,
             urgency: 'normal',
             vapidDetails: {
-              subject: 'mailto:jgcman3@gmail.com',
+              subject: 'mailto:admin@podoong.com',
               publicKey,
               privateKey,
             },

@@ -17,6 +17,11 @@ export async function acceptSignupAgreements(form: FormData) {
     p_collection_version: String(form.get('collectionVersion')),
     p_terms: true,
     p_collection: true,
+    p_child_information: true,
+    p_authority: true,
+    p_health: form.get('health') === 'on',
+    p_public_sharing: false,
+    p_neighborhood: false,
   });
   if (!error) revalidatePath(`/${locale}/onboarding`);
   redirect(error ? `${back}&error=generic` : back);

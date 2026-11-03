@@ -9,7 +9,11 @@ export async function assignDevelopmentDomain(
     throw new Error('Only develop can assign the development domain.');
   for (const name of ['VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_PROJECT_ID'])
     if (!env[name]) throw new Error(`Missing deployment setting: ${name}`);
-  const url = new URL(deploymentUrl.trim());
+  const output = deploymentUrl.trim();
+  const candidate = output.startsWith('{')
+    ? JSON.parse(output)?.deployment?.url
+    : output;
+  const url = new URL(candidate);
   if (
     url.protocol !== 'https:' ||
     !url.hostname.endsWith('.vercel.app') ||

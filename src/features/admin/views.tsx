@@ -15,6 +15,7 @@ import {
   dashboardSchema,
   operationsSchema,
   usageSchema,
+  pageViewsSchema,
   requestStatuses,
   type AdminSection,
 } from './model';
@@ -349,8 +350,31 @@ export async function AdminView({
           const days = [7, 14, 28].includes(Number(query.days))
               ? Number(query.days)
               : 14,
-            result = await db.rpc('admin_usage', { p_days: days });
-          if (result.error) throw new Error('Admin analytics unavailable');
+            results = await Promise.all([
+              db.rpc('admin_usage', { p_days: days }),
+              db.rpc('admin_service_page_views', { p_days: days }),
+            ]),
+            [result, viewsResult] = results;
+          if (result.error || viewsResult.error)
+            throw new Error('Admin analytics unavailable');
+          const pageViews = pageViewsSchema.parse(viewsResult.data);
+          const screenLabels = ko
+            ? {
+                today: '오늘',
+                calendar: '일정',
+                insights: '인사이트',
+                diary: '성장일기',
+                community: '육아 소통',
+                account: '아이·설정',
+              }
+            : {
+                today: 'Today',
+                calendar: 'Calendar',
+                insights: 'Insights',
+                diary: 'Diary',
+                community: 'Community',
+                account: 'Account',
+              };
           const data = usageSchema.parse(result.data),
             max = Math.max(1, ...data.daily.map((day) => day.records));
           const stages = [
@@ -377,6 +401,23 @@ export async function AdminView({
                   </Link>
                 ))}
               </div>
+              <section className="admin-panel">
+                <h2>{ko ? '화면 이용 횟수' : 'Screen views'}</h2>
+                <div className="admin-summary-grid">
+                  {pageViews.screens.map(({ screen, views }) => (
+                    <Metric
+                      key={screen}
+                      title={screenLabels[screen]}
+                      value={views}
+                    />
+                  ))}
+                </div>
+                <p className="admin-caption">
+                  {ko
+                    ? '개인 식별자 없이 화면별 횟수만 합산합니다. 브라우저 추적 방지와 이 기기의 통계 거부 설정을 따릅니다. 아래 이용 흐름은 서비스에 보관 중인 기록에서 집계합니다.'
+                    : 'Only screen totals are stored, without visitor identifiers. Browser Do Not Track and this device’s opt-out are respected. The journey below is derived from retained service records.'}
+                </p>
+              </section>
               <section className="admin-panel">
                 <h2>{ko ? '일별 기록 생성' : 'Records created per day'}</h2>
                 <div className="admin-chart-scroll">

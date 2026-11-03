@@ -1,4 +1,5 @@
 import 'server-only';
+import signupNotices from './signup-notices.json';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createClient } from '@/lib/supabase/server';
@@ -49,6 +50,9 @@ export async function readSignupDocument(key: LegalDocument, version: string) {
         ? 'account_collection'
         : null;
   if (!kind || !/^signup-[A-Za-z0-9.-]{1,80}$/.test(version)) return null;
+  // The current immutable release bundle is readable before any DB connection.
+  if (version === signupNotices.version)
+    return { ...parseDocument(signupNotices[kind]), version };
   const db = await createClient();
   const result = await db
     .from('signup_document_versions')
@@ -65,8 +69,11 @@ export async function readSignupDocument(key: LegalDocument, version: string) {
 }
 
 function parseDocument(markdown: string) {
-  const version = markdown.match(/^버전\s+([\d.]+)/m)?.[1] ?? '';
-  const updated = markdown.match(/작성일\s*(\d{4}-\d{2}-\d{2})/)?.[1] ?? '';
+  const version = markdown.match(/^버전\s+(\S+)/m)?.[1] ?? '';
+  const updated =
+    markdown.match(/(?:작성일|수정일)\s*:?\s*(\d{4}-\d{2}-\d{2})/)?.[1] ?? '';
+  const effective =
+    markdown.match(/^시행일:\s*(\d{4}-\d{2}-\d{2})/m)?.[1] ?? '';
   const body = markdown
     .split('\n')
     .filter(
@@ -74,5 +81,5 @@ function parseDocument(markdown: string) {
         i !== 0 && !line.startsWith('버전 ') && !line.startsWith('시행일:'),
     )
     .join('\n');
-  return { body, version, updated };
+  return { body, version, updated, effective };
 }

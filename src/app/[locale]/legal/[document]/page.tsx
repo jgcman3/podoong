@@ -61,7 +61,11 @@ export default async function LegalPage({
             <FileText size={22} />
           </span>
           <span className="legal-draft">
-            {ko ? '검토용 초안 · 미시행' : 'Draft · not yet in effect'}
+            {doc.effective
+              ? `${ko ? '시행일' : 'Effective'} ${doc.effective}`
+              : ko
+                ? '검토용 초안 · 미시행'
+                : 'Draft · not yet in effect'}
           </span>
         </div>
         <h1>

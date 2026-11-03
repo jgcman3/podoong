@@ -12,10 +12,24 @@ test('signup requires both current document versions and explicit selections', (
   form.set('terms', 'on');
   expect(signupAgreementAccepted(form)).toBe(false);
   form.set('collection', 'on');
+  expect(signupAgreementAccepted(form)).toBe(false);
+  form.set('health', 'on');
   expect(signupAgreementAccepted(form)).toBe(true);
   form.set('termsVersion', 'old-version');
   expect(signupAgreementAccepted(form)).toBe(false);
   form.set('termsVersion', signupAgreementVersion);
   form.set('collection', 'true');
+  expect(signupAgreementAccepted(form)).toBe(false);
+});
+
+test('the all-agree control cannot substitute for individual health acceptance', () => {
+  const form = new FormData();
+  for (const field of ['terms', 'collection', 'all']) form.set(field, 'on');
+  for (const field of ['termsVersion', 'collectionVersion'])
+    form.set(field, signupAgreementVersion);
+  expect(signupAgreementAccepted(form)).toBe(false);
+  form.set('health', 'on');
+  expect(signupAgreementAccepted(form)).toBe(true);
+  form.set('health', 'true');
   expect(signupAgreementAccepted(form)).toBe(false);
 });

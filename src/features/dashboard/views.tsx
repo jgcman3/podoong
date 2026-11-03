@@ -1,3 +1,5 @@
+import { PrivacySettings } from '@/features/privacy/settings';
+import { serviceContacts } from '@/lib/contacts';
 import { DeveloperRequestForm } from '@/features/developer-requests/form';
 import { AppearanceSettings } from '@/components/appearance';
 import { RelationshipField } from '@/features/family/relationship-field';
@@ -267,6 +269,7 @@ export async function Today({ context, locale }: Props) {
         now={now}
       />
       <QuickCare
+        privacy={context.privacy}
         birthDate={child.birth_date}
         key={child.id}
         locale={locale}
@@ -777,6 +780,23 @@ export async function ChildAccount({
         </details>
         <details
           className="panel account-settings-section"
+          open={panel === 'privacy'}
+        >
+          <summary>
+            <SettingsIcon size={18} />
+            <span>
+              {ko ? '개인정보·동의 설정' : 'Privacy and consent settings'}
+            </span>
+            <ChevronRight size={16} />
+          </summary>
+          <PrivacySettings
+            locale={locale}
+            child={child.id}
+            state={context.privacy}
+          />
+        </details>
+        <details
+          className="panel account-settings-section"
           open={panel === 'notifications'}
         >
           <summary>
@@ -831,13 +851,20 @@ export async function ChildAccount({
                 href={`/${locale}/legal/${key}?child=${child.id}`}
               >
                 <span>{label}</span>
-                <small>{ko ? '검토 중' : 'Draft'}</small>
+
                 <ChevronRight size={16} />
               </Link>
             ))}
             <p className="small muted">
               {ko ? '운영자 정경철' : 'Operator: Jeong Gyeongcheol'} ·{' '}
-              <a href="mailto:jgcman3@gmail.com">jgcman3@gmail.com</a>
+              <a href={`mailto:${serviceContacts.support}`}>
+                {serviceContacts.support}
+              </a>
+              <br />
+              {ko ? '개인정보 문의' : 'Privacy enquiries'} ·{' '}
+              <a href={`mailto:${serviceContacts.privacy}`}>
+                {serviceContacts.privacy}
+              </a>
             </p>
           </div>
         </details>

@@ -1,3 +1,4 @@
+import { serviceContacts } from '@/lib/contacts';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -694,7 +695,7 @@ export function Introduction({
             >
               {t.privacy}
             </Link>
-            <a href="mailto:jgcman3@gmail.com">{t.contact}</a>
+            <a href={`mailto:${serviceContacts.support}`}>{t.contact}</a>
           </nav>
         </footer>
       </div>

@@ -14,6 +14,26 @@ describe('Naver identity normalization', () => {
       }),
     ).toEqual({ sub: 'naver-user-123' });
   });
+  it('uses an optional nickname as the editable display name without copying other fields', () => {
+    expect(
+      naverSubject({
+        resultcode: '00',
+        response: {
+          id: 'naver-user-123',
+          nickname: '  포둥 아빠  ',
+          name: 'Private legal name',
+          email: 'private@example.test',
+          mobile: '010-0000-0000',
+        },
+      }),
+    ).toEqual({ sub: 'naver-user-123', name: '포둥 아빠' });
+    expect(
+      naverSubject({
+        resultcode: '00',
+        response: { id: 'naver-user-123', nickname: null },
+      }),
+    ).toEqual({ sub: 'naver-user-123' });
+  });
   it.each([
     null,
     { resultcode: '00', response: { id: '' } },

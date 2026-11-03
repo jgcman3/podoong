@@ -15,6 +15,7 @@ export function ActivityRail({
   popup = false,
   pending = false,
   kinds = careKinds,
+  disabledKinds = [],
 }: {
   locale: Locale;
   leading?: ReactNode;
@@ -26,6 +27,7 @@ export function ActivityRail({
   multiple?: boolean;
   popup?: boolean;
   pending?: boolean;
+  disabledKinds?: readonly string[];
   kinds?: readonly (typeof careKinds)[number][];
 }) {
   const drag = useRef<{
@@ -101,7 +103,7 @@ export function ActivityRail({
             aria-pressed={multiple ? active : undefined}
             aria-expanded={multiple ? undefined : active}
             aria-haspopup={popup ? 'dialog' : undefined}
-            disabled={disabled}
+            disabled={disabled || disabledKinds.includes(kind)}
             onClick={() => onSelect(kind)}
           >
             <span className="quick-orbit-icon">

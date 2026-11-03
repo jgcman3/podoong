@@ -103,9 +103,9 @@ GitHub Secrets는 저장한 값을 다시 읽을 수 없으므로 등록 날짜�
 
 1. 개발·시험·운영 Supabase 프로젝트와 제공자 앱을 분리합니다. 운영 사이트 URL과 `/auth/callback`을 Supabase redirect 허용 목록에 등록합니다.
 2. Google과 Kakao는 Supabase Auth의 기본 제공자를 설정합니다. 제공자 앱의 callback은 **Supabase가 표시하는 Auth callback URL**이며, 앱의 `/auth/callback`과 구분합니다. Kakao는 닉네임(`profile_nickname`)만 요청합니다. 카카오 Developers에서 카카오 로그인을 ON으로 설정하고 닉네임 동의항목을 활성화하며, Supabase Kakao 설정의 **Allow users without an email**을 켭니다. 이메일·프로필 사진은 요청하지 않습니다. Supabase 기본 권한에 추가되는 `scopes` 대신 `queryParams.scope`로 요청 권한을 지정하며, Supabase 업데이트 후 실제 인증 URL의 `scope`를 다시 확인합니다.
-3. Naver는 식별자 `custom:naver`의 Custom OAuth2 제공자를 등록합니다. 인증 `https://nid.naver.com/oauth2.0/authorize`, 토큰 `https://nid.naver.com/oauth2.0/token`, 사용자 정보 URL은 배포된 포둥의 `https://<앱 도메인>/api/auth/naver/userinfo`로 설정합니다. 이 서버 어댑터가 네이버 `https://openapi.naver.com/v1/nid/me`에 토큰을 검증하고 중첩 `response.id`를 최상위 `sub`로 변환합니다. `email_optional=true`로 설정하며 이메일이나 생년월일은 수집하지 않습니다. Supabase 서버가 접근할 수 있는 HTTPS 시험 도메인이 필요합니다. 실제 프로젝트에서 매핑·토큰 교환이 동작하는지 확인하기 전에는 활성화하지 않습니다.
+3. Naver는 식별자 `custom:naver`의 Custom OAuth2 제공자를 등록합니다. 인증 `https://nid.naver.com/oauth2.0/authorize`, 토큰 `https://nid.naver.com/oauth2.0/token`, 사용자 정보 URL은 배포된 포둥의 `https://<앱 도메인>/api/auth/naver/userinfo`로 설정합니다. 이 서버 어댑터가 네이버 `https://openapi.naver.com/v1/nid/me`에 토큰을 검증하고 중첩 `response.id`를 최상위 `sub`로 변환합니다. `email_optional=true`로 설정합니다. 현재 Supabase 대시보드는 Manual configuration에서도 Issuer URL을 요구하므로 `https://nid.naver.com`을 입력합니다. 운영 Userinfo URL은 `https://podoong.com/api/auth/naver/userinfo`, 개발은 `https://dev.podoong.com/api/auth/naver/userinfo`입니다. 네이버 제공 정보에서 **별명만 추가 항목**으로 요청하며 회원이름·이메일·전화번호·생년월일은 요청하지 않습니다. 별명은 보호자 이름의 수정 가능한 기본값으로 사용하며, 별명이 없으면 직접 입력합니다. 이미 수정한 보호자 이름은 소셜 프로필로 덮어쓰지 않습니다. Supabase 서버가 접근할 수 있는 HTTPS 시험 도메인이 필요합니다. 실제 프로젝트에서 매핑·토큰 교환이 동작하는지 확인하기 전에는 활성화하지 않습니다.
 4. 수동 identity linking을 활성화합니다. 연결·해제는 5분 이내의 현재 세션 JWT의 검증된 `amr` 로그인 시각과 사용자 확인을 요구하며, 마지막 로그인 수단은 해제할 수 없습니다. Supabase의 이메일 자동 연결 정책도 시험 환경에서 확인합니다.
-5. 설정과 실제 계정 검증이 끝난 제공자만 `NEXT_PUBLIC_AUTH_PROVIDERS=google,kakao,naver`에 추가합니다. 빈 값은 버튼을 비활성화합니다. client secret은 Supabase에 저장하며 저장소나 브라우저 환경 변수에 넣지 않습니다.
+5. 설정과 실제 계정 검증이 끝난 제공자만 `NEXT_PUBLIC_AUTH_PROVIDERS=google,kakao,naver`에 추가합니다. 빈 값은 버튼을 비활성화합니다. 이 목록은 로컬 `.env.local`과 Vercel 환경별 변수에서 관리하며 변경 후 재배포가 필요합니다. 개발은 Preview의 `develop` 브랜치 변수이며 운영 Production과 구분합니다. client secret은 Supabase에 저장하며 저장소나 브라우저 환경 변수에 넣지 않습니다. 카카오는 기존 운영 앱을 유지하고 개발·로컬에는 공식 테스트 앱의 REST API 키/Client Secret을 개발 Supabase에 설정합니다. 테스트 앱의 카카오 로그인 ON, 개발 Redirect URI, 테스트 멤버를 각각 확인합니다.
 
 참조: [Supabase Custom OAuth](https://supabase.com/docs/guides/auth/custom-oauth-providers), [Identity Linking](https://supabase.com/docs/guides/auth/auth-identity-linking), [네이버 API](https://developers.naver.com/docs/login/api/api.md). 네이버 호환성·실제 세 제공자 로그인은 아직 검증되지 않았습니다.
 
@@ -199,3 +199,11 @@ B4의 30–50가족 4주 파일럿, 세 소셜 제공자의 실제 계정 시험
 ### 동네 친구들 로컬 예시
 
 `npm run dev:playground` 실행 후 [로컬 예시](http://localhost:3190/api/local/playground-demo)를 열면 아기 8명이 입장한 화면을 볼 수 있습니다. 별도 로컬 DB·3190 포트를 사용하며 실제 개발/운영 DB와 기존 `.env.local`은 변경하지 않습니다. [예시 데이터와 실행 설정](docs/implementation/parenting-community.md)을 참고하세요.
+
+### 가입 동의·도메인 이메일 (2026-11-03)
+
+- 개인 정경철 운영, 광고 없음. 공개 연락처는 일반 문의 `support@podoong.com`, 개인정보·권리행사 `privacy@podoong.com`; 운영 관리 주소는 `admin@podoong.com`입니다.
+- 세 주소는 Cloudflare Email Routing 무료 별칭으로 운영자 Gmail 한 수신함에 전달합니다. Workspace 유료 계정은 필요 없습니다. 세 주소의 전달 수신은 운영자가 2026-11-03 확인했습니다. Gmail 직접 답장은 개인 Gmail 발신자로 표시되므로 도메인 회신 경로는 별도입니다.
+- 가입 동의는 이용약관·기본 개인정보·건강정보의 필수 세 항목으로 받고 모두 동의와 개별 선택을 함께 제공합니다. 체크 후 가족 참여 또는 아이 등록으로 바로 진행하며 가입 확인 메일·인증 코드 입력·별도 발송 서버 키는 필요하지 않습니다. 아동 정보 처리 권한은 가입자 본인의 선언으로 기록하며 친권·가족관계 인증 완료로 표기하지 않습니다.
+- 원문·보유기간·철회·외부 설정 체크리스트: [개인정보 구현 명세](docs/implementation/privacy-consent.md). 이 설정이 법정대리인의 친권·가족관계를 공적으로 인증하는 것은 아닙니다.
+- 분석은 외부 SDK 없이 일별 화면 횟수만 익명 합산합니다. 브라우저의 DNT와 아이 메뉴의 개인정보 설정에서 통계 거부를 반영합니다.

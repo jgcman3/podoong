@@ -129,6 +129,7 @@ export default async function Diaries({
               ko={locale === 'ko'}
             />
             <DiaryComposer
+              privacy={context.privacy}
               key={context.child.id}
               child={context.child.id}
               locale={locale}
@@ -194,6 +195,7 @@ export default async function Diaries({
                 )}
                 {scope === 'mine' && context.writable && 'version' in entry && (
                   <DiaryComposer
+                    privacy={context.privacy}
                     child={context.child.id}
                     locale={locale}
                     record={entry}

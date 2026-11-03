@@ -3,6 +3,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { isLocale } from '@/lib/domain';
 import '../globals.css';
+import { UsageTracker } from '@/features/admin/usage-tracker';
 import { AppSplash } from '@/components/app-splash';
 import { appleStartupImages } from '@/lib/app-startup.mjs';
 import { InstallAppProvider } from '@/components/install-app';
@@ -84,6 +85,7 @@ export default async function LocaleLayout({
               initialInAppBrowser={inAppBrowser(userAgent)}
             >
               <AppSplash locale={locale} />
+              <UsageTracker />
               {children}
             </InstallAppProvider>
           </AppearanceProvider>

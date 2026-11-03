@@ -66,6 +66,7 @@ export function QuickCare({
   timezone,
   today,
   birthDate,
+  privacy,
 }: {
   locale: Locale;
   childId: string;
@@ -75,6 +76,7 @@ export function QuickCare({
   timezone: string;
   today: string;
   birthDate: string;
+  privacy: { health: boolean; publicSharing: boolean };
 }) {
   const c = quickCopy(locale),
     router = useRouter();
@@ -165,9 +167,15 @@ export function QuickCare({
     >
       <ActivityRail
         locale={locale}
+        disabledKinds={
+          privacy.health
+            ? []
+            : ['temperature', 'hospital', 'medication', 'vaccination']
+        }
         label={locale === 'ko' ? '빠른 기록 선택' : 'Choose a care record'}
         leading={
           <DiaryComposer
+            privacy={privacy}
             locale={locale}
             child={childId}
             triggerLabel={locale === 'ko' ? '성장 기록' : 'Growth record'}
@@ -339,6 +347,7 @@ export function QuickCare({
                           <span className="quick-timeline-dot" />
                           {e.service === 'growth' && e.childRecord ? (
                             <DiaryComposer
+                              privacy={privacy}
                               locale={locale}
                               child={childId}
                               record={{

@@ -1,3 +1,4 @@
+import { privacyStateSchema } from '@/features/privacy/model';
 import { cache } from 'react';
 import { calendarEntry } from '@/features/care/calendar-model';
 import { redirect } from 'next/navigation';
@@ -38,9 +39,16 @@ export const loadFamily = cache(async (locale: Locale, childId?: string) => {
   if (!profile?.consented_at || !children?.length)
     redirect(`/${locale}/onboarding`);
   const child = children.find((c) => c.id === childId) ?? children[0];
-  const { data: access, error: accessError } = await db
-    .rpc('family_access_context', { p_child: child.id })
-    .single();
+  const [accessResult, privacyResult] = await Promise.all([
+    db.rpc('family_access_context', { p_child: child.id }).single(),
+    db.rpc('privacy_state', { p_child: child.id }),
+  ]);
+  const { data: access, error: accessError } = accessResult;
+  if (privacyResult.error) throw new Error('Privacy information unavailable');
+  const privacy = privacyStateSchema.parse(privacyResult.data);
+  if (!privacy.authority) redirect(`/${locale}/onboarding`);
+  if (access?.owner && !privacy.childGranted)
+    redirect(`/${locale}/onboarding?mode=new`);
   if (accessError || !access?.family)
     throw new Error('Permissions unavailable');
   const timezone = profile.timezone;
@@ -59,7 +67,8 @@ export const loadFamily = cache(async (locale: Locale, childId?: string) => {
       role: string;
     }[],
     owner: access.owner,
-    writable: access.writable,
+    writable: access.writable && privacy.childGranted,
+    privacy,
     timezone,
     today: dateInTimeZone(new Date(), timezone),
   };

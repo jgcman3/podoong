@@ -163,3 +163,21 @@ export const operationsSchema = z.object({
     }),
   ),
 });
+
+export const pageViewsSchema = z.object({
+  days: count,
+  timezone: z.literal('Asia/Seoul'),
+  screens: z.array(
+    z.object({
+      screen: z.enum([
+        'today',
+        'calendar',
+        'insights',
+        'diary',
+        'community',
+        'account',
+      ]),
+      views: count,
+    }),
+  ),
+});

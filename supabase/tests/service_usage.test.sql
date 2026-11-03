@@ -1,0 +1,41 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set search_path=public,extensions;
+select no_plan();
+select columns_are('public','service_usage_daily',array['day','screen','views'],'counter schema cannot store visitor or request identifiers');
+select hasnt_table('public','usage_events','legacy per-user tracking is removed');
+insert into auth.users(id) values('a8900000-0000-4000-8000-000000000001');
+insert into profiles(id,display_name,consented_at) values('a8900000-0000-4000-8000-000000000001','Usage fixture',now());
+set local role anon;
+select throws_ok($$select record_service_page_view('today')$$,'42501',null,'anonymous RPC access denied');
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"a8900000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select lives_ok($$select record_service_page_view('today')$$,'signed up account records a screen');
+select lives_ok($$select record_service_page_view('today')$$,'second view increments existing counter');
+select throws_ok($$select record_service_page_view('/private-child-id')$$,'22023','invalid screen','URLs cannot become dimensions');
+select throws_ok($$select * from service_usage_daily$$,'42501',null,'raw counter reads denied');
+select throws_ok($$select admin_service_page_views(7)$$,'42501','forbidden','ordinary users cannot read admin statistics');
+select throws_ok($$select cleanup_service_usage()$$,'42501',null,'users cannot trigger retention');
+reset role;
+select is((select views from service_usage_daily where screen='today' and day=(now() at time zone 'Asia/Seoul')::date),2::bigint,'views are one daily aggregate');
+insert into service_admins(user_id) values('a8900000-0000-4000-8000-000000000001');
+set local role authenticated;
+select is((admin_service_page_views(7)->'screens'->0->>'views')::bigint,2::bigint,'operator receives aggregate totals');
+select is(jsonb_array_length(admin_service_page_views(7)->'screens'),6,'zero-view screens remain represented');
+select throws_ok($$select admin_service_page_views(365)$$,'22023','invalid period','unbounded periods denied');
+select lives_ok($$select operation_metrics()$$,'operations works after removal of raw events');
+reset role;
+insert into service_usage_daily(day,screen,views) values((now() at time zone 'Asia/Seoul')::date-90,'today',1),((now() at time zone 'Asia/Seoul')::date-89,'today',1);
+insert into developer_requests(id,user_id,category,body,status,created_at) values
+('a8900000-0000-4000-8000-000000000010','a8900000-0000-4000-8000-000000000001','feature','Old completed request','done',now()-interval '181 days'),
+('a8900000-0000-4000-8000-000000000011','a8900000-0000-4000-8000-000000000001','feature','Old open request','received',now()-interval '181 days'),
+('a8900000-0000-4000-8000-000000000012','a8900000-0000-4000-8000-000000000001','feature','Recently closed request','closed',now()-interval '181 days');
+insert into admin_request_details(request_id,updated_at) values('a8900000-0000-4000-8000-000000000012',now());
+select cleanup_service_usage();
+select is((select count(*) from developer_requests where id='a8900000-0000-4000-8000-000000000010'),0::bigint,'old completed requests are removed');
+select is((select count(*) from developer_requests where id in ('a8900000-0000-4000-8000-000000000011','a8900000-0000-4000-8000-000000000012')),2::bigint,'open and recently moderated requests remain');
+select is((select count(*) from service_usage_daily where day<(now() at time zone 'Asia/Seoul')::date-89),0::bigint,'counters older than 90 calendar days are removed');
+select is((select count(*) from service_usage_daily where day=(now() at time zone 'Asia/Seoul')::date-89),1::bigint,'retention boundary is preserved');
+select * from finish();
+rollback;

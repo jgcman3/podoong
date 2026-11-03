@@ -7287,7 +7287,7 @@ html[data-standalone] :is(input, select, textarea) {
 
 .signup-consent-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   padding: 14px 0;
   border-bottom: 1px solid var(--line);
@@ -7296,7 +7296,8 @@ html[data-standalone] :is(input, select, textarea) {
   display: flex;
   flex: 1;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: center;
+  min-height: 44px;
   gap: 10px;
   min-width: 0;
   font-size: 14px;
@@ -7306,8 +7307,16 @@ html[data-standalone] :is(input, select, textarea) {
   flex: 0 0 18px;
   width: 18px;
   height: 18px;
-  margin: 3px 0 0;
-  accent-color: var(--brown);
+  min-height: 18px;
+  padding: 0;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  place-content: center;
+  border: 1.5px solid var(--muted);
+  border-radius: 4px;
+  background: var(--surface);
 }
 .signup-consent-row > a {
   flex: 0 0 auto;
@@ -7316,7 +7325,7 @@ html[data-standalone] :is(input, select, textarea) {
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
-  margin-top: -8px;
+  margin-top: 0;
   font-size: 12px;
   text-decoration: underline;
 }
@@ -10000,4 +10009,43 @@ html[data-standalone] :is(input, select, textarea) {
 }
 .shared-diary-like-count svg {
   flex: none;
+}
+
+/* Consent choices stay in one signup screen, with readable scope notices. */
+.signup-consent-choice-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-weight: 600;
+}
+.signup-consent-choice-label input {
+  flex: 0 0 auto;
+  margin-top: 0.2rem;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.signup-consent-choice p {
+  margin: 0.4rem 0 0 1.75rem;
+  line-height: 1.65;
+}
+
+.signup-consent-all { padding-bottom: .9rem; border-bottom: 1px solid var(--line); }
+.signup-consent-all label { min-height: 44px; }
+
+.signup-consent .signup-consent-choice { min-width: 0; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.signup-consent .signup-consent-description { margin: 8px 0 0; padding-left: 28px; line-height: 1.65; }
+.signup-consent .signup-consent-choice .signup-consent-row { padding: 0; border-bottom: 0; }
+.signup-consent .signup-consent-row label span { min-width: 0; overflow-wrap: anywhere; }
+
+.signup-consent-row input[type='checkbox']::before {
+  content: ''; width: 5px; height: 9px; border: solid white;
+  border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); opacity: 0;
+}
+.signup-consent-row input[type='checkbox']:is(:checked, :indeterminate) { background: var(--brown); border-color: var(--brown); }
+.signup-consent-row input[type='checkbox']:is(:checked, :indeterminate)::before { opacity: 1; }
+.signup-consent-row input[type='checkbox']:indeterminate::before { width: 8px; height: 2px; border: 0; background: white; transform: none; }
+.signup-consent-row input[type='checkbox']:disabled { opacity: .5; }
+@media (max-width: 680px) {
+  .signup-consent .signup-consent-row label { font-size: 13px; line-height: 1.5; }
+  .signup-consent .signup-consent-row label > span { white-space: nowrap; overflow-wrap: normal; }
 }

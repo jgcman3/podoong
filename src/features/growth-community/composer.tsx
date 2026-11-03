@@ -17,7 +17,9 @@ export function DiaryComposer({
   triggerLabel,
   disabled,
   onSaved,
+  privacy,
 }: {
+  privacy: { health: boolean; publicSharing: boolean };
   child: string;
   locale: 'ko' | 'en';
   trigger?: ReactNode;
@@ -43,6 +45,7 @@ export function DiaryComposer({
   const id = useRef('');
   const router = useRouter();
   const [opened, setOpened] = useState(false);
+  const [publish, setPublish] = useState(record ? !record.is_private : false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRoot = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -84,6 +87,7 @@ export function DiaryComposer({
     };
   }, [opened]);
   function open() {
+    setPublish(record ? !record.is_private : false);
     setAttachments((record?.photo_ids ?? []).map((id) => ({ key: id, id })));
     setOpened(true);
     id.current = record?.id ?? createRecordId();
@@ -274,7 +278,13 @@ export function DiaryComposer({
                 {title}
               </h2>
             </header>
-            <form ref={form} action={submit}>
+            <form
+              ref={form}
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (!pending) void submit(new FormData(event.currentTarget));
+              }}
+            >
               <fieldset disabled={pending || patternBusy}>
                 <div className="diary-compose-basics">
                   <div className="diary-compose-measures">
@@ -308,6 +318,7 @@ export function DiaryComposer({
                         <input
                           type="number"
                           name={name}
+                          disabled={!privacy.health}
                           defaultValue={
                             record?.[
                               name === 'weight'
@@ -330,12 +341,27 @@ export function DiaryComposer({
                   <label className="diary-privacy-option">
                     <input
                       type="checkbox"
-                      name="private"
-                      defaultChecked={record?.is_private ?? false}
+                      name="publish"
+                      checked={publish}
+                      onChange={(event) => setPublish(event.target.checked)}
                     />
-                    {ko ? '비공개' : 'Private'}
+                    {ko ? '공개하기' : 'Publish'}
                   </label>
                 </div>
+                {publish && (
+                  <p className="small muted">
+                    {ko
+                      ? '공개하면 아이 닉네임·성별·생후 일수, 일기·사진·성장 수치를 다른 이용자와 일기장 링크 방문자가 볼 수 있어요. 이 일기를 비공개로 바꾸거나 삭제할 때까지 공개됩니다. 공개를 원하지 않으면 선택을 해제하세요. 외부에 저장된 사본은 회수할 수 없어요.'
+                      : 'Publishing shows your child’s nickname, sex, age, diary, photos and growth measurements to other users and diary-link visitors until made private or deleted. Uncheck to keep it private. Copies saved by others cannot be recalled.'}
+                  </p>
+                )}
+                {!privacy.health && (
+                  <p className="small muted">
+                    {ko
+                      ? '건강정보 동의를 하지 않았다면 본문·사진에도 건강정보를 넣지 마세요.'
+                      : 'If you declined health processing, do not include health details in text or photos.'}
+                  </p>
+                )}
                 <label className="diary-note-field">
                   <span>{ko ? '일기 내용' : 'Diary note'}</span>
                   <textarea

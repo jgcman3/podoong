@@ -25,7 +25,7 @@
   "familyName": "Family name",
   "childName": "Child’s name or nickname",
   "birthDate": "Child’s date of birth",
-  "displayName": "Caregiver name",
+  "displayName": "Caregiver name or nickname",
   "consent": "I understand family records are shared according to caregiver permissions.",
   "consentHelp": "Family records are separate from public posts. Do not enter real personal information in this development version.",
   "start": "Start our family",

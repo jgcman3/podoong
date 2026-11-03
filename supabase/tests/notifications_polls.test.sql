@@ -15,6 +15,19 @@ insert into children(sex,id,family_id,name,birth_date) values('female','c3000000
 insert into child_access values('c3000000-0000-4000-8000-000000000001','c2000000-0000-4000-8000-000000000001','c1000000-0000-4000-8000-000000000001','editor');
 insert into tasks(id,child_id,title,service,due_date,created_by) values('c4000000-0000-4000-8000-000000000001','c3000000-0000-4000-8000-000000000001','Private title','birth-preparation',(now() at time zone 'UTC')::date,'c1000000-0000-4000-8000-000000000001');
 insert into notification_preferences(user_id,quiet_start,quiet_end,delivery_hour,frequency_minutes) values('c1000000-0000-4000-8000-000000000001','00:00','00:00',0,1);
+-- Test-only setup for fixtures whose caregivers already accepted signup notices.
+-- Consent-specific tests use the public acceptance RPC and do not include this file.
+insert into public.signup_agreements(user_id,kind,version,interface_locale)
+select p.id,d.kind,d.version,'ko' from public.profiles p cross join public.signup_document_versions d
+where d.is_current on conflict do nothing;
+insert into public.signup_privacy_choices(user_id,version,locale,child_information,authority,health,public_sharing,neighborhood)
+select id,public.current_signup_privacy_version(),'ko',true,true,true,false,false from public.profiles
+on conflict do nothing;
+-- These multi-caregiver fixtures explicitly represent consenting family guardians.
+insert into public.child_privacy_consents(child_id,accepted_by,version,child_information,authority,health,public_sharing,neighborhood)
+select k.id,m.user_id,public.current_signup_privacy_version(),true,true,true,true,true
+from public.children k join public.family_members m on m.family_id=k.family_id
+where m.role in ('owner','editor') on conflict do nothing;
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"c1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select throws_ok($$select run_notification_jobs()$$,'42501',null,'ordinary user cannot run all jobs');

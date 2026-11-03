@@ -12,6 +12,19 @@ insert into children(id,family_id,name,sex,birth_date) values
 ('c9710000-0000-4000-8000-000000000002','b9710000-0000-4000-8000-000000000001','동생','male',current_date-90),
 ('c9710000-0000-4000-8000-000000000003','b9710000-0000-4000-8000-000000000001','미접속','female',current_date-300),
 ('c9710000-0000-4000-8000-000000000004','b9710000-0000-4000-8000-000000000002','Other child','male',current_date-400);
+-- Test-only setup for fixtures whose caregivers already accepted signup notices.
+-- Consent-specific tests use the public acceptance RPC and do not include this file.
+insert into public.signup_agreements(user_id,kind,version,interface_locale)
+select p.id,d.kind,d.version,'ko' from public.profiles p cross join public.signup_document_versions d
+where d.is_current on conflict do nothing;
+insert into public.signup_privacy_choices(user_id,version,locale,child_information,authority,health,public_sharing,neighborhood)
+select id,public.current_signup_privacy_version(),'ko',true,true,true,false,false from public.profiles
+on conflict do nothing;
+-- These multi-caregiver fixtures explicitly represent consenting family guardians.
+insert into public.child_privacy_consents(child_id,accepted_by,version,child_information,authority,health,public_sharing,neighborhood)
+select k.id,m.user_id,public.current_signup_privacy_version(),true,true,true,true,true
+from public.children k join public.family_members m on m.family_id=k.family_id
+where m.role in ('owner','editor') on conflict do nothing;
 insert into parenting_friend_profiles(child_id,nickname,status) select id,'Ignored nickname','Hello' from children where id::text like 'c9710000-%';
 select id as peer from parenting_friend_profiles where child_id='c9710000-0000-4000-8000-000000000002' \gset
 select id as outsider from parenting_friend_profiles where child_id='c9710000-0000-4000-8000-000000000004' \gset

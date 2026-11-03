@@ -72,7 +72,7 @@ const createdPolls: string[] = [];
 const createdPhotos: string[] = [];
 const createdChildPhotos: string[] = [];
 
-async function signIn(context: BrowserContext) {
+async function signIn(context: BrowserContext, acceptAgreements = true) {
   const email = `test-${crypto.randomUUID()}@example.test`;
   const password = crypto.randomUUID();
   const { data, error } = await admin.auth.admin.createUser({
@@ -114,6 +114,14 @@ async function signIn(context: BrowserContext) {
   });
   if (result.error) throw new Error('Local test sign-in failed');
   await context.addCookies(cookies);
+  if (acceptAgreements) {
+    const accepted = await sessionClient.rpc('accept_signup_agreements', {
+      p_locale: 'ko', p_terms_version: 'signup-2026-11-03-v1', p_collection_version: 'signup-2026-11-03-v1',
+      p_terms: true, p_collection: true, p_child_information: true, p_authority: true,
+      p_health: true, p_public_sharing: false, p_neighborhood: false,
+    });
+    if (accepted.error) throw new Error('Fixture signup agreement failed');
+  }
   return data.user.id;
 }
 test.afterEach(async () => {
@@ -153,6 +161,24 @@ test.afterEach(async () => {
   createdFamilies.length = 0;
 });
 
+async function grantFixtureChildren() {
+  if (!createdUsers.length) return;
+  const members = await admin.from('family_members').select('family_id,user_id,role').in('user_id', createdUsers);
+  if (members.error) throw new Error('Fixture guardians unavailable');
+  const familyIds = [...new Set((members.data ?? []).map(member => member.family_id))];
+  if (!familyIds.length) return;
+  const children = await admin.from('children').select('id,family_id').in('family_id', familyIds);
+  if (children.error) throw new Error('Fixture children unavailable');
+  const grants = (children.data ?? []).flatMap(child => (members.data ?? [])
+    .filter(member => member.family_id === child.family_id && ['owner','editor'].includes(member.role))
+    .map(member => ({child_id: child.id, accepted_by: member.user_id, version: 'signup-2026-11-03-v1',
+      child_information: true, authority: true, health: true, public_sharing: true, neighborhood: true})));
+  if (grants.length) {
+    const result = await admin.from('child_privacy_consents').upsert(grants, {onConflict:'child_id,accepted_by,version',ignoreDuplicates:true});
+    if (result.error) throw new Error('Fixture child consent failed');
+  }
+}
+
 async function childCareFamily(context: BrowserContext) {
   const owner = await signIn(context);
   await admin.from('profiles').insert({
@@ -177,6 +203,7 @@ async function childCareFamily(context: BrowserContext) {
     name: '돌봄 아이',
     birth_date: '2026-01-01',
   });
+  await grantFixtureChildren();
   return { owner, family: family.id, child };
 }
 
@@ -263,6 +290,7 @@ test('family residence persists across children and sessions, respects family ro
     name: '둘째',
     birth_date: '2026-01-01',
   });
+  await grantFixtureChildren();
   await page.goto(`/ko/family?child=${sibling}`);
   await expect(
     panel.getByRole('combobox', { name: '읍·면·동', exact: true }),
@@ -282,6 +310,7 @@ test('family residence persists across children and sessions, respects family ro
     name: 'Other child',
     birth_date: '2026-01-01',
   });
+  await grantFixtureChildren();
   await page.goto(`/ko/family?child=${otherChild}`);
   await expect(
     panel.getByRole('combobox', { name: '시·군·구', exact: true }),
@@ -785,11 +814,12 @@ test('family owner can add another child and read both children after saving', a
     name: '첫째',
     birth_date: '2026-09-01',
   });
+  await grantFixtureChildren();
   await page.goto('/ko/family');
   const form = page
     .locator('form')
     .filter({ has: page.locator('input[name="name"]') });
-  await form.getByLabel('아이 이름 또는 닉네임').fill('둘째');
+  await form.getByLabel('아이 이름 또는 애칭').fill('둘째');
   await expect(form.getByLabel('아이 성별', { exact: true })).toHaveValue('');
   await form.getByLabel('아이 성별', { exact: true }).selectOption('male');
   await expect(form.getByText('출산 예정일')).toHaveCount(0);
@@ -933,25 +963,59 @@ test('LAN local hostname can initialize the development client connection', asyn
   expect(status).toBe('HTTP/1.1 101 Switching Protocols');
 });
 
+test('mobile signup consent rows align and omit the diary footer', async () => {
+  const browser=await webkit.launch();
+  const context=await browser.newContext({...devices['iPhone 13'],baseURL:'http://127.0.0.1:3188'});
+  try {
+  await signIn(context, false);
+  const page=await context.newPage();
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/ko/onboarding');
+  for (const width of [320,390]) {
+    await page.setViewportSize({width,height:844});
+    const boxes=await page.locator('.signup-consent [data-consent-box]').evaluateAll(items=>items.map(item=>{const r=item.getBoundingClientRect();return{x:r.x,width:r.width,height:r.height};}));
+    expect(Math.max(...boxes.map(b=>b.x))-Math.min(...boxes.map(b=>b.x))).toBeLessThan(1);
+    for(const box of boxes){ expect(box.width).toBe(18); expect(box.height).toBe(18); }
+    const alignments=await page.locator('.signup-consent-row label').evaluateAll(labels=>labels.map(label=>{
+      const input=label.querySelector('input')!.getBoundingClientRect();
+      const text=label.querySelector('[data-consent-title]')!;
+      const rect=text.getBoundingClientRect();
+      return {difference:Math.abs(input.y+input.height/2-rect.y-rect.height/2),height:rect.height,lineHeight:parseFloat(getComputedStyle(text).lineHeight)};
+    }));
+    for(const item of alignments){expect(item.difference).toBeLessThan(1);expect(item.height).toBeLessThanOrEqual(item.lineHeight+1);}
+    const links=await page.locator('.signup-consent-row>a').evaluateAll(items=>items.map(item=>item.getBoundingClientRect().right));
+    expect(links).toHaveLength(3);
+    expect(Math.max(...links)-Math.min(...links)).toBeLessThan(1);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  }
+  await expect(page.locator('.signup-consent')).not.toContainText('일기는 직접 공개할 때만');
+  await page.screenshot({path:test.info().outputPath('signup-mobile-aligned.png'),fullPage:true});
+  } finally { await browser.close(); }
+});
+
 test('signup consent remains usable before client JavaScript is available', async () => {
   const browser = await webkit.launch();
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   try {
-    const user = await signIn(context);
+    const user = await signIn(context, false);
     const page = await context.newPage();
     await page.goto('/ko/onboarding');
     await expect(page.locator('.brand-image')).toHaveCSS('background-image', 'none');
     const terms = page.getByRole('checkbox', { name: '[필수] 서비스 이용약관에 동의합니다', exact: true });
-    const collection = page.getByRole('checkbox', { name: '[필수] 가입 개인정보 수집·이용에 동의합니다', exact: true });
+    const collection = page.getByRole('checkbox', { name: '[필수] 보호자·아이 개인정보 수집·이용에 동의합니다', exact: true });
     const agree = page.getByRole('button', { name: '동의하고 계속하기', exact: true });
     await terms.check();
     await collection.check();
+    await page.locator('.signup-consent input[name=health]').check();
+
     await expect(agree).toBeEnabled();
     await collection.uncheck();
     await agree.click();
     await expect(page.getByLabel('보호자 이름')).toHaveCount(0);
     expect((await admin.from('signup_agreements').select('kind').eq('user_id', user)).data).toHaveLength(0);
     await collection.check();
+    await page.locator('.signup-consent input[name=health]').check();
+
     await agree.click();
     await page.getByRole('link', { name: '처음 시작해요' }).click();
     await expect(page.getByLabel('보호자 이름')).toBeVisible();
@@ -981,10 +1045,20 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   page,
   context,
 }) => {
-  const user = await signIn(context);
+  const user = await signIn(context, false);
   await page.goto('/ko/today');
   await expect(page).toHaveURL(/onboarding/);
   await expect(page.getByLabel('보호자 이름')).toHaveCount(0);
+  await expect(page.locator('.signup-consent input[type=checkbox]')).toHaveCount(4);
+  const allAgreements=page.getByRole('checkbox',{name:'모두 동의',exact:true});
+  await allAgreements.check();
+  await expect(page.locator('.signup-consent input[name=health]')).toBeChecked();
+  await page.locator('.signup-consent input[name=health]').uncheck();
+  await expect(allAgreements).not.toBeChecked();
+  expect(await allAgreements.evaluate(element=>(element as HTMLInputElement).indeterminate)).toBe(true);
+  await allAgreements.check();
+  await allAgreements.uncheck();
+  await expect(page.locator('.signup-consent input[name=terms]')).not.toBeChecked();
   const agree = page.getByRole('button', {name:'동의하고 계속하기',exact:true});
   await agree.click();
   await expect(page.getByRole('checkbox', {name:'[필수] 서비스 이용약관에 동의합니다',exact:true})).toBeFocused();
@@ -1000,14 +1074,20 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   }
   await page.getByRole('checkbox',{name:'[필수] 서비스 이용약관에 동의합니다',exact:true}).check();
   await agree.click();
-  await expect(page.getByRole('checkbox',{name:'[필수] 가입 개인정보 수집·이용에 동의합니다',exact:true})).toBeFocused();
-  await page.getByRole('checkbox',{name:'[필수] 가입 개인정보 수집·이용에 동의합니다',exact:true}).check();
+  await expect(page.getByRole('checkbox',{name:'[필수] 보호자·아이 개인정보 수집·이용에 동의합니다',exact:true})).toBeFocused();
+  await page.getByRole('checkbox',{name:'[필수] 보호자·아이 개인정보 수집·이용에 동의합니다',exact:true}).check();
+  await agree.click();
+  await expect(page.locator('.signup-consent input[name=health]')).toBeFocused();
+  await page.locator('.signup-consent input[name=health]').check();
+  await expect(allAgreements).toBeChecked();
+
   await expect(agree).toBeEnabled();
   await agree.click();
   await expect(page.getByRole('link', { name: '가족이 이미 사용 중이에요' })).toBeVisible();
+  await expect(page.locator('input[type=email],input[autocomplete=one-time-code]')).toHaveCount(0);
   await page.getByRole('link', { name: '가족이 이미 사용 중이에요' }).click();
   await expect(page.getByLabel('가족 초대 링크 또는 코드')).toBeVisible();
-  await expect(page.getByLabel('아이 이름 또는 닉네임')).toHaveCount(0);
+  await expect(page.getByLabel('아이 이름 또는 애칭')).toHaveCount(0);
   await page.getByRole('link', { name: '돌아가기', exact: true }).click();
   await page.getByRole('link', { name: '처음 시작해요' }).click();
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -1016,11 +1096,11 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   const agreements = await admin.from('signup_agreements').select('kind,version,accepted_at,interface_locale').eq('user_id',user);
   expect(agreements.error).toBeNull();
   expect(agreements.data?.map(row=>row.kind).sort()).toEqual(['account_collection','terms']);
-  expect(agreements.data?.every(row=>row.accepted_at&&row.interface_locale==='ko'&&row.version==='signup-2026-11-03-draft.2')).toBe(true);
+  expect(agreements.data?.every(row=>row.accepted_at&&row.interface_locale==='ko'&&row.version==='signup-2026-11-03-v1')).toBe(true);
   expect((await admin.from('profiles').select('id').eq('id',user)).data).toHaveLength(0);
   await page.getByLabel('가족 이름').fill('테스트 둥지');
   await page.getByLabel('보호자 이름').fill('보호자');
-  await page.getByLabel('아이 이름 또는 닉네임').fill('포근이');
+  await page.getByLabel('아이 이름 또는 애칭').fill('포근이');
   await expect(page.getByLabel('아이 성별', { exact: true })).toHaveAttribute('required', '');
   await page.getByLabel('아이 성별', { exact: true }).selectOption('female');
   await expect(page.getByText('출산 예정일')).toHaveCount(0);
@@ -1038,17 +1118,48 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   await page.getByLabel('아이 태어난 날').first().fill('2026-10-12');
   await page.locator('form').filter({ has: page.locator('input[name="birth"][value="2026-10-01"]') }).getByRole('button', { name: '저장하기' }).click();
   await expect(page.locator('.topbar-child-info')).toContainText('생후');
+  await page.goto(`/ko/community/diaries?child=${registeredChild}`);
+  await page.locator('.diary-own-actions').getByRole('button',{name:'일기 쓰기',exact:true}).click();
+  let sheet=page.locator('.diary-compose-sheet[open]');
+  await expect(sheet.getByRole('checkbox',{name:'공개하기',exact:true})).not.toBeChecked();
+  await sheet.getByRole('textbox',{name:'일기 내용',exact:true}).fill('비공개로 시작하는 하루');
+  await sheet.getByRole('button',{name:'저장',exact:true}).click();
+  await expect(sheet).not.toBeVisible();
+  const privateDiary=await admin.from('child_records').select('id').eq('child_id',registeredChild).eq('note','비공개로 시작하는 하루').single();
+  expect(privateDiary.error).toBeNull();
+  expect((await admin.from('growth_diary_shares').select('everyone').eq('record_id',privateDiary.data!.id).single()).data?.everyone).toBe(false);
+  await page.locator('.diary-own-actions').getByRole('button',{name:'일기 쓰기',exact:true}).click();
+  sheet=page.locator('.diary-compose-sheet[open]');
+  await sheet.getByRole('textbox',{name:'일기 내용',exact:true}).fill('직접 공개를 선택한 하루');
+  await sheet.getByRole('checkbox',{name:'공개하기',exact:true}).check();
+  await expect(sheet.getByRole('textbox',{name:'일기 내용',exact:true})).toHaveValue('직접 공개를 선택한 하루');
+  await expect(sheet).toContainText('다른 이용자와 일기장 링크 방문자');
+  await sheet.getByRole('button',{name:'저장',exact:true}).click();
+  await expect(sheet).not.toBeVisible();
+  const publicDiary=await admin.from('child_records').select('id').eq('child_id',registeredChild).eq('note','직접 공개를 선택한 하루').single();
+  expect((await admin.from('growth_diary_shares').select('everyone').eq('record_id',publicDiary.data!.id).single()).data?.everyone).toBe(true);
+  await page.locator('.diary-own-actions').getByRole('button',{name:'일기 쓰기',exact:true}).click();
+  sheet=page.locator('.diary-compose-sheet[open]');
+  await expect(sheet.getByRole('checkbox',{name:'공개하기',exact:true})).not.toBeChecked();
+  await sheet.getByRole('button',{name:'취소',exact:true}).click();
+  await setFamilyResidence((await admin.from('children').select('family_id').eq('id',registeredChild).single()).data!.family_id,'1168010100');
+  await page.goto(`/ko/community/playground?child=${registeredChild}`);
+  await page.getByRole('button',{name:'참여하기',exact:true}).click();
+  await expect(page.getByRole('button',{name:'참여하기',exact:true})).toHaveCount(0);
+  await page.goto(`/ko/community/playground?child=${registeredChild}`);
+  await expect(page.getByRole('button',{name:'참여하기',exact:true})).toHaveCount(0);
 });
 
 test('mobile onboarding advances one field at a time and preserves input across back and resize', async () => {
   const browser = await webkit.launch();
   const context = await browser.newContext({ ...devices['iPhone 13'], timezoneId: 'Asia/Kolkata', baseURL: 'http://127.0.0.1:3188', viewport: { width: 390, height: 844 } });
   try {
-    const user = await signIn(context);
+    const user = await signIn(context, false);
     const page = await context.newPage();
     await page.goto('/ko/onboarding');
     await page.locator('.signup-consent input[type=checkbox]').nth(0).check();
     await page.locator('.signup-consent input[type=checkbox]').nth(1).check();
+
     await page.getByRole('button', { name: '동의하고 계속하기', exact: true }).click();
     await page.getByRole('link', { name: '처음 시작해요' }).click();
     const form = page.locator('.onboard-information');
@@ -1085,14 +1196,14 @@ test('mobile onboarding advances one field at a time and preserves input across 
     await next.click();
     await expect(page.getByLabel('보호자 이름')).toBeFocused();
     await next.click();
-    await expect(page.getByLabel('아이 이름 또는 닉네임')).toBeFocused();
-    await page.getByLabel('아이 이름 또는 닉네임').fill('포근이');
+    await expect(page.getByLabel('아이 이름 또는 애칭')).toBeFocused();
+    await page.getByLabel('아이 이름 또는 애칭').fill('포근이');
     await next.click();
     await expect(page.getByLabel('아이 성별', { exact: true })).toBeVisible();
     await expect(page.getByLabel('아이 성별', { exact: true })).toBeFocused();
     await page.getByLabel('아이 성별', { exact: true }).selectOption('female');
     await back.click();
-    await expect(page.getByLabel('아이 이름 또는 닉네임')).toHaveValue('포근이');
+    await expect(page.getByLabel('아이 이름 또는 애칭')).toHaveValue('포근이');
     await next.click();
     await expect(page.getByLabel('아이 성별', { exact: true })).toHaveValue('female');
     await next.click();
@@ -1136,11 +1247,14 @@ test('mobile onboarding advances one field at a time and preserves input across 
 
 test('signup agreements support refusal and preserve the English invitation flow', async ({context, browser}) => {
   const own = await childCareFamily(context);
+  await admin.from('signup_privacy_choices').delete().eq('user_id', own.owner);
+  await admin.from('signup_agreements').delete().eq('user_id', own.owner);
   const legacy = await context.newPage();
   await legacy.goto('/ko/onboarding');
   await expect(legacy.getByLabel('보호자 이름')).toHaveCount(0);
   await legacy.locator('.signup-consent input[type=checkbox]').nth(0).check();
   await legacy.locator('.signup-consent input[type=checkbox]').nth(1).check();
+
   await legacy.getByRole('button',{name:'동의하고 계속하기',exact:true}).click();
   await expect(legacy).toHaveURL(/\/ko\/today/);
   expect((await admin.from('children').select('id').eq('family_id',own.family)).data).toHaveLength(1);
@@ -1151,7 +1265,7 @@ test('signup agreements support refusal and preserve the English invitation flow
   const next = `/en/invite/${token}`;
   const declinedContext = await browser.newContext();
   try {
-    const declinedUser = await signIn(declinedContext);
+    const declinedUser = await signIn(declinedContext, false);
     const declined = await declinedContext.newPage();
     await declined.goto(`/en/onboarding?next=${encodeURIComponent(next)}`);
     await declined.getByRole('button',{name:'Leave without agreeing',exact:true}).click();
@@ -1161,7 +1275,7 @@ test('signup agreements support refusal and preserve the English invitation flow
   } finally { await declinedContext.close(); }
   const invitedContext = await browser.newContext({viewport:{width:320,height:740}});
   try {
-    const invitedUser = await signIn(invitedContext);
+    const invitedUser = await signIn(invitedContext, false);
     const invited = await invitedContext.newPage();
     await invited.goto(next);
     await expect(invited.getByRole('heading',{name:'Start with podoong',exact:true})).toBeVisible();
@@ -1176,6 +1290,7 @@ test('signup agreements support refusal and preserve the English invitation flow
     expect(new URL(invited.url()).searchParams.get('next')).toBe(next);
     await invited.locator('.signup-consent input[type=checkbox]').nth(0).check();
     await invited.locator('.signup-consent input[type=checkbox]').nth(1).check();
+
     await invited.getByRole('button',{name:'Agree and continue',exact:true}).click();
     await invited.getByLabel('Caregiver name').fill('Invited caregiver');
     await expect(invited.locator('input[name=child]')).toHaveCount(0);
@@ -1258,6 +1373,7 @@ test('responsive dashboard and current navigation remain within the viewport', a
     .insert({sex: 'female', family_id: family!.id, name: '도담이', birth_date: '2026-09-01' })
     .select('id')
     .single();
+  await grantFixtureChildren();
   if (childError || !child) throw new Error('Fixture child creation failed');
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 });
@@ -1692,6 +1808,7 @@ test('data export includes every record; ownership transfer and account deletion
         })
       ).error,
     ).toBeNull();
+  await grantFixtureChildren();
     const rows = Array.from({ length: 101 }, () => ({
       id: crypto.randomUUID(),
       child_id: childId,
@@ -1725,6 +1842,7 @@ test('data export includes every record; ownership transfer and account deletion
       name: 'Delete fixture',
       birth_date: '2026-09-01',
     });
+  await grantFixtureChildren();
     await page.goto(`/ko/account?panel=account&child=${childId}`);
     await expect(page.getByText('다른 보호자가 있어 탈퇴할 수 없습니다.', { exact: false })).toBeVisible();
     await expect(page.getByRole('button', { name: '회원 탈퇴', exact: true })).toHaveCount(0);
@@ -3816,6 +3934,7 @@ test('insights supports rolling seven days, multiple activity patterns and child
     })
     .select('id')
     .single();
+  await grantFixtureChildren();
   expect(second.error).toBeNull();
   await page.reload();
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -3901,6 +4020,7 @@ test('growth community shares only opted-in diaries with audience-specific field
       name: '다른 생일',
       birth_date: '2025-01-01',
     });
+  await grantFixtureChildren();
     const record = crypto.randomUUID();
     const saved = await admin.from('child_records').insert({
       id: record,
@@ -3923,8 +4043,8 @@ test('growth community shares only opted-in diaries with audience-specific field
       .click();
     await page.getByRole('button', { name: '편집', exact: true }).click();
     await expect(
-      page.getByRole('checkbox', { name: '비공개', exact: true }),
-    ).toBeChecked();
+      page.getByRole('checkbox', { name: '공개하기', exact: true }),
+    ).not.toBeChecked();
     await page.locator('dialog[open] input[type="file"]').setInputFiles({
       name: 'diary.png',
       mimeType: 'image/png',
@@ -4230,7 +4350,7 @@ test('growth community shares only opted-in diaries with audience-specific field
       .first()
       .click();
     await page.getByRole('button', { name: '편집', exact: true }).click();
-    await page.getByRole('checkbox', { name: '비공개', exact: true }).uncheck();
+    await page.getByRole('checkbox', { name: '공개하기', exact: true }).check();
     await page.getByRole('button', { name: '저장', exact: true }).click();
     await expect(page.locator('dialog[open]')).toHaveCount(0);
     await readerPage.reload();
@@ -4254,7 +4374,7 @@ test('growth community shares only opted-in diaries with audience-specific field
       .first()
       .click();
     await page.getByRole('button', { name: '편집', exact: true }).click();
-    await page.getByRole('checkbox', { name: '비공개', exact: true }).check();
+    await page.getByRole('checkbox', { name: '공개하기', exact: true }).uncheck();
     await page.getByRole('button', { name: '저장', exact: true }).click();
     await expect(page.locator('dialog[open]')).toHaveCount(0);
     await readerPage.reload();
@@ -4304,11 +4424,12 @@ test('own diary uses a bottom sheet with optional growth measurements', async ({
   await page.getByRole('button', { name: '일기 쓰기', exact: true }).click();
   await page.screenshot({ caret: 'initial', path: '/tmp/podung-diary-composer.png', animations: 'disabled' });
   await expect(
-    sheet.getByRole('checkbox', { name: '비공개', exact: true }),
+    sheet.getByRole('checkbox', { name: '공개하기', exact: true }),
   ).not.toBeChecked();
   await sheet
     .getByRole('textbox', { name: '일기 내용' })
     .fill('글만 남기는 하루');
+  await sheet.getByRole('checkbox', {name:'공개하기', exact:true}).check();
   await sheet.getByRole('button', { name: '저장', exact: true }).click();
   await expect(sheet).not.toBeVisible();
   await expect(
@@ -4325,7 +4446,7 @@ test('own diary uses a bottom sheet with optional growth measurements', async ({
   await sheet
     .getByRole('textbox', { name: '일기 내용' })
     .fill('함께 남긴 성장 수치');
-  await sheet.getByRole('checkbox', { name: '비공개', exact: true }).check();
+  await sheet.getByRole('checkbox', { name: '공개하기', exact: true }).uncheck();
   await sheet
     .getByRole('spinbutton', { name: '몸무게', exact: true })
     .fill('7.5');
@@ -4407,8 +4528,8 @@ test('own diary uses a bottom sheet with optional growth measurements', async ({
     '함께 남긴 성장 수치',
   );
   await expect(
-    manager.getByRole('checkbox', { name: '비공개', exact: true }),
-  ).toBeChecked();
+    manager.getByRole('checkbox', { name: '공개하기', exact: true }),
+  ).not.toBeChecked();
   await manager
     .getByRole('spinbutton', { name: '몸무게', exact: true })
     .fill('7.6');
@@ -4432,8 +4553,8 @@ test('own diary uses a bottom sheet with optional growth measurements', async ({
     todayDiary.getByRole('textbox', { name: '일기 내용' }),
   ).toHaveValue('함께 남긴 성장 수치');
   await expect(
-    todayDiary.getByRole('checkbox', { name: '비공개', exact: true }),
-  ).toBeChecked();
+    todayDiary.getByRole('checkbox', { name: '공개하기', exact: true }),
+  ).not.toBeChecked();
   await todayDiary
     .getByRole('spinbutton', { name: '몸무게', exact: true })
     .fill('7.7');
@@ -4637,6 +4758,7 @@ test('compact mobile navigation switches children and opens language settings', 
     .insert({sex: 'female', family_id: family, name: '둘째', birth_date: '2026-09-01' })
     .select('id')
     .single();
+  await grantFixtureChildren();
   expect(second.error).toBeNull();
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });
@@ -5290,6 +5412,7 @@ test('insight presentation changes reuse loaded records', async ({
     })
     .select('id')
     .single();
+  await grantFixtureChildren();
   expect(sibling.error).toBeNull();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(
@@ -5722,7 +5845,7 @@ test('mobile diaries have a compact header, bottom composer and five authorized 
   const manager = page.getByRole('dialog', { name: '일기 관리', exact: true });
   await page.getByRole('group', { name: '일기 관리', exact: true }).getByRole('button', { name: '편집', exact: true }).click();
   await expect(manager.getByLabel('사진 추가', { exact: true })).toBeEnabled();
-  await manager.getByRole('checkbox', { name: '비공개', exact: true }).check();
+  await manager.getByRole('checkbox', { name: '공개하기', exact: true }).uncheck();
   await manager.getByRole('button', { name: '저장', exact: true }).click();
   await expect(manager).toBeHidden();
   expect(
@@ -5850,6 +5973,7 @@ test('postbirth service catalog removes retired services and requires birth date
 test('child bottom navigation opens a main page with child selection and settings', async ({ page, context }) => {
   const own = await childCareFamily(context);
   const { data: second, error } = await admin.from('children').insert({ family_id: own.family, name: '둘째', birth_date: '2026-10-01', sex: 'male' }).select('id').single();
+  await grantFixtureChildren();
   expect(error).toBeNull();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/ko/today?child=${own.child}`);
@@ -6042,7 +6166,7 @@ test('diary composer attaches a daily pattern as a photo', async ({page, context
    await page.setViewportSize({width,height:844});
    const note = (await sheet.getByRole('textbox',{name:'일기 내용'}).boundingBox())!;
    const weight = (await sheet.getByRole('spinbutton',{name:'몸무게',exact:true}).boundingBox())!;
-   const privacy = (await sheet.getByRole('checkbox',{name:'비공개',exact:true}).boundingBox())!;
+   const privacy = (await sheet.getByRole('checkbox',{name:'공개하기',exact:true}).boundingBox())!;
    expect(weight.y).toBeLessThan(note.y);
    expect(privacy.y).toBeLessThan(note.y);
    expect(await sheet.evaluate(node=>node.scrollWidth <= node.clientWidth)).toBe(true);
@@ -6177,7 +6301,7 @@ test('diaper dirty and mixed choices remain diaper records after saving and edit
     await quick.locator('.quick-grid').getByRole('button',{name:'기저귀',exact:true}).click();
     await expect(sheet.getByRole('button',{name:'단순 교체',exact:true})).toHaveCount(0);
     await sheet.getByRole('button',{name:label,exact:true}).click();
-    await sheet.getByRole('button',{name:'저장하기',exact:true}).click();
+    await sheet.getByRole('button',{name:'저장',exact:true}).click();
     await expect(sheet).toBeHidden();
     const saved = await admin.from('child_records').select('id,kind').eq('child_id',child).eq('kind',kind);
     expect(saved.error).toBeNull();
@@ -6187,13 +6311,13 @@ test('diaper dirty and mixed choices remain diaper records after saving and edit
     await entry.click();
     await expect(sheet.locator('h3')).toHaveText('기저귀');
     await expect(sheet.getByRole('button',{name:label,exact:true})).toHaveAttribute('aria-pressed','true');
-    await sheet.getByRole('button',{name:'저장하기',exact:true}).click();
+    await sheet.getByRole('button',{name:'저장',exact:true}).click();
     await expect(sheet).toBeHidden();
   }
   await expect(quick.locator('.quick-timeline-entry.quick-color-stool')).toHaveCount(0);
   await quick.locator('.quick-grid').getByRole('button',{name:'배변',exact:true}).click();
   await sheet.getByRole('button',{name:'대변',exact:true}).click();
-  await sheet.getByRole('button',{name:'저장하기',exact:true}).click();
+  await sheet.getByRole('button',{name:'저장',exact:true}).click();
   await expect(sheet).toBeHidden();
   await expect(quick.locator('.quick-timeline-entry.quick-color-stool')).toHaveCount(1);
 });
@@ -6292,6 +6416,7 @@ test('caregivers can switch children without administrator settings or service s
   const own = await childCareFamily(context);
   const second = crypto.randomUUID();
   expect((await admin.from('children').insert({id:second,family_id:own.family,name:'선택할 아이',sex:'male',birth_date:'2026-10-01'})).error).toBeNull();
+  await grantFixtureChildren();
   const memberContext = await browser.newContext({baseURL:'http://127.0.0.1:3188'});
   try {
     const member = await signIn(memberContext);
@@ -6319,6 +6444,7 @@ test('child settings edit all managed children without changing the selected chi
   const own = await childCareFamily(context);
   const second = crypto.randomUUID();
   expect((await admin.from('children').insert({id:second,family_id:own.family,name:'둘째 정보',sex:'male',birth_date:'2026-10-01'})).error).toBeNull();
+  await grantFixtureChildren();
   await page.setViewportSize({width:390,height:844});
   await page.goto(`/ko/account?child=${own.child}&panel=child`);
   const cards = page.locator('.account-child-details');
@@ -6597,11 +6723,11 @@ test('gifts and allowance save in quick sheets and appear in child-scoped insigh
  const quick=page.locator('.quick-grid'),sheet=page.locator('dialog.quick-composer');
  const gift=quick.getByRole('button',{name:'선물',exact:true});await gift.scrollIntoViewIfNeeded();await gift.click();
  await expect(sheet).toBeVisible();await sheet.getByRole('textbox',{name:'준 사람',exact:true}).fill('할머니');await sheet.getByRole('textbox',{name:'선물 이름',exact:true}).fill('첫 그림책');
- await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const giftRow=page.locator('.quick-color-gift.quick-timeline-entry').filter({hasText:'첫 그림책'});await expect(giftRow).toContainText('할머니');await giftRow.click();
- await expect(sheet.getByRole('textbox',{name:'선물 이름',exact:true})).toHaveValue('첫 그림책');await sheet.getByRole('textbox',{name:'선물 이름',exact:true}).fill('할머니의 그림책');await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await expect(sheet.getByRole('textbox',{name:'선물 이름',exact:true})).toHaveValue('첫 그림책');await sheet.getByRole('textbox',{name:'선물 이름',exact:true}).fill('할머니의 그림책');await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const allowance=quick.getByRole('button',{name:'용돈',exact:true});await allowance.scrollIntoViewIfNeeded();await allowance.click();
- await sheet.getByRole('textbox',{name:'준 사람',exact:true}).fill('이모');await sheet.getByRole('spinbutton',{name:'받은 금액',exact:true}).fill('12000');await sheet.getByRole('combobox',{name:'통화',exact:true}).selectOption('KRW');await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await sheet.getByRole('textbox',{name:'준 사람',exact:true}).fill('이모');await sheet.getByRole('spinbutton',{name:'받은 금액',exact:true}).fill('12000');await sheet.getByRole('combobox',{name:'통화',exact:true}).selectOption('KRW');await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const saved=await admin.from('child_records').select('kind,title,sender_name,received_amount,received_currency').eq('child_id',child).in('kind',['gift','allowance']);expect(saved.error).toBeNull();expect(saved.data).toHaveLength(2);expect(saved.data).toContainEqual({kind:'allowance',title:'',sender_name:'이모',received_amount:12000,received_currency:'KRW'});
  const olderAt=new Date(Date.now()-86400000).toISOString();
  const older=Array.from({length:21},(_,i)=>({id:crypto.randomUUID(),child_id:child,service:'activity',kind:'gift',title:`이전 선물 ${i+1}`,sender_name:'친구',occurred_at:olderAt,record_timezone:'Asia/Seoul',created_by:owner,updated_by:owner}));
@@ -6635,20 +6761,20 @@ test('gift photo is previewed, stored privately, replaced and removed with its r
  const png=await sharp({create:{width:160,height:120,channels:3,background:'#f4b88a'}}).png().toBuffer();
  const upload=async()=>sheet.getByLabel('선물 사진 추가',{exact:true}).setInputFiles({name:'gift.png',mimeType:'image/png',buffer:png});
  await upload();await expect(sheet.getByRole('img',{name:'선물 사진',exact:true})).toBeVisible();
- await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const record=await admin.from('child_records').select('id').eq('child_id',child).eq('kind','gift').single();expect(record.error).toBeNull();
  async function photos(){const result=await admin.from('child_record_photos').select('id,path,variants_ready').eq('record_id',record.data!.id);expect(result.error).toBeNull();for(const photo of result.data??[])createdChildPhotos.push(photo.path,`${photo.path}.display-v1-480.webp`,`${photo.path}.display-v1-1600.webp`);return result.data!;}
  const first=await photos();expect(first).toHaveLength(1);expect(first[0].variants_ready).toBe(true);
  const image=await page.request.get(`/api/care/photos/${first[0].id}?size=480`);expect(image.status()).toBe(200);expect(image.headers()['content-type']).toContain('image/webp');
  const anonymous=await context.browser()!.newContext();const response=await anonymous.request.get(`http://127.0.0.1:3188/api/care/photos/${first[0].id}?size=480`);expect([401,404]).toContain(response.status());await anonymous.close();
  const row=page.locator('.quick-color-gift.quick-timeline-entry').filter({hasText:'곰 인형'});await row.click();await expect(sheet.getByRole('img',{name:'선물 사진',exact:true})).toBeVisible();
- await upload();await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await upload();await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const second=await photos();expect(second).toHaveLength(1);expect(second[0].id).not.toBe(first[0].id);
  await page.goto(`/ko/insights?child=${child}&pattern=received`);await expect(page.getByRole('region',{name:'받은 선물',exact:true}).getByRole('img',{name:'곰 인형',exact:true})).toBeVisible();
  await page.screenshot({ caret: 'initial',path:'/tmp/podung-gift-photo-mobile.png',fullPage:true});
  await page.goto(`/ko/today?child=${child}`);await page.locator('.quick-color-gift.quick-timeline-entry').filter({hasText:'곰 인형'}).click();
  await sheet.getByRole('button',{name:'선물 사진 제거',exact:true}).click();await sheet.getByRole('button',{name:'취소',exact:true}).click();expect(await photos()).toHaveLength(1);
- await row.click();await sheet.getByRole('button',{name:'선물 사진 제거',exact:true}).click();await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});expect(await photos()).toHaveLength(0);
+ await row.click();await sheet.getByRole('button',{name:'선물 사진 제거',exact:true}).click();await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});expect(await photos()).toHaveLength(0);
 });
 
 test('service documents are readable from account settings and retain the child on return',async({page,context})=>{
@@ -6661,7 +6787,7 @@ test('service documents are readable from account settings and retain the child 
  await page.getByRole('link',{name:/개인정보 처리방침/}).click();await expect(page.getByRole('heading',{name:'개인정보 처리방침',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({ caret: 'initial',path:'/tmp/podung-legal-mobile.png',fullPage:true});
- const anonymous=await context.browser()!.newContext();const reader=await anonymous.newPage();await reader.goto('http://127.0.0.1:3188/en/legal/terms');await expect(reader.getByRole('heading',{name:'Terms of Service',exact:true})).toBeVisible();await expect(reader.locator('main')).toContainText('Draft');await anonymous.close();
+ const anonymous=await context.browser()!.newContext();const reader=await anonymous.newPage();await reader.goto('http://127.0.0.1:3188/en/legal/terms');await expect(reader.getByRole('heading',{name:'Terms of Service',exact:true})).toBeVisible();await expect(reader.locator('main')).toContainText('Effective');await anonymous.close();
 });
 
 test('sleep editing supports ten hours and preserves a duration beyond the quick presets',async({page,context})=>{
@@ -6682,7 +6808,7 @@ test('sleep editing supports ten hours and preserves a duration beyond the quick
  const historyGate = new Promise<void>(resolve => { releaseHistory = resolve; });
  await page.route('**/api/care/history?**', async route => { await historyGate; await route.continue(); });
  try {
- await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const saved=await admin.from('child_records').select('occurred_at,ended_at').eq('id',id).single();expect(saved.error).toBeNull();expect(Date.parse(saved.data!.ended_at!)-Date.parse(saved.data!.occurred_at)).toBe(615*60000);
  await target.click();await expect(sheet.getByLabel('종료 시각',{exact:true})).toHaveValue(endClock);await expect(sheet.locator('.quick-sleep-total')).toContainText('10시간 15분');
  await expect(target).toContainText('10시간 15분');
@@ -6759,7 +6885,7 @@ test('play and tummy time can start, survive reload and stop alongside manual re
   const ended=await admin.from('child_records').select('occurred_at,ended_at,timer_started,duration_minutes').eq('id',saved.data!.id).single();expect(ended.error).toBeNull();expect(ended.data!.timer_started).toBe(true);expect(ended.data!.ended_at).not.toBeNull();expect(ended.data!.duration_minutes).toBeNull();
  }
  const play=quick.getByRole('button',{name:'놀이',exact:true});await play.scrollIntoViewIfNeeded();await play.click();
- await sheet.getByRole('button',{name:'이미 마쳤어요',exact:true}).click();await sheet.getByRole('button',{name:'3분',exact:true}).click();await sheet.getByRole('button',{name:'저장하기',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
+ await sheet.getByRole('button',{name:'이미 마쳤어요',exact:true}).click();await sheet.getByRole('button',{name:'3분',exact:true}).click();await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const completed=await admin.from('child_records').select('occurred_at,ended_at').eq('child_id',child).eq('kind','play').eq('timer_started',true);expect(completed.error).toBeNull();expect(completed.data!.some(record=>record.ended_at&&Date.parse(record.ended_at)-Date.parse(record.occurred_at)===180000)).toBe(true);
  const old=await admin.from('child_records').select('timer_started,duration_minutes,ended_at').eq('id',manual).single();expect(old.data).toEqual({timer_started:false,duration_minutes:10,ended_at:null});
 });
@@ -7055,6 +7181,7 @@ test('side-view playground places daily arrivals without moving existing childre
  for(const [index,age] of ages.entries()) {
   const id=crypto.randomUUID();ids.push(id);
   expect((await admin.from('children').insert({id,family_id:home.family,name:age===3000?'School child':`아가${index+1}`,sex:index%2?'male':'female',birth_date:new Date(Date.now()-age*86400000).toISOString().slice(0,10)})).error).toBeNull();
+  await grantFixtureChildren();
   expect((await admin.from('parenting_friend_profiles').insert({child_id:id,status:`같이 놀자! ${index+1}`})).error).toBeNull();
  }
  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
@@ -7104,6 +7231,7 @@ test('playground double-tap waves and hearts appear in the receiving child’s h
  const home=await childCareFamily(context);await setFamilyResidence(home.family,'1168010100');
  const peer=crypto.randomUUID();
  expect((await admin.from('children').insert({id:peer,family_id:home.family,name:'인사 친구',sex:'male',birth_date:new Date(Date.now()-500*86400000).toISOString().slice(0,10)})).error).toBeNull();
+  await grantFixtureChildren();
  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto(`/ko/community/playground?child=${home.child}`);
  expect((await page.request.get(`/api/community/playground?${new URLSearchParams({child:peer,left:'-1000',right:'1000',day:new Date().toISOString().slice(0,10)})}`)).ok()).toBe(true);

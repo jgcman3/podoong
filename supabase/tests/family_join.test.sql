@@ -39,6 +39,19 @@ set local role anon;
 select throws_ok($$select family_join_preview('join-editor')$$,'42501',null,'anonymous callers cannot inspect invitations');
 reset role;
 select set_config('request.jwt.claims',jsonb_build_object('sub','f6200000-0000-4000-8000-000000000002','role','authenticated','amr',jsonb_build_array(jsonb_build_object('method','oauth','timestamp',extract(epoch from now()))))::text,true);
+-- Test-only setup for fixtures whose caregivers already accepted signup notices.
+-- Consent-specific tests use the public acceptance RPC and do not include this file.
+insert into public.signup_agreements(user_id,kind,version,interface_locale)
+select p.id,d.kind,d.version,'ko' from public.profiles p cross join public.signup_document_versions d
+where d.is_current on conflict do nothing;
+insert into public.signup_privacy_choices(user_id,version,locale,child_information,authority,health,public_sharing,neighborhood)
+select id,public.current_signup_privacy_version(),'ko',true,true,true,false,false from public.profiles
+on conflict do nothing;
+-- These multi-caregiver fixtures explicitly represent consenting family guardians.
+insert into public.child_privacy_consents(child_id,accepted_by,version,child_information,authority,health,public_sharing,neighborhood)
+select k.id,m.user_id,public.current_signup_privacy_version(),true,true,true,true,true
+from public.children k join public.family_members m on m.family_id=k.family_id
+where m.role in ('owner','editor') on conflict do nothing;
 set local role authenticated;
 insert into review select family_join_preview('join-editor')->>'revision';
 select is(family_join_preview('join-editor')->'target'->>'name','Destination','preview identifies destination');
@@ -87,6 +100,7 @@ select is(neighborhood_region('a6200000-0000-4000-8000-000000000002'),null::text
 select ok((select revoked_at is not null from invitations where token_hash=encode(digest('old-source-invite','sha256'),'hex')),'old source invitations cannot expose new family');
 select is((select count(*) from child_photo_cleanup where path like '%/family-join-fixture/%'),0::bigint,'merge does not enqueue photo deletion');
 select is(account_has_storage('f6200000-0000-4000-8000-000000000002'),false,'transferred shared files do not block former caregiver account removal');
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
 delete from profiles where id='f6200000-0000-4000-8000-000000000002';
 select is((select count(*) from child_record_photos where id='e6200000-0000-4000-8000-000000000001'),1::bigint,'former caregiver account deletion preserves transferred photos');
 select is((select uploaded_by from child_record_photos where id='e6200000-0000-4000-8000-000000000001'),null::uuid,'only deleted uploader attribution is cleared');
