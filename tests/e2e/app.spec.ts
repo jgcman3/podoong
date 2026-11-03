@@ -5449,7 +5449,8 @@ test('mobile diaries have a compact header, bottom composer and five authorized 
       .boundingBox())!.height,
   ).toBeGreaterThanOrEqual(44);
   const story = card.locator('.diary-story');
-  expect((await story.boundingBox())!.height).toBeLessThanOrEqual(260);
+  const collapsedStoryHeight=(await story.boundingBox())!.height;
+  expect(collapsedStoryHeight).toBeLessThanOrEqual(260);
   const metricTops = await card
     .locator('.diary-measurements dd')
     .evaluateAll((nodes) =>
@@ -5460,8 +5461,10 @@ test('mobile diaries have a compact header, bottom composer and five authorized 
   await expect(
     card.getByRole('button', { name: '접기', exact: true }),
   ).toHaveAttribute('aria-expanded', 'true');
-  expect((await story.boundingBox())!.height).toBeLessThanOrEqual(260);
+  expect((await story.boundingBox())!.height).toBeGreaterThan(collapsedStoryHeight+30);
+  expect(await card.locator('.record-note').evaluate(el=>el.scrollHeight<=el.clientHeight+1)).toBe(true);
   await card.getByRole('button', { name: '접기', exact: true }).click();
+  expect(Math.abs((await story.boundingBox())!.height-collapsedStoryHeight)).toBeLessThan(1);
   const carousel = card.locator('.diary-photo-carousel');
   const box = (await carousel.boundingBox())!;
   const touch = await context.newCDPSession(page);
@@ -5609,7 +5612,7 @@ test('mobile diaries have a compact header, bottom composer and five authorized 
     expect(await linkInput.inputValue()).not.toBe(firstLink);
     await guest.goto(await linkInput.inputValue());
     await expect(guest.locator('.shared-diary-note').first()).toContainText('사진 다섯 장의 하루.');
-    await expect(guest.getByText('함께 돌보는, 포근한 둥지', { exact: true })).toBeVisible();
+    await expect(guest.getByRole('complementary', { name: '포둥 소개' }).getByText('함께 돌보는, 포근한 둥지', { exact: true })).toBeVisible();
     await guest.getByRole('link', { name: 'Switch to English', exact: true }).click();
     await expect(guest.locator('.shared-diary-title')).toContainText('growth diary');
     await expect(guest.getByRole('link', { name: 'Get started with podoong', exact: true })).toHaveAttribute('href', '/en/login');
