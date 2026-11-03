@@ -1,4 +1,3 @@
-import { NearbyStrip } from '@/features/outing/nearby-strip';
 import { DeveloperRequestForm } from '@/features/developer-requests/form';
 import { AppearanceSettings } from '@/components/appearance';
 import { RelationshipField } from '@/features/family/relationship-field';
@@ -259,14 +258,6 @@ export async function Today({ context, locale }: Props) {
   return (
     <>
       <h1 className="visually-hidden">{t('today')}</h1>
-      <NearbyStrip
-        locale={locale}
-        childId={child.id}
-        enabled={quickEntries.some(
-          (entry) =>
-            entry.kind === 'outing' && entry.running && entry.startedAt <= now,
-        )}
-      />
       <LastCare
         locale={locale}
         timezone={timezone}

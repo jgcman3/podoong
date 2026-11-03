@@ -130,7 +130,7 @@ export async function saveQuickCare(
         (v.source === 'activity' &&
           !(
             ['daycare', 'kindergarten'].includes(r.kind) ||
-            (['play', 'tummy', 'outing'].includes(r.kind) && r.timer_started)
+            (['play', 'tummy'].includes(r.kind) && r.timer_started)
           ))
       )
         return { status: 'error', error: 'conflict' };
@@ -188,7 +188,7 @@ export async function saveQuickCare(
             (parsed.data.endedAt || v.version !== null)))) ||
       ((v.source === 'diaper' ||
         (v.source === 'activity' &&
-          !['daycare', 'kindergarten', 'play', 'tummy', 'outing'].includes(
+          !['daycare', 'kindergarten', 'play', 'tummy'].includes(
             parsed.data.kind,
           ))) &&
         v.mode !== 'record')
@@ -196,9 +196,9 @@ export async function saveQuickCare(
       return { status: 'error', error: 'invalid' };
     const r = parsed.data;
     if (
-      ['daycare', 'kindergarten', 'play', 'tummy', 'outing'].includes(r.kind) &&
+      ['daycare', 'kindergarten', 'play', 'tummy'].includes(r.kind) &&
       ((v.mode === 'record' &&
-        ['daycare', 'kindergarten', 'outing'].includes(r.kind) &&
+        ['daycare', 'kindergarten'].includes(r.kind) &&
         !r.endedAt) ||
         (v.mode === 'start' && (r.endedAt || v.version !== null)))
     )
@@ -283,7 +283,7 @@ export async function saveQuickCare(
             r.service === 'activity' &&
             ['bath', 'play', 'tummy'].includes(r.kind) &&
             !(
-              ['play', 'tummy', 'outing'].includes(r.kind) &&
+              ['play', 'tummy'].includes(r.kind) &&
               (v.mode === 'start' || r.endedAt)
             )
               ? r.activityDuration
@@ -293,13 +293,11 @@ export async function saveQuickCare(
           occurred_at: r.occurredAt,
           timer_started:
             r.service === 'activity' &&
-            ['play', 'tummy', 'outing'].includes(r.kind) &&
+            ['play', 'tummy'].includes(r.kind) &&
             (v.mode === 'start' || Boolean(r.endedAt)),
           ended_at:
             r.service === 'sleep' ||
-            ['daycare', 'kindergarten', 'play', 'tummy', 'outing'].includes(
-              r.kind,
-            )
+            ['daycare', 'kindergarten', 'play', 'tummy'].includes(r.kind)
               ? r.endedAt
               : null,
           stool_color: r.color || null,

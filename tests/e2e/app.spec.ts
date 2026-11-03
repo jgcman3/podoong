@@ -1016,7 +1016,7 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   const agreements = await admin.from('signup_agreements').select('kind,version,accepted_at,interface_locale').eq('user_id',user);
   expect(agreements.error).toBeNull();
   expect(agreements.data?.map(row=>row.kind).sort()).toEqual(['account_collection','terms']);
-  expect(agreements.data?.every(row=>row.accepted_at&&row.interface_locale==='ko'&&row.version==='signup-2026-11-03-draft.1')).toBe(true);
+  expect(agreements.data?.every(row=>row.accepted_at&&row.interface_locale==='ko'&&row.version==='signup-2026-11-03-draft.2')).toBe(true);
   expect((await admin.from('profiles').select('id').eq('id',user)).data).toHaveLength(0);
   await page.getByLabel('가족 이름').fill('테스트 둥지');
   await page.getByLabel('보호자 이름').fill('보호자');
@@ -2272,7 +2272,6 @@ test('daily care picker scrolls by mouse drag and saves the new health and activ
     '기저귀',
     '배변',
     '수면',
-    '나들이',
     '목욕',
     '병원',
     '예방접종',
@@ -3554,7 +3553,7 @@ test('insights supports rolling seven days, multiple activity patterns and child
   const kinds = page.locator('.insight-kind-rail'),
     feeding = page.locator('[data-statistic="feeding"]');
   await expect(page.locator('.mobile-nav > a')).toHaveCount(6);
-  await expect(kinds.getByRole('button', { name: '나들이', exact: true })).toBeVisible();
+  await expect(kinds.getByRole('button', { name: '나들이', exact: true })).toHaveCount(0);
   await expect(
     kinds.getByRole('button', { name: '성장', exact: true }),
   ).toHaveCount(0);
@@ -5132,7 +5131,6 @@ test('today and insights share mobile activity order, geometry and native draggi
     '기저귀',
     '배변',
     '수면',
-    '나들이',
     '목욕',
     '병원',
     '예방접종',
@@ -6980,72 +6978,6 @@ test('parenting community shows country topics and neighborhood posts without re
   ).toBeVisible();
 });
 
-test('today location strip stays compact and is completely hidden when location is denied', async ({page,context}) => {
- const home=await childCareFamily(context);
- await page.setViewportSize({width:390,height:844});
- await context.grantPermissions(['geolocation']);
- await context.setGeolocation({latitude:37.545,longitude:126.98});
- await page.addInitScript(()=>{
-   const original=navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);
-   Object.defineProperty(navigator.geolocation,'getCurrentPosition',{value:(success:PositionCallback,error?:PositionErrorCallback|null,options?:PositionOptions)=>{
-     (window as Window & {outingLocationRequested?:boolean}).outingLocationRequested=true;
-     original(success,error,options);
-   }});
- });
- await page.route('**/ko/today?*',async route=>{
-   if(route.request().method()==='POST' && route.request().headers()['next-action']) {
-     expect(await page.evaluate(()=>(window as Window & {outingLocationRequested?:boolean}).outingLocationRequested)).toBe(true);
-   }
-   await route.continue();
- });
- let requests=0;
- await page.route('**/api/nearby', async route=>{
-   requests++;
-   expect(route.request().method()).toBe('POST');
-   expect(new URL(route.request().url()).search).toBe('');
-   await route.fulfill({json:{ok:true,summary:{temperature:18,condition:'clear',dust:'good',station:'용산구',hospital:{id:'fixture-hospital',name:'소아청소년과',address:'서울특별시 용산구',distanceKm:.3},pharmacy:{id:'fixture-pharmacy',name:'약국',address:'서울특별시 용산구',distanceKm:.2},diaper:{id:'fixture-diaper',name:'기저귀 교환 장소',address:'서울특별시 용산구',distanceKm:.1}}}});
- });
- await page.goto(`/ko/today?child=${home.child}`);
- await expect(page.locator('.today-nearby')).toHaveCount(0);
- expect(requests).toBe(0);
- await page.getByRole('button',{name:'나들이',exact:true}).click();
- const editor=page.locator('.quick-editor-form');
- await expect(editor).toContainText('위치 이용은 선택이에요.');
- await expect(editor.getByRole('link',{name:'위치정보 이용 안내'})).toBeVisible();
- expect(await page.evaluate(()=>(window as Window & {outingLocationRequested?:boolean}).outingLocationRequested)).toBeUndefined();
- await page.screenshot({path:'test-results/outing-start-mobile.png',fullPage:false});
- await editor.getByRole('button',{name:'나들이 시작',exact:true}).click();
- await expect(page.locator('.today-nearby')).toContainText('미세먼지 좋음');
- for(const width of [320,390,1280]) {
-   await page.setViewportSize({width,height:844});
-   const strip=page.locator('.today-nearby');
-   expect((await strip.boundingBox())!.height).toBeLessThanOrEqual(85);
-   expect(await strip.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
- }
- expect(requests).toBe(1);
- await page.locator('.quick-running-list').getByRole('button',{name:'나들이 종료',exact:true}).click();
- await page.locator('.quick-editor-form').getByRole('button',{name:'나들이 종료',exact:true}).click();
- await expect(page.locator('.today-nearby')).toHaveCount(0);
- await page.getByRole('button',{name:'나들이',exact:true}).click();
- await editor.getByRole('button',{name:'다녀왔어요',exact:true}).click();
- await editor.getByRole('button',{name:'1시간',exact:true}).click();
- await editor.getByRole('button',{name:'저장하기',exact:true}).click();
- await expect(editor).toHaveCount(0);
- await expect(page.locator('.today-nearby')).toHaveCount(0);
- expect(requests).toBe(1);
- await page.getByRole('button',{name:'나들이',exact:true}).click();
- await editor.getByRole('button',{name:'나들이 시작',exact:true}).click();
- await expect(page.locator('.today-nearby')).toBeVisible();
- const beforeDenial=requests;
- await page.addInitScript(()=>{
-   Object.defineProperty(navigator,'geolocation',{value:{getCurrentPosition(_success:unknown,error:(error:{code:number})=>void){error({code:1});}}});
- });
- await page.reload();
- await expect(page.locator('.today-nearby')).toHaveCount(0);
- await page.waitForTimeout(500);
- expect(requests).toBe(beforeDenial);
-});
-
 test('removed facility routes and navigation stay unavailable in every country', async ({
   page,
   context,
@@ -7259,34 +7191,6 @@ test('community tab geometry stays identical when selecting the playground', asy
  }
 });
 
-test('outing shows nearby information when permission finishes before saving and when it is granted later', async ({page,context}) => {
- const home=await childCareFamily(context);
- await page.addInitScript(()=>{
-  const status=new EventTarget() as EventTarget & {state:string};status.state='prompt';
-  Object.defineProperty(navigator.permissions,'query',{value:async()=>status});
-  Object.defineProperty(navigator.geolocation,'getCurrentPosition',{value:(success:PositionCallback)=>success({coords:{latitude:37.545,longitude:126.98}} as GeolocationPosition)});
-  (window as Window & {grantOutingLocation?:()=>void}).grantOutingLocation=()=>{status.state='granted';status.dispatchEvent(new Event('change'));};
- });
- let requests=0;
- await page.route('**/api/nearby',async route=>{
-  requests++;
-  await route.fulfill({json:{ok:true,summary:{temperature:18,condition:'clear',dust:'good',station:null,hospital:null,pharmacy:null,diaper:null}}});
- });
- await page.goto(`/ko/today?child=${home.child}`);
- await page.getByRole('button',{name:'나들이',exact:true}).click();
- await page.locator('.quick-editor-form').getByRole('button',{name:'나들이 시작',exact:true}).click();
- await expect(page.locator('.today-nearby')).toBeVisible();
- expect(requests).toBe(1);
- // A fresh page has no handoff and must wait without prompting again.
- await page.reload();
- await expect(page.locator('.quick-running-list').getByRole('button',{name:'나들이 종료',exact:true})).toBeVisible();
- await expect(page.locator('.today-nearby')).toHaveCount(0);
- expect(requests).toBe(1);
- await page.evaluate(()=>(window as Window & {grantOutingLocation?:()=>void}).grantOutingLocation?.());
- await expect(page.locator('.today-nearby')).toBeVisible();
- expect(requests).toBe(2);
-});
-
 test('diary likes persist across lists and details and share visitors see only counts', async ({page,context,browser})=>{
  const home=await childCareFamily(context);
  const record=crypto.randomUUID();
@@ -7348,7 +7252,10 @@ test('mobile installed app shows a startup splash once and ordinary browsers sta
   await expect(splash).toBeVisible();await expect(splash).toContainText('함께 돌보는, 포근한 둥지');
   await expect(page.locator('link[rel="apple-touch-startup-image"]')).toHaveCount(24);
   await page.screenshot({path:'test-results/mobile-app-splash.png'});
-  release();await expect(splash).toBeHidden();
+  expect(await splash.evaluate(el=>el.getAnimations()[0].effect!.getComputedTiming().duration)).toBe(2000);
+  await expect(splash).toBeHidden();
+  expect(await page.evaluate(()=>document.readyState)).not.toBe('complete');
+  release();await page.waitForLoadState('load');
   await page.locator('a[href^="/ko/intro"]').click();
   await expect(page).toHaveURL(/\/ko\/intro/);await expect(splash).toHaveAttribute('data-dismissed','');await expect(splash).toBeHidden();
  }finally{release();await installed.close();}

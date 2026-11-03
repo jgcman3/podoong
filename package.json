@@ -22,8 +22,6 @@
     "operations:local": "node scripts/verify-local.mjs worker",
     "backup:verify": "node scripts/verify-local-restore.mjs",
     "env:check": "node scripts/check-environment.mjs",
-    "prebuild": "node scripts/build-outing-diaper-map.mjs --check",
-    "data:outing": "node scripts/build-outing-diaper-map.mjs",
     "seed:playground": "node scripts/seed-playground-demo.mjs",
     "dev:playground": "node scripts/local-playground-preview.mjs",
     "assets:splash": "node scripts/build-app-splash.mjs"

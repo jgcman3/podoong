@@ -53,16 +53,14 @@ NEXT_PUBLIC_SITE_URL=http://your-mac.local:3187 npm run dev:lan
 
 ### 원격 실행 환경
 
-| 용도                          | 변수 이름                                              | 저장 위치                                           | 사용처                                                            |
-| ----------------------------- | ------------------------------------------------------ | --------------------------------------------------- | ----------------------------------------------------------------- |
-| 나들이 주변 정보              | `OUTING_DATA_SERVICE_KEY`                              | Vercel → podoong → Settings → Environment Variables | 운영 중 소아과·약국, 공휴일, 날씨·미세먼지. 서버에서만 사용       |
-| Next.js 서버의 DB 관리자 작업 | `SUPABASE_SERVICE_ROLE_KEY` 또는 `SUPABASE_SECRET_KEY` | 위 Vercel 환경변수                                  | 비공개 사진·공유·계정 삭제 등 서버 작업. 해당 환경의 DB 키만 사용 |
-| 웹 푸시                       | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`          | 해당 Supabase 프로젝트 → Edge Functions → Secrets   | `feeding-push`. 비밀키는 브라우저에 전달하지 않음                 |
+| 용도                          | 변수 이름                                              | 저장 위치                                         | 사용처                                                            |
+| ----------------------------- | ------------------------------------------------------ | ------------------------------------------------- | ----------------------------------------------------------------- |
+| Next.js 서버의 DB 관리자 작업 | `SUPABASE_SERVICE_ROLE_KEY` 또는 `SUPABASE_SECRET_KEY` | 위 Vercel 환경변수                                | 비공개 사진·공유·계정 삭제 등 서버 작업. 해당 환경의 DB 키만 사용 |
+| 웹 푸시                       | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`          | 해당 Supabase 프로젝트 → Edge Functions → Secrets | `feeding-push`. 비밀키는 브라우저에 전달하지 않음                 |
 
 - **개발:** Vercel `Preview`, Git branch `develop` → `dev.podoong.com` → 개발 Supabase `aacmsohijybjiyidfzgy`.
 - **운영:** Vercel `Production` → `podoong.com` → 운영 Supabase `atdyjsxfxlhwxmxgtnte`. 개발 키를 운영에 자동 복사하지 않습니다.
 - Vercel 환경변수를 변경하면 **다음 배포부터** 반영됩니다. Supabase Edge Function Secrets는 별도의 저장소이며 Vercel과 자동 공유되지 않습니다.
-- 나들이 키 `OUTING_DATA_SERVICE_KEY`는 해당 환경의 Vercel에만 저장합니다. 환경 간 자동 복사는 하지 않습니다.
 - Kakao 등 소셜 로그인 제공자의 client secret은 **각 Supabase 프로젝트 → Authentication → Sign In / Providers**에서 관리합니다.
 
 ### GitHub 배포 인증
@@ -77,20 +75,12 @@ NEXT_PUBLIC_SITE_URL=http://your-mac.local:3187 npm run dev:lan
 
 ### 로컬 파일과 키 변경 절차
 
-- `.secrets/development-outing.env`: 나들이 서버 키 보관 파일.
 - `.secrets/development-app.env`, `.secrets/production-app.env`: 환경별 앱·DB 연결 설정의 로컬 보관 파일.
 - `.secrets/development-push.env`: 개발 알림 설정의 로컬 보관 파일.
-- `.env.local`: 로컬 Next.js가 실제 읽는 파일. 나들이에 필요한 `OUTING_DATA_SERVICE_KEY`를 반영합니다.
+- `.env.local`: 로컬 Next.js가 실제 읽는 파일. 현재 환경의 앱·DB 설정을 반영합니다.
 - 이 파일들은 모두 Git에서 제외합니다. `.secrets`를 수정하는 것만으로 `.env.local`, Vercel, Supabase 또는 GitHub가 갱신되지 않습니다. 키가 들어 있는 파일은 소유자만 읽고 쓰도록 보관합니다.
 
 키 변경 시 **환경과 사용처 확인 → 해당 서버의 Secret 변경 → 로컬에서도 사용하면 `.env.local` 반영 → 필요한 재배포/서버 재시작 → 값 노출 없이 실제 요청 확인** 순서로 진행합니다. 운영·개발 프로젝트를 함께 변경하지 않습니다.
-
-### 나들이 데이터·로직 관리
-
-- 화면·권한·현재 위치 조회·운영시간 필터·날씨·미세먼지 코드는 **`src/features/outing/`** 에 모았습니다. 동네 시설 페이지·추가 조회 API·지역별 어린이집/유치원/키즈카페 코드는 제거했습니다.
-- 기저귀 교환대 공공데이터는 **`data/outing/diaper-map/`** 에 원본 gzip·출처 manifest·가공 catalogue를 함께 보관합니다. `npm run data:outing`으로 재생성하고 빌드 때 원본 해시와 결과를 확인합니다. 공개 폴더에 두지 않습니다.
-- 의료 정보는 전국 소아청소년과 등록 병원·약국 목록과 요일별 운영시간을 24시간 공유 캐시합니다. 한국 시각과 공휴일 정보를 적용해 **조회 시점에 운영 중인 곳만** 거리순으로 선택합니다. 휴일·운영시간이 확인되지 않는 시설은 추천하지 않습니다. 기기 좌표를 의료 API에 보내지 않습니다.
-- 운영 기간은 발급처 기준입니다. 인증키·좌표·아이 ID를 로그나 Git에 남기지 않습니다. 데이터 구조와 검증은 [나들이 주변 정보](docs/implementation/outing-information.md)를 따릅니다.
 
 ### 키 유효기간과 갱신 일정
 
@@ -98,7 +88,6 @@ NEXT_PUBLIC_SITE_URL=http://your-mac.local:3187 npm run dev:lan
 
 | 대상                                                      | 유효기간·확인 상태                                                                                                                                            | 다음 갱신·점검                                                                                              | 변경 위치와 절차                                                                                                                         |
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 나들이 `OUTING_DATA_SERVICE_KEY`                          | API 활용신청별 이용기간 확인 필요. 현재 종료일 미확인                                                                                                         | `2026-12-02` 신청 내역 점검                                                                                 | 공공데이터포털의 병원·약국·공휴일·날씨·미세먼지 승인 기간을 각각 확인하고, 사용하는 서버의 키만 변경                                     |
 | `VERCEL_TOKEN`                                            | 배포용 토큰의 실제 만료일 **미확인**. CLI 로그인 세션 및 소셜 로그인용 토큰과 구분                                                                            | `2026-12-02` 계정 Tokens에서 확인 후 만료 전 교체                                                           | Vercel Account Settings → Tokens에서 새 배포 토큰 발급 → GitHub Repository secret 교체 → 개발 배포 검증 후 기존 토큰 폐기                |
 | `SUPABASE_ACCESS_TOKEN`                                   | 발급 시 선택한 기간 또는 무기한 설정에 따름. 현재 CI 등록 토큰의 실제 만료일 **미확인**                                                                       | `2026-12-02` 계정 Access Tokens에서 확인 후 만료 전 교체                                                    | Supabase Account → Access Tokens → 새 토큰 발급 → GitHub Repository secret 교체 → 개발 배포 검증                                         |
 | Supabase 구형 JWT 서버·공개 키                            | 로컬 보관본 `exp` 확인: 개발 `service_role`·공개 키 **`2036-10-29`**, 운영 `service_role` **`2036-10-27`** (UTC 날짜). 원격 등록본 일치 여부는 변경 시 재검증 | **`2026-12-01`** 신형 publishable/secret 키 전환 검토. JWT 만료일이 장기라고 지원 정책 점검을 생략하지 않음 | 각 Supabase 프로젝트 Settings → API Keys. Vercel 서버·공개 설정과 GitHub 환경별 서버 키를 함께 검토. 사용자 로그인 세션 만료와는 다른 키 |
@@ -108,13 +97,7 @@ NEXT_PUBLIC_SITE_URL=http://your-mac.local:3187 npm run dev:lan
 
 GitHub Secrets는 저장한 값을 다시 읽을 수 없으므로 등록 날짜만으로 원래 토큰의 만료일을 계산하지 않습니다. 실제 만료일을 확인한 뒤 `확인일·갱신일·점검일·변경 대상 환경`만 README에 남깁니다. 비밀값은 기록하지 않습니다.
 
-어린이집 포털은 운영계정 이용기간을 12개월로 제한하고 만료 30일·7일 전에 안내한다고 명시합니다. 연장 신청이 키 값까지 변경하는지는 포털 결과를 확인하며, 기존 키가 유지되면 불필요하게 재발급하지 않습니다. 새 키로 검증한 뒤에만 기존 키를 폐기합니다.
-
 근거: [Supabase Access Token 만료 설정](https://supabase.com/changelog/38248-personal-access-tokens-expiration-usage-tracking), [Supabase API 키와 구형 키 정책](https://supabase.com/docs/guides/getting-started/api-keys), [Vercel 계정 Tokens](https://vercel.com/account/settings/tokens), [GitHub 자동 토큰 수명](https://docs.github.com/en/actions/concepts/security/github_token).
-
-## 나들이 정보의 공유 캐시
-
-독립 시설 탐색·어린이집·유치원·지원금 기능과 전용 API 키는 제거했습니다. 현재는 나들이 중 위치를 허용했을 때 운영 중 소아과·약국, 기저귀 교환 장소, 날씨·미세먼지만 제공합니다. 병원·약국의 공식 목록과 요일별 운영시간은 24시간 공유 캐시하고 조회 시점에 현재 운영 여부를 계산합니다. 날씨는 기상 격자별 10분, 미세먼지는 시도별 30분 공유 캐시합니다. 시설용 DB 테이블이나 전국 정기 수집 작업은 두지 않습니다. 자세한 범위는 [나들이 주변 정보](docs/implementation/outing-information.md)를 참고합니다.
 
 ## 소셜 로그인 설정
 
@@ -212,10 +195,6 @@ B4의 30–50가족 4주 파일럿, 세 소셜 제공자의 실제 계정 시험
 ## 개발·운영 배포
 
 운영은 `main` → `https://podoong.com` → 기존 서울 Supabase, 개발은 `develop` → `https://dev.podoong.com` → 별도 서울 Supabase로 구분합니다. 원격 환경은 두 개이며 로컬 DB는 자동 테스트에만 사용합니다. GitHub Actions의 검사 성공 후 환경별 DB 마이그레이션·함수·Next.js 배포를 실행하도록 설정했습니다. 도메인·계정·환경별 키를 준비하고 `DEPLOYMENTS_ENABLED`를 활성화하기 전에는 실제 배포하지 않습니다. 현재 `DEPLOYMENTS_ENABLED=true`이며 개발 배포는 동작 중입니다. 운영 준비 상태·리소스 위치는 [2026-11-03 점검](docs/operations/production-readiness-2026-11-03.md), 설정 절차와 과거 이력은 [배포 운영 문서](docs/operations/launch-and-release.md)를 따릅니다.
-
-### 나들이 현재 위치
-
-나들이 시작 버튼을 누르면 위치 권한을 요청합니다. 거절해도 기록은 저장됩니다. 나들이 중이고 위치를 허용한 경우에만 오늘 상단에 주변 정보를 표시하며, 종료·삭제 후에는 숨깁니다. 화면을 보는 동안 5분마다, 앱으로 돌아올 때 위치를 재확인합니다. HTTPS/localhost에서 사용할 수 있으며 일반 HTTP LAN 주소는 브라우저가 위치 기능을 제한합니다. 좌표는 DB에 보관하지 않습니다.
 
 ### 동네 친구들 로컬 예시
 

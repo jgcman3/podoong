@@ -9,7 +9,6 @@ export type QuickKind =
   | 'sleep'
   | 'diaper'
   | 'stool'
-  | 'outing'
   | 'daycare'
   | 'kindergarten'
   | 'bath'
