@@ -3,6 +3,8 @@ import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { isLocale } from '@/lib/domain';
 import '../globals.css';
+import { AppSplash } from '@/components/app-splash';
+import { appleStartupImages } from '@/lib/app-startup.mjs';
 import { InstallAppProvider } from '@/components/install-app';
 import type { Metadata, Viewport } from 'next';
 import { cookies, headers } from 'next/headers';
@@ -20,7 +22,12 @@ const baseMetadata: Metadata = {
   description: '가족과 함께 만드는 포근한 돌봄의 하루',
   manifest: '/manifest.webmanifest',
   applicationName: '포둥',
-  appleWebApp: { capable: true, title: '포둥', statusBarStyle: 'default' },
+  appleWebApp: {
+    capable: true,
+    title: '포둥',
+    statusBarStyle: 'default',
+    startupImage: appleStartupImages(),
+  },
   icons: {
     icon: '/icons/podung-192.png?v=full-20261029',
     apple: '/icons/podung-180.png?v=full-20261029',
@@ -76,6 +83,7 @@ export default async function LocaleLayout({
               initialBrowser={desktopBrowser(userAgent)}
               initialInAppBrowser={inAppBrowser(userAgent)}
             >
+              <AppSplash locale={locale} />
               {children}
             </InstallAppProvider>
           </AppearanceProvider>

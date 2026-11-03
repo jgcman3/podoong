@@ -1,3 +1,4 @@
+import { appleStartupImages } from '@/lib/app-startup.mjs';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -65,6 +66,7 @@ export async function generateMetadata({
       capable: true,
       title: selected.name,
       statusBarStyle: 'default',
+      startupImage: appleStartupImages(),
     },
   };
 }

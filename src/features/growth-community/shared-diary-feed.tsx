@@ -91,15 +91,22 @@ export function SharedDiaryFeed({
               />
             )}
             {entry.note && <p className="shared-diary-note">{entry.note}</p>}
-            <div
+            <footer
               className="shared-diary-likes"
               aria-label={
                 ko ? `좋아요 ${entry.likes}개` : `${entry.likes} likes`
               }
             >
-              <Heart size={16} aria-hidden="true" />
-              <span>{entry.likes.toLocaleString(locale)}</span>
-            </div>
+              <span className="shared-diary-like-count">
+                <Heart
+                  size={15}
+                  strokeWidth={1.7}
+                  fill={entry.likes > 0 ? 'currentColor' : 'none'}
+                  aria-hidden="true"
+                />
+                <span>{entry.likes.toLocaleString(locale)}</span>
+              </span>
+            </footer>
           </article>
         ))}
         {!entries.length && (

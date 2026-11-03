@@ -6545,6 +6545,8 @@ html[data-standalone] :is(input, select, textarea) {
   padding: 0;
 }
 .shared-diary-feed > .shared-diary-card {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   margin: 0;
   padding: 24px;
@@ -10096,7 +10098,28 @@ html[data-standalone] :is(input, select, textarea) {
   align-items: center;
   justify-content: flex-end;
   gap: 5px;
-  margin: 10px 22px 18px;
+  margin: auto 0 0;
+  padding-top: 16px;
+  min-height: 36px;
+  flex: none;
   color: var(--muted);
   font-size: 12px;
+}
+
+.shared-diary-like-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid #eedfdd;
+  border-radius: 999px;
+  background: #fbf5f3;
+  color: #b77981;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.shared-diary-like-count svg {
+  flex: none;
 }

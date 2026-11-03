@@ -25,7 +25,8 @@
     "prebuild": "node scripts/build-outing-diaper-map.mjs --check",
     "data:outing": "node scripts/build-outing-diaper-map.mjs",
     "seed:playground": "node scripts/seed-playground-demo.mjs",
-    "dev:playground": "node scripts/local-playground-preview.mjs"
+    "dev:playground": "node scripts/local-playground-preview.mjs",
+    "assets:splash": "node scripts/build-app-splash.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

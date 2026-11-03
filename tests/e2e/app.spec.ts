@@ -7283,7 +7283,7 @@ test('outing shows nearby information when permission finishes before saving and
 test('diary likes persist across lists and details and share visitors see only counts', async ({page,context,browser})=>{
  const home=await childCareFamily(context);
  const record=crypto.randomUUID();
- expect((await admin.from('child_records').insert({id:record,child_id:home.child,service:'growth',kind:'observation',occurred_at:new Date(Date.now()-1000).toISOString(),record_timezone:'Asia/Seoul',note:'좋아요 공유 확인 일기',created_by:home.owner})).error).toBeNull();
+ expect((await admin.from('child_records').insert({id:record,child_id:home.child,service:'growth',kind:'observation',occurred_at:new Date(Date.now()-1000).toISOString(),record_timezone:'Asia/Seoul',note:'좋아요 공유 확인 일기\n'+('아기와 함께한 하루를 기록해요.\n'.repeat(8)),created_by:home.owner})).error).toBeNull();
  expect((await admin.from('growth_diary_shares').insert({record_id:record,everyone:true,published_by:home.owner})).error).toBeNull();
  const reader=await browser.newContext({baseURL:'http://127.0.0.1:3188'}),guest=await browser.newContext({baseURL:'http://127.0.0.1:3188'});
  try {
@@ -7293,6 +7293,18 @@ test('diary likes persist across lists and details and share visitors see only c
   const card=readerPage.locator('.public-diary-card').filter({hasText:'좋아요 공유 확인 일기'});
   const like=card.getByRole('button',{name:'좋아요',exact:true});
   await expect(like).toContainText('0');
+  const text=card.locator('.record-note');
+  const collapsed=(await text.boundingBox())!.height;
+  await card.getByRole('button',{name:'더보기',exact:true}).click();
+  await expect(card.getByRole('button',{name:'접기',exact:true})).toBeVisible();
+  expect((await text.boundingBox())!.height).toBeGreaterThan(collapsed+30);
+  expect(await text.evaluate(el=>el.scrollHeight<=el.clientHeight+1)).toBe(true);
+  await card.getByRole('button',{name:'접기',exact:true}).click();
+  const more=(await card.getByRole('button',{name:'더보기',exact:true}).boundingBox())!, reaction=(await like.boundingBox())!, copy=(await card.locator('.diary-copy').boundingBox())!;
+  expect(Math.abs(reaction.x-copy.x)).toBeLessThan(1);
+  expect(Math.abs(reaction.y+reaction.height/2-more.y-more.height/2)).toBeLessThan(1);
+  expect(more.x-reaction.x-reaction.width).toBeGreaterThanOrEqual(16);
+
   await like.click();await expect(like).toHaveAttribute('aria-pressed','true');await expect(like).toBeEnabled();await expect(like).toContainText('1');
   await readerPage.reload();await expect(like).toHaveAttribute('aria-pressed','true');await expect(like).toContainText('1');
   await page.goto(`/ko/community/diaries?child=${home.child}`);
@@ -7315,4 +7327,24 @@ test('diary likes persist across lists and details and share visitors see only c
   await expect(like).toHaveAttribute('aria-pressed','false');await expect(like).toContainText('0');
   await guestPage.reload();await expect(shared.getByLabel('좋아요 0개',{exact:true})).toBeVisible();
  }finally{await reader.close();await guest.close();}
+});
+
+test('mobile installed app shows a startup splash once and ordinary browsers stay unobstructed',async({browser})=>{
+ const installed=await browser.newContext({...devices['iPhone 13'],baseURL:'http://127.0.0.1:3188'});
+ let release!:()=>void;const imageGate=new Promise<void>(resolve=>{release=resolve;});
+ try{
+  await installed.addInitScript(()=>Object.defineProperty(navigator,'standalone',{value:true}));
+  const page=await installed.newPage();
+  await page.route('**/_next/image?*',async route=>{await imageGate;await route.continue();});
+  await page.goto('/ko/login',{waitUntil:'domcontentloaded'});
+  const splash=page.locator('[data-app-splash]');
+  await expect(splash).toBeVisible();await expect(splash).toContainText('함께 돌보는, 포근한 둥지');
+  await expect(page.locator('link[rel="apple-touch-startup-image"]')).toHaveCount(24);
+  await page.screenshot({path:'test-results/mobile-app-splash.png'});
+  release();await expect(splash).toBeHidden();
+  await page.locator('a[href^="/ko/intro"]').click();
+  await expect(page).toHaveURL(/\/ko\/intro/);await expect(splash).toHaveAttribute('data-dismissed','');await expect(splash).toBeHidden();
+ }finally{release();await installed.close();}
+ const ordinary=await browser.newContext({...devices['iPhone 13'],baseURL:'http://127.0.0.1:3188'});
+ try{const page=await ordinary.newPage();await page.goto('/ko/login');await expect(page.locator('[data-app-splash]')).toBeHidden();await expect(page.getByRole('main')).toBeVisible();}finally{await ordinary.close();}
 });

@@ -37,10 +37,30 @@
   }
 }
 
+.diary-story .diary-copy {
+  min-width: 0;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+}
 .diary-reactions {
-  grid-column: 1 / -1;
   display: flex;
   justify-content: flex-end;
+  margin-top: auto;
+}
+.diary-copy .diary-note {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.diary-note-actions {
+  align-items: center;
+  gap: 16px;
+}
+.diary-note-actions > button:not(.diary-like) {
+  display: none;
 }
 .diary-like {
   display: inline-flex;
@@ -64,4 +84,69 @@
 .diary-detail-reactions {
   display: flex;
   justify-content: flex-end;
+}
+@media (max-width: 760px) {
+  .community-diaries > nav.diary-tabs {
+    margin-bottom: 10px;
+  }
+  .community-diaries .public-diary-list {
+    gap: 10px;
+  }
+  .public-diary-card .diary-copy {
+    height: max(112px, var(--diary-photo-size, 112px));
+    min-height: 0;
+  }
+  .public-diary-card .diary-note > .diary-read-trigger {
+    display: flex;
+    align-items: flex-start;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .public-diary-card .diary-copy .record-note {
+    max-height: 100%;
+    width: 100%;
+  }
+  .public-diary-card .diary-note-actions > button:not(.diary-like) {
+    display: inline-flex;
+    align-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--brown);
+    font-size: 12px;
+    position: static;
+    flex: none;
+    min-height: 22px;
+    width: fit-content;
+    padding: 1px 0;
+    text-align: left;
+  }
+  .public-diary-card .diary-copy:has(.diary-note.is-expanded) {
+    height: auto;
+    min-height: max(112px, var(--diary-photo-size, 112px));
+  }
+  .public-diary-card .diary-note.is-expanded > .diary-read-trigger {
+    display: block;
+    flex: none;
+    overflow: visible;
+  }
+  .public-diary-card .diary-copy .diary-note.is-expanded .record-note {
+    display: block;
+    max-height: none;
+    overflow: visible;
+  }
+  .diary-copy .diary-reactions {
+    justify-content: flex-start;
+    flex: none;
+    margin-top: 2px;
+  }
+  .diary-reactions .diary-like {
+    min-height: 22px;
+    padding: 2px 0;
+    line-height: 1;
+  }
+  .diary-reactions .diary-like svg {
+    width: 14px;
+    height: 14px;
+  }
 }

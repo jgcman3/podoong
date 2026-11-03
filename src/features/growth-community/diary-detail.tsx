@@ -169,8 +169,8 @@ export function DiaryDetail({
       >
         {measurements}
         {note && <p>{note}</p>}
-        {reactions && <div className="diary-detail-reactions">{reactions}</div>}
         {author && <p className="diary-detail-author">by {author}</p>}
+        {reactions && <div className="diary-detail-reactions">{reactions}</div>}
       </div>
     </dialog>
   );

@@ -10,10 +10,12 @@ function DiaryNote({
   note,
   ko,
   onOpen,
+  reactions,
 }: {
   note: string;
   ko: boolean;
   onOpen: () => void;
+  reactions?: ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [overflow, setOverflow] = useState(false);
@@ -42,15 +44,20 @@ function DiaryNote({
           {note}
         </span>
       </button>
-      {(overflow || expanded) && (
-        <button
-          type="button"
-          aria-expanded={expanded}
-          aria-controls={id}
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? (ko ? '접기' : 'Less') : ko ? '더보기' : 'More'}
-        </button>
+      {(reactions || overflow || expanded) && (
+        <div className="diary-note-actions diary-reactions">
+          {reactions}
+          {(overflow || expanded) && (
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-controls={id}
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? (ko ? '접기' : 'Less') : ko ? '더보기' : 'More'}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -130,9 +137,16 @@ export function DiaryBody({
           <div className="diary-measurements-space" aria-hidden="true" />
         )}
         {note && (
-          <DiaryNote note={note} ko={ko} onOpen={() => setDetailIndex(index)} />
+          <DiaryNote
+            note={note}
+            ko={ko}
+            onOpen={() => setDetailIndex(index)}
+            reactions={likeButton}
+          />
         )}
-        {likeButton && <div className="diary-reactions">{likeButton}</div>}
+        {!note && likeButton && (
+          <div className="diary-reactions">{likeButton}</div>
+        )}
       </div>
       {photos.length > 0 && (
         <>

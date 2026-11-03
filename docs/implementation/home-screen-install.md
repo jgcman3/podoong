@@ -35,7 +35,6 @@
 
 설치 안내는 기본 HTML details/summary로 페이지 안에서 펼쳐집니다. 서버에서도 User-Agent로 초기 기기를 판단해 아이폰에 PC용 비활성 버튼이 남지 않도록 합니다. JavaScript가 초기화되지 않아도 안내를 열 수 있으며, 이미지 단계 조작을 대신할 전체 텍스트 순서를 noscript로 제공합니다. iOS는 직접 설치 이벤트 대신 항상 수동 안내를 제공하고, 다른 브라우저의 설치 창이 취소되거나 열리지 않으면 수동 안내를 펼칩니다. 모바일의 이미지는 실제 포둥 화면과 메뉴 재현을 합친 안내이며 실기기 OS 캡처로 표시하지 않습니다. PC 설치에서는 재현 이미지를 사용하지 않고 Chrome·Edge·Safari별 현재 메뉴 경로와 공식 도움말 링크를 제공합니다. 파일·생성 방법은 [소개 페이지 이미지 기록](introduction-assets.md)을 참고하세요.
 
-
 ## 우리 아이 사진 아이콘 (2026-10-31)
 
 새 가족 등록 또는 처음 가족 초대에 참여한 직후 `/[locale]/install?child=...`에서 선택적으로 아이 사진을 등록하고 홈 화면 추가 안내를 봅니다. 사진을 생략하고 바로 시작할 수 있으며, 기존 사용자는 아이 이름 메뉴에서 다시 접근합니다. 일반 메뉴 이동이나 다음 로그인 때 자동 안내를 반복하지 않습니다.
@@ -51,13 +50,11 @@
 
 자동 검증은 실제 사진 크롭·업로드·익명 아이콘 응답의 크기·EXIF 제거·manifest·링크 취소와 DB 권한/정리입니다. 실기기의 최종 홈 화면 설치 및 기존 아이콘 교체는 별도 확인해야 합니다.
 
-
 ## 설치된 아이콘의 사진 변경 안내
 
 설치 화면에 기존 앱 삭제 → 브라우저에서 포둥 열기 → 홈 화면에 다시 추가하는 순서를 명시합니다. standalone 실행 중에도 이 안내를 열 수 있습니다. 서버에 저장한 기록은 유지되지만 로그인·알림 권한을 다시 설정할 수 있음을 함께 설명합니다. Chrome은 브라우저에서 아이콘 업데이트를 검토하는 기능도 제공하므로, 재설치는 사용자가 따를 수 있는 확실한 변경 경로로 안내하며 모든 브라우저가 업데이트를 못 한다고 설명하지 않습니다.
 
 현재 PC 경로: Chrome `더보기 → 전송, 저장 및 공유 → 페이지를 앱으로 설치`, Edge `설정 및 기타 → 기타 도구 → 앱 → 이 사이트를 앱으로 설치`(버전에 따라 앱 메뉴가 바로 표시), Mac Safari `파일 → Dock에 추가`. 출처: [Chrome](https://support.google.com/chrome/answer/9658361), [Edge](https://support.microsoft.com/en-us/edge/install-manage-or-uninstall-apps-in-microsoft-edge), [Safari](https://support.apple.com/ko-kr/104996).
-
 
 `layout_version=1`인 기존 아이콘은 저장 파일을 변경하지 않고 응답할 때 36px 여백을 제외합니다. 새 아이콘은 `layout_version=2`로 저장해 전체 픽셀을 그대로 사용합니다. 이로써 기존 사진을 다시 업로드할 필요 없이 화면과 새 설치 아이콘이 꽉 차게 보입니다. 실제 기기에 이미 설치된 아이콘은 위 재설치 순서를 따릅니다.
 
@@ -66,3 +63,17 @@
 카카오 공식 안내에 따라 User-Agent의 `KAKAOTALK` 포함 여부로 인앱 브라우저를 감지한다. 서버의 초기 안내와 클라이언트 감지를 일치시키고, 카카오톡에서는 네이티브 설치 프롬프트를 노출하지 않는다. 설치·알림 가이드는 카카오톡 메뉴에서 다른 브라우저로 여는 방법, 메뉴가 없을 때 현재 주소 복사, Safari 또는 Chrome에서 홈 화면에 추가하는 순서로 바꾼다. 외부 브라우저 강제 호출이나 자동 이동은 사용하지 않는다. 일반 브라우저와 설치된 웹앱에는 기존 기기별 가이드를 유지한다.
 
 공식 감지 기준: https://developers.kakao.com/docs/ko/kakaologin/utilize
+
+## 모바일 웹앱 시작 화면 — 2026-11-03
+
+홈 화면에 설치된 모바일 웹앱은 시작 시 포둥 아기 이미지와 `podoong`을 표시한다. 앱 내부 안내 문구는 한·영 언어 설정을 따르며 어두운 화면 설정도 적용한다. 일반 모바일/PC 브라우저에는 시작 레이어를 표시하지 않는다. 메뉴 이동에는 반복하지 않고, 첫 문서 준비 후 바로 닫으며 별도 최소 대기시간을 두지 않는다. JS 종료 제한은 4초, JS 실패 시 CSS 안전 해제는 4.5초다. 기록·인증 응답을 별도로 캐시하지 않는다.
+
+- UI: `src/components/app-splash.tsx`, `app-splash.module.css`. 언어별 공통 레이아웃에서 한 번 마운트한다.
+- iPhone 기본 시작 이미지: `public/splash/v1/`. 지원 화면 크기와 가로·세로 조합 24개를 `src/lib/app-startup.mjs`의 미디어 조건으로 등록한다. 설치 페이지의 별도 Apple metadata에도 동일하게 등록한다.
+- 재생성: `npm run assets:splash`. 저장소의 브랜드 PNG·둥근 글꼴을 Chromium으로 그리며 DB나 외부 API를 사용하지 않는다. 실행 전에 `npx playwright install chromium`이 필요하다. 생성 이미지는 커밋하는 정적 파일이고 앱 실행 시 서버에서 생성하지 않는다.
+- Android의 OS 시작 화면은 기존 manifest의 이름·아이콘·배경색을 사용한다. 아이 사진으로 설치한 경우 OS가 선택하는 아이콘과 포둥의 앱 내 브랜드 화면은 구분한다.
+- iPhone OS의 첫 프레임은 등록한 크기의 시작 이미지를 사용하도록 구성했으나 설치·캐시 갱신·기기별 실제 표시는 단말 검증이 필요하다. 지원 목록 밖 기기는 앱 내부 시작 화면을 사용한다. OS 시작 화면의 지속시간을 웹 코드가 강제로 제어하지 않는다.
+
+정적 이미지의 PNG 크기와 metadata 연결, 설치 모드의 표시/종료 및 메뉴 전환 미반복, 일반 모바일 브라우저 미노출은 자동 검사 대상으로 둔다. 실제 iPhone/Android 홈 화면 설치 검증 완료와 혼동하지 않는다.
+
+근거: [Chrome의 시작 화면 구성](https://developer.chrome.com/docs/lighthouse/pwa/splash-screen), [Apple 웹앱 시작 이미지](https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html).
