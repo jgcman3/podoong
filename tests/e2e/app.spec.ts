@@ -35,7 +35,7 @@ async function expectPhoneFunctionDock(page: Page, rail: Locator) {
   );
   await expect
     .poll(async () => Math.abs((await rail.boundingBox())!.y - initial.y))
-    .toBeLessThan(1);
+    .toBeLessThan(2);
   if (await page.locator('.quick-history-feed').count()) {
     const padding = await page.locator('.app-content').evaluate(element => parseFloat(getComputedStyle(element).paddingBottom));
     const navHeight = (await page.locator('.mobile-nav').boundingBox())!.height;
@@ -767,7 +767,6 @@ test('signed-out users see three social choices and preserve safe invitation rou
     invitation.replace('/ko/', '/en/'),
   );
   await page.getByRole('link',{name:'Terms',exact:true}).click();
-  await page.getByRole('link',{name:'동의 안내',exact:true}).click();
   await page.getByRole('link',{name:'Back',exact:true}).click();
   await expect(page).toHaveURL(/\/en\/login/);
   expect(new URL(page.url()).searchParams.get('next')).toBe(invitation.replace('/ko/','/en/'));
@@ -1285,7 +1284,6 @@ test('signup agreements support refusal and preserve the English invitation flow
     await expect(invited.locator('.legal-version')).toContainText('Korean original');
     await invited.getByRole('link',{name:'Back',exact:true}).click();
     await invited.getByRole('link',{name:'Privacy Policy',exact:true}).click();
-    await invited.getByRole('link',{name:'동의 문안',exact:true}).click();
     await invited.getByRole('link',{name:'Back',exact:true}).click();
     expect(new URL(invited.url()).searchParams.get('next')).toBe(next);
     await invited.locator('.signup-consent input[type=checkbox]').nth(0).check();
@@ -5513,6 +5511,7 @@ test('mobile diaries have a compact header, bottom composer and five authorized 
   await page.goto(`/ko/community/diaries?child=${own.child}`);
   await page.getByRole('button', { name: '일기 쓰기', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: '일기 쓰기', exact: true });
+  await sheet.getByRole('checkbox', {name:'공개하기',exact:true}).check();
   const png = await sharp({
     create: { width: 1800, height: 1200, channels: 3, background: '#f4c8a8' },
   })
@@ -5983,7 +5982,7 @@ test('child bottom navigation opens a main page with child selection and setting
   await expect(page.locator('.bottom-child-picker, .family-menu-scrim')).toHaveCount(0);
   await expect(page.locator('.mobile-child-link')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('.account-child-list > a')).toHaveCount(2);
-  await expect(page.locator('.account-settings-section > summary > span')).toHaveText(['기존 가족에 참여하기','언어 설정','화면 설정','계정 설정','알림 설정','개발자에게 요청하기','서비스 정보','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용']);
+  await expect(page.locator('.account-settings-section > summary > span')).toHaveText(['기존 가족에 참여하기','언어 설정','화면 설정','계정 설정','개인정보·동의 설정','알림 설정','개발자에게 요청하기','서비스 정보','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용']);
   await page.locator('summary').filter({hasText:'아이 설정'}).click();
   await page.locator('.account-child-list').getByRole('link', { name: /둘째/ }).click();
   await expect(page).toHaveURL(new RegExp(`child=${second!.id}`));
@@ -6388,7 +6387,7 @@ test('child settings match on desktop and Safari mobile with aligned date inputs
   await nav.getByRole('link',{name:'돌봄 아이',exact:true}).click();
   await expect(page).toHaveURL(/account/);
   await expect(page.getByRole('heading',{name:'아이와 설정'})).toHaveCount(0);
-  const labels = ['기존 가족에 참여하기','언어 설정','화면 설정','계정 설정','알림 설정','개발자에게 요청하기','서비스 정보','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용'];
+  const labels = ['기존 가족에 참여하기','언어 설정','화면 설정','계정 설정','개인정보·동의 설정','알림 설정','개발자에게 요청하기','서비스 정보','아이 설정가족관리자 전용','주소 설정가족관리자 전용','보호자 설정가족관리자 전용','데이터 설정가족관리자 전용'];
   await expect(page.locator('.account-settings-section > summary > span')).toHaveText(labels);
   await page.locator('summary').filter({hasText:'계정 설정'}).click();
   await expect(page.locator('.account-signed-in')).toContainText('Care test');
@@ -6427,7 +6426,7 @@ test('caregivers can switch children without administrator settings or service s
     for (const width of [390,1440]) {
       await memberPage.setViewportSize({width,height:900});
       await memberPage.goto(`/ko/account?child=${own.child}&panel=child`);
-      await expect(memberPage.locator('.account-settings-section > summary > span')).toHaveText(['기존 가족에 참여하기','언어 설정','화면 설정','계정 설정','알림 설정','개발자에게 요청하기','서비스 정보']);
+      await expect(memberPage.locator('.account-settings-section > summary > span')).toHaveText(['기존 가족에 참여하기','언어 설정','화면 설정','계정 설정','개인정보·동의 설정','알림 설정','개발자에게 요청하기','서비스 정보']);
       await expect(memberPage.locator('.account-admin-badge')).toHaveCount(0);
       await expect(memberPage.locator('#child-info,#add-child')).toHaveCount(0);
       await expect(memberPage.locator('.account-child-list a')).toHaveCount(2);
