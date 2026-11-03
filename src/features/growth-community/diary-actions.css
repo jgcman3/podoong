@@ -36,3 +36,32 @@
     font-size: 12px;
   }
 }
+
+.diary-reactions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
+.diary-like {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+}
+.diary-like[aria-pressed='true'] {
+  color: #c25e81;
+}
+.diary-like:disabled {
+  opacity: 0.65;
+}
+.diary-detail-reactions {
+  display: flex;
+  justify-content: flex-end;
+}

@@ -42,6 +42,14 @@ select is((select sex from public.growth_diary_feed('20000000-0000-4000-8000-000
 select is((select count(*)::int from public.growth_diary_feed('20000000-0000-4000-8000-000000000003','birth')),0,'same month and day in different year is not matched');
 select is((select count(*)::int from public.growth_diary_feed('20000000-0000-4000-8000-000000000002','all')),0,'cohort sharing does not opt into everyone');
 select ok(public.growth_diary_photo_allowed('30000000-0000-4000-8000-000000000001'),'matching child allows shared photo');
+select is((select likes from public.set_growth_diary_like('30000000-0000-4000-8000-000000000001',true)),1::bigint,'reader likes a same-birthday diary');
+select is((select likes from public.set_growth_diary_like('30000000-0000-4000-8000-000000000001',true)),1::bigint,'retrying like does not increment twice');
+select ok((select liked from public.growth_diary_reactions(array['30000000-0000-4000-8000-000000000001']::uuid[])),'batch projection includes own reaction');
+select is((select likes from public.set_growth_diary_like('30000000-0000-4000-8000-000000000001',false)),0::bigint,'reader can remove their own like');
+select is((select count(*)::int from public.growth_diary_reactions(array['30000000-0000-4000-8000-000000000002']::uuid[])),0,'private diary counts are not exposed to outsiders');
+select throws_ok($$select public.set_growth_diary_like('30000000-0000-4000-8000-000000000002',true)$$,'42501','forbidden','outsider cannot like private diary');
+select throws_ok($$select * from public.growth_diary_likes$$,'42501',null,'liker identities cannot be read directly');
+
 reset role;
 insert into storage.objects(bucket_id,name) select 'child-care-photos',path from public.child_record_photos where id='40000000-0000-4000-8000-000000000001';
 set local role authenticated;
@@ -89,6 +97,7 @@ select public.share_growth_diary('30000000-0000-4000-8000-000000000001',false,fa
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 select is((select count(*)::int from public.growth_diary_feed('20000000-0000-4000-8000-000000000002','birth')),0,'revocation removes feed entry');
 select is((select count(*)::int from public.growth_diary_photo('40000000-0000-4000-8000-000000000001')),0,'revocation removes photo access');
+select throws_ok($$select public.set_growth_diary_like('30000000-0000-4000-8000-000000000001',true)$$,'42501','forbidden','revocation also blocks reactions');
 reset role;
 set local role anon;
 select ok(not has_function_privilege('anon','public.growth_diary_feed(uuid,text,integer,integer)','execute'),'anonymous has no member feed execution privilege');

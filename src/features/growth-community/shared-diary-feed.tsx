@@ -1,5 +1,5 @@
 'use client';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Heart } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Database } from '@/lib/database.types';
 import { SharedDiaryPhotos } from './shared-diary-photos';
@@ -91,6 +91,15 @@ export function SharedDiaryFeed({
               />
             )}
             {entry.note && <p className="shared-diary-note">{entry.note}</p>}
+            <div
+              className="shared-diary-likes"
+              aria-label={
+                ko ? `좋아요 ${entry.likes}개` : `${entry.likes} likes`
+              }
+            >
+              <Heart size={16} aria-hidden="true" />
+              <span>{entry.likes.toLocaleString(locale)}</span>
+            </div>
           </article>
         ))}
         {!entries.length && (

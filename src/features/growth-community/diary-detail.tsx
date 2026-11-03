@@ -7,6 +7,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 export function DiaryDetail({
   note,
+  reactions,
   author,
   date,
   photos,
@@ -15,6 +16,7 @@ export function DiaryDetail({
   ko,
   onClose,
 }: {
+  reactions?: ReactNode;
   note: string;
   author?: string;
   date: string;
@@ -167,6 +169,7 @@ export function DiaryDetail({
       >
         {measurements}
         {note && <p>{note}</p>}
+        {reactions && <div className="diary-detail-reactions">{reactions}</div>}
         {author && <p className="diary-detail-author">by {author}</p>}
       </div>
     </dialog>

@@ -10090,3 +10090,13 @@ html[data-standalone] :is(input, select, textarea) {
   color: #dde9cd;
   border-color: #dde9cd40;
 }
+
+.shared-diary-likes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  margin: 10px 22px 18px;
+  color: var(--muted);
+  font-size: 12px;
+}

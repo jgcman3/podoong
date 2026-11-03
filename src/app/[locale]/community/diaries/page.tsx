@@ -63,6 +63,13 @@ export default async function Diaries({
         });
   if (result.error) throw new Error('Growth diaries unavailable');
   const data = result.data;
+  const reactions = await context.db.rpc('growth_diary_reactions', {
+    p_records: (data ?? []).slice(0, 20).map((entry) => entry.id),
+  });
+  if (reactions.error) throw new Error('Diary reactions unavailable');
+  const reactionById = new Map(
+    reactions.data.map((reaction) => [reaction.id, reaction]),
+  );
   const photoUrl = (id: string) =>
     scope === 'mine'
       ? `/api/care/photos/${id}`
@@ -207,6 +214,8 @@ export default async function Diaries({
                 )}
               </header>
               <DiaryBody
+                recordId={entry.id}
+                reaction={reactionById.get(entry.id)}
                 photoCacheScope={`${context.user.id}:${context.user.last_sign_in_at ?? ''}`}
                 author={relationshipLabel(entry.author_relationship, locale)}
                 note={entry.note}

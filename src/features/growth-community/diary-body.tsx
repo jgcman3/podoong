@@ -1,4 +1,6 @@
 'use client';
+import { DiaryLike, type DiaryReaction } from './diary-like';
+import { setDiaryLike } from './like-action';
 import { DiaryThumbnail } from './thumbnail';
 import { createPortal } from 'react-dom';
 import { DiaryDetail } from './diary-detail';
@@ -62,7 +64,11 @@ export function DiaryBody({
   measurements,
   locale,
   photoCacheScope,
+  recordId,
+  reaction: initialReaction,
 }: {
+  recordId?: string;
+  reaction?: DiaryReaction;
   note: string;
   author?: string;
   date: string;
@@ -71,6 +77,46 @@ export function DiaryBody({
   locale: 'ko' | 'en';
   photoCacheScope: string;
 }) {
+  const [reaction, setReaction] = useState(
+    initialReaction ?? { likes: 0, liked: false },
+  );
+  const [likeBusy, setLikeBusy] = useState(false);
+  const likeInFlight = useRef(false);
+  async function like() {
+    if (!recordId || likeInFlight.current) return;
+    likeInFlight.current = true;
+    setLikeBusy(true);
+    const previous = reaction;
+    const next = !previous.liked;
+    setReaction({
+      liked: next,
+      likes: Math.max(0, previous.likes + (next ? 1 : -1)),
+    });
+    try {
+      const saved = await setDiaryLike({
+        record: recordId,
+        liked: next,
+        locale,
+      });
+      setReaction(saved ?? previous);
+    } catch {
+      setReaction(previous);
+    } finally {
+      likeInFlight.current = false;
+      setLikeBusy(false);
+    }
+  }
+  const likeButton =
+    recordId && initialReaction ? (
+      <DiaryLike
+        reaction={reaction}
+        busy={likeBusy}
+        locale={locale}
+        onClick={() => {
+          void like();
+        }}
+      />
+    ) : null;
   const [index, setIndex] = useState(0);
   const [detailIndex, setDetailIndex] = useState<number | null>(null);
   const gallery = useRef<HTMLDivElement>(null);
@@ -86,6 +132,7 @@ export function DiaryBody({
         {note && (
           <DiaryNote note={note} ko={ko} onOpen={() => setDetailIndex(index)} />
         )}
+        {likeButton && <div className="diary-reactions">{likeButton}</div>}
       </div>
       {photos.length > 0 && (
         <>
@@ -150,6 +197,7 @@ export function DiaryBody({
       {detailIndex !== null &&
         createPortal(
           <DiaryDetail
+            reactions={likeButton}
             author={author}
             date={date}
             note={note}

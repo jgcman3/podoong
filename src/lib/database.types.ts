@@ -23,6 +23,34 @@ export type Database = {
           }
         },"public": {
           Tables: {
+"growth_diary_likes": {
+                  Row: {
+                    "created_at": string,"record_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"record_id": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"record_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "growth_diary_likes_record_id_fkey"
+      columns: ["record_id"]
+isOneToOne: false
+      referencedRelation: "child_records"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "growth_diary_likes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },
+
 "parenting_post_photos": { Row: { id: string; post_id: string; path: string; sort_order: number }; Insert: { id: string; post_id: string; path: string; sort_order: number }; Update: { id?: string; post_id?: string; path?: string; sort_order?: number }; Relationships: [] },
 "parenting_friend_profiles": {
                   Row: {
@@ -1370,6 +1398,20 @@ isOneToOne: false
                 }
           }
           Functions: {
+"growth_diary_reaction_allowed":
+{ Args: { "p_record": string }; Returns: boolean
+                           },
+"growth_diary_reactions":
+{ Args: { "p_records": (string)[] }; Returns: {
+              "id": string,"liked": boolean,"likes": number
+            }[]
+                           },
+"set_growth_diary_like":
+{ Args: { "p_liked": boolean,"p_record": string }; Returns: {
+              "liked": boolean,"likes": number
+            }[]
+                           },
+
 "community_home_area":
 { Args: { "p_family": string }; Returns: Json
                            },
@@ -1713,7 +1755,7 @@ isOneToOne: false
                            },
 "read_child_diary_link":
 { Args: { "p_page"?: number,"p_token": string }; Returns: {
-              "author_relationship": string,"id": string,"note": string,"photo_ids": (string)[],"recorded_date": string
+              "author_relationship": string,"id": string,"likes": number,"note": string,"photo_ids": (string)[],"recorded_date": string
             }[]
                            },
 "read_notification":

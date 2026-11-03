@@ -7279,3 +7279,40 @@ test('outing shows nearby information when permission finishes before saving and
  await expect(page.locator('.today-nearby')).toBeVisible();
  expect(requests).toBe(2);
 });
+
+test('diary likes persist across lists and details and share visitors see only counts', async ({page,context,browser})=>{
+ const home=await childCareFamily(context);
+ const record=crypto.randomUUID();
+ expect((await admin.from('child_records').insert({id:record,child_id:home.child,service:'growth',kind:'observation',occurred_at:new Date(Date.now()-1000).toISOString(),record_timezone:'Asia/Seoul',note:'좋아요 공유 확인 일기',created_by:home.owner})).error).toBeNull();
+ expect((await admin.from('growth_diary_shares').insert({record_id:record,everyone:true,published_by:home.owner})).error).toBeNull();
+ const reader=await browser.newContext({baseURL:'http://127.0.0.1:3188'}),guest=await browser.newContext({baseURL:'http://127.0.0.1:3188'});
+ try {
+  const other=await childCareFamily(reader),readerPage=await reader.newPage();
+  await readerPage.setViewportSize({width:390,height:844});
+  await readerPage.goto(`/ko/community/diaries?child=${other.child}&scope=all`);
+  const card=readerPage.locator('.public-diary-card').filter({hasText:'좋아요 공유 확인 일기'});
+  const like=card.getByRole('button',{name:'좋아요',exact:true});
+  await expect(like).toContainText('0');
+  await like.click();await expect(like).toHaveAttribute('aria-pressed','true');await expect(like).toBeEnabled();await expect(like).toContainText('1');
+  await readerPage.reload();await expect(like).toHaveAttribute('aria-pressed','true');await expect(like).toContainText('1');
+  await page.goto(`/ko/community/diaries?child=${home.child}`);
+  await expect(page.locator('.public-diary-card').filter({hasText:'좋아요 공유 확인 일기'}).getByRole('button',{name:'좋아요',exact:true})).toContainText('1');
+  await page.getByRole('button',{name:'일기 공유',exact:true}).click();
+  const share=page.getByRole('dialog',{name:'일기 공유',exact:true});
+  await share.getByRole('button',{name:'공유 링크 만들기',exact:true}).click();
+  const link=await share.getByRole('textbox',{name:'공유 링크',exact:true}).inputValue();
+  const guestPage=await guest.newPage();await guestPage.goto(link);
+  const shared=guestPage.locator('.shared-diary-card').filter({hasText:'좋아요 공유 확인 일기'});
+  await expect(shared.getByLabel('좋아요 1개',{exact:true})).toBeVisible();
+  await expect(shared.getByRole('button',{name:'좋아요',exact:true})).toHaveCount(0);
+  await card.getByRole('button',{name:'일기 보기',exact:true}).click();
+  const detail=readerPage.getByRole('dialog',{name:'성장일기',exact:true});
+  await expect(detail.getByRole('button',{name:'좋아요',exact:true})).toHaveAttribute('aria-pressed','true');
+  await detail.getByRole('button',{name:'좋아요',exact:true}).click();
+  await expect(detail.getByRole('button',{name:'좋아요',exact:true})).toBeEnabled();
+  await expect(detail.getByRole('button',{name:'좋아요',exact:true})).toContainText('0');
+  await detail.getByRole('button',{name:'돌아가기',exact:true}).click();
+  await expect(like).toHaveAttribute('aria-pressed','false');await expect(like).toContainText('0');
+  await guestPage.reload();await expect(shared.getByLabel('좋아요 0개',{exact:true})).toBeVisible();
+ }finally{await reader.close();await guest.close();}
+});

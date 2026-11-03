@@ -12,7 +12,7 @@ vi.mock('@/features/growth-community/public-link', () => ({
     rpc: () => ({ maybeSingle: mocks.metadata }),
     storage: { from: () => ({ download: mocks.anonymousDownload }) },
   }),
-  diaryLinkPhotoClient: mocks.serverClient,
+  authorizedDiaryPhotoClient: mocks.serverClient,
 }));
 import { GET } from '@/app/api/share/diary/[token]/photos/[id]/route';
 const params = {
