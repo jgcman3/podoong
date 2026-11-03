@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Form from 'next/form';
-import { MessagesSquare, Trees, MessageSquareText, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Flash } from '@/components/flash';
 import type { CareContext } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
@@ -87,22 +87,22 @@ export async function CommunityHub({
         {ko ? '육아 소통' : 'Parenting community'}
       </h1>
       <nav
-        className="parenting-tabs"
+        className="diary-tabs parenting-tabs"
         aria-label={ko ? '육아 소통 메뉴' : 'Community sections'}
       >
         {(
           [
-            ['friends', '동네 놀이터', 'Playground', Trees],
-            ['neighborhood', '동네 이야기', 'Neighborhood', MessageSquareText],
-            ['boards', '전국 소통', 'Countrywide', MessagesSquare],
+            ['friends', '동네 놀이터', 'Playground'],
+            ['neighborhood', '동네 이야기', 'Neighborhood'],
+            ['boards', '커뮤니티', 'Community'],
           ] as const
-        ).map(([id, k, e, Icon]) => (
+        ).map(([id, k, e]) => (
           <Link
+            replace
             key={id}
             aria-current={area === id ? 'page' : undefined}
             href={`/${locale}/community${id === 'friends' ? '/playground' : `/${id}`}?child=${context.child.id}`}
           >
-            <Icon size={17} />
             {ko ? k : e}
           </Link>
         ))}

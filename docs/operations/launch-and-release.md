@@ -1,15 +1,15 @@
 # 포둥 공개 준비와 배포 운영
 
-작성일: 2026-10-29 · 갱신: 2026-10-31 · 현재 판정: 공개 전 준비 필요
+작성일: 2026-10-29 · 갱신: 2026-11-03 · 현재 판정: 공개 전 준비 필요
 
-최신 판정과 운영자가 결정할 사항은 [2026-10-31 운영 준비 점검](production-readiness-2026-10-31.md)을 우선 확인한다. 아래의 날짜별 기록은 당시 상태이며 현재 완료 여부와 구분한다.
+최신 판정과 운영자가 결정할 사항은 [2026-11-03 운영 준비 점검과 리소스 위치](production-readiness-2026-11-03.md)을 우선 확인한다. 아래의 날짜별 기록은 당시 상태이며 현재 완료 여부와 구분한다.
 
 ## 먼저 할 일
 
 | 우선순위  | 항목                     | 현재 상태 / 완료 조건                                                                                                                                                                                                                       |
 | --------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 공개 전   | 운영 HTTPS 주소와 호스팅 | 운영·개발 HTTPS 도메인과 환경변수는 구성됐다. 운영 주소는 이전 Production 배포에 연결돼 있으며 최신 앱·DB 반영과 최종 검증이 남아 있다.                                                                                     |
-| 공개 전   | 개발/검증/운영 DB 분리   | 원격 개발/운영 서울 프로젝트 분리는 완료했다. 로컬 앱은 개발 프로젝트, 자동 테스트는 로컬 Supabase만 사용한다.                                                                     |
+| 공개 전   | 운영 HTTPS 주소와 호스팅 | 운영·개발 HTTPS 도메인과 환경변수는 구성됐다. 운영 주소는 이전 Production 배포에 연결돼 있으며 최신 앱·DB 반영과 최종 검증이 남아 있다.                                                                                                     |
+| 공개 전   | 개발/검증/운영 DB 분리   | 원격 개발/운영 서울 프로젝트 분리는 완료했다. 로컬 앱은 개발 프로젝트, 자동 테스트는 로컬 Supabase만 사용한다.                                                                                                                              |
 | 공개 전   | 약관·개인정보·동의       | 법률 문서는 초안·미시행이며 미확정 항목이 남아 있다. 시행일·보관기간·위탁/국외 처리 정보를 확정하고 문서 버전별 동의·아동 정보의 법정대리인 확인·건강정보·일기 공개/공유 선택을 실제 흐름에 연결한다. 자세한 내용은 `docs/legal/README.md`. |
 | 공개 전   | 로그인과 초대            | 운영 도메인을 Supabase Site URL·Redirect URLs와 제공자 설정에 등록한다. 다른 휴대폰에서 로그인→아이 등록/가족 초대→재로그인까지 실제 확인한다. 표시한 소셜 제공자만 약속하지 말고 각각 검증한다.                                            |
 | 공개 전   | DB·사진 복구             | DB 백업과 Storage 파일 바이트 백업을 따로 준비한다. 격리 프로젝트에 복원하고 파일 다운로드·권한을 검증한다. 로컬 DB 복원 검증만으로 운영 사진 복구가 준비됐다고 판단하지 않는다.                                                            |
@@ -62,8 +62,8 @@ Vercel 한 프로젝트의 Preview 설정을 개발, Production 설정을 운영
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GitHub Repository Variables      | `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `PODUNG_PRODUCTION_PROJECT_REF=atdyjsxfxlhwxmxgtnte`; 준비 완료 후 `DEPLOYMENTS_ENABLED=true`                                                          |
 | 각 GitHub Environment Variables  | `SUPABASE_PROJECT_REF`: 각 환경의 프로젝트 ID                                                                                                                                                |
-| GitHub Repository Secrets        | `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`: CI 전용 배포 토큰                                                                                          |
-| 각 GitHub Environment Secrets    | `SUPABASE_SERVICE_ROLE_KEY`: 해당 환경의 서버 키 |
+| GitHub Repository Secrets        | `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`: CI 전용 배포 토큰                                                                                                                                   |
+| 각 GitHub Environment Secrets    | `SUPABASE_SERVICE_ROLE_KEY`: 해당 환경의 서버 키                                                                                                                                             |
 | Vercel Preview / Production 각각 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` 또는 `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL`, 실제 검증한 `NEXT_PUBLIC_AUTH_PROVIDERS` |
 
 Vercel Preview의 SITE_URL은 `https://dev.podoong.com`, Production은 `https://podoong.com`이다. 각 Supabase의 Site URL·Redirect URLs도 해당 환경에 맞춘다. `/auth/callback`과 앱에서 사용하는 locale/next 쿼리 복귀 주소를 허용하고 두 언어로 로그인 후 복귀를 확인한다. 카카오 등의 제공자 Redirect URI는 **각 Supabase가 안내하는 `/auth/v1/callback`**이다. 네이버의 사용자 정보 어댑터 주소도 개발/운영 앱 주소로 구분한다.
@@ -156,7 +156,6 @@ GitHub CLI 로그인을 승인받아 `development`/`production` Environment를 �
 
 CLI 2.120.0에서 운영·개발 각각 `db push --project-ref <ref> --dry-run`을 DB 비밀번호 없이 실행해 임시 CLI 로그인 역할로 접속되는 것을 확인했다. 워크플로는 명시적 프로젝트 ID로 이 방식을 사용하므로 운영 DB 비밀번호를 별도 GitHub Secret으로 요구하지 않는다. 실행 계정의 Management API 권한과 `SUPABASE_ACCESS_TOKEN`은 필요하다. 운영 dry-run은 059·060 대기만 확인했으며 적용하지 않았다.
 
-
 ### 개발 카카오 및 로컬 전환 — 2026-10-30
 
 운영자가 카카오 Developers의 개발 Redirect URI 추가와 개발 Supabase의 Kakao Provider 등록을 완료했다고 확인했다. 개발 Auth settings에서 카카오 활성화와 실제 인가 요청의 `kauth.kakao.com` 302·개발 Supabase callback·`profile_nickname` 단독 scope를 확인했다. Vercel develop Preview의 제공자 목록을 `kakao`로 활성화했다.
@@ -165,13 +164,11 @@ CLI 2.120.0에서 운영·개발 각각 `db push --project-ref <ref> --dry-run`�
 
 Actions용 전용 토큰 `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`은 사용자가 각 계정에서 발급해 GitHub Repository Secrets에 등록하도록 요청했다. 기존 CLI 로그인과 Actions 실행 서버의 인증은 별개이며 토큰을 채팅·Git에 남기지 않는다. 토큰 준비 전에는 자동 배포 비활성 상태를 유지한다.
 
-
 ### 초기 전체 브라우저 검사 정리
 
 전체 검사에서 예전 게시판 홈, 날짜 좌우 이동, 오늘 화면의 일정/할 일 등 폐기한 화면을 기대하는 테스트가 남아 있음을 확인했다. 현재 동네 생활·세로 기록·캘린더 전용 일정에 맞춰 시나리오를 갱신하며, 직접 접근 가능한 기존 게시글의 댓글/사진 권한 검증은 유지한다. 먹인 소요시간이 선택값인 기록은 종료 시각이 없어도 기록된 ml를 집계하므로 통계 테스트도 이를 반영한다.
 
 검사 중 실제로 발견한 투표·게시글 사진/댓글 저장 후 라우터 캐시가 즉시 갱신되지 않는 문제는 해당 경로의 `revalidatePath`로 수정했다. 투표 폼은 저장된 선택값에 맞춰 초기화하도록 키를 부여했다. 전체 E2E 완료 전에는 통과했다고 보고하지 않는다. Actions에는 Safari 관련 WebKit 검사를 위해 Chromium과 WebKit을 함께 설치한다.
-
 
 ### CI 토큰 등록 및 접근 검사 완료 — 2026-10-30
 
@@ -181,20 +178,17 @@ Actions용 전용 토큰 `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`은 사용자가
 
 `DEPLOYMENTS_ENABLED=false`는 유지한다. 현재 로컬 앱·DB 검증과 오래된 브라우저 테스트 정리가 진행 중이며, 배포용 전체 변경과 CI 워크플로는 아직 원격 `develop`/`main`에 반영하지 않았다. 이번 접근 검사 파일의 푸시만으로 사이트가 배포되었다고 안내하지 않는다.
 
-
 ### 개발 배포 검사 준비 — 2026-10-30
 
 로컬 단위 테스트 143개, 린트·타입 검사와 갱신한 브라우저 시나리오를 순차 검증했다. 사용자 설정을 기다리는 상태가 아니며, 현재 UI와 다른 테스트 기대값을 수정했다. 설정의 추가 섹션·해외 주소 입력·일기 작성자 표시를 반영하고, 스크롤 중 위치 측정과 더보기 렌더링 완료를 구분했다. 화면 캡처는 caret 원본 상태를 유지해 React hydration 전에 Playwright가 입력 요소의 inline style을 바꾸지 않도록 했다.
 
 이제 전체 코드를 개발 브랜치로 반영해 원격 CI를 실행한다. 로컬에서 나누어 통과한 시나리오를 전체 CI 성공으로 표현하지 않는다. 운영 마이그레이션 059/060과 운영 앱 공개는 이번 개발 배포와 구분한다.
 
-
 ### 첫 개발 CI 결과와 검사 보정 — 2026-10-30
 
 `68147fa`를 작업 브랜치와 `develop`에 푸시하고 `DEPLOYMENTS_ENABLED=true`로 전환했다. 운영 `main`은 반영하지 않았다. 첫 원격 실행의 앱 검사는 모두 통과했고 브라우저 73개 중 70개 통과·2개 실패·운영 빌드 전용 캐시 검사 1개 건너뜀으로 배포가 차단됐다.
 
 두 실패는 애니메이션 도중 서로 다른 순간에 측정한 일정 입력창 버튼 위치, 새 CI DB에 없는 식사 알림 테스트용 구성이다. 같은 프레임에서 크기를 측정하고, 알림 검사가 로컬 테스트 DB에만 임시 구성을 넣은 뒤 제거하도록 보정했다. 기존 알림 구성은 변경하지 않는다. 두 검사를 각각 2회 반복해 통과했고 린트·타입 검사도 통과했다. 운영 빌드 전용 캐시 검사는 별도 로컬 운영 빌드에서 통과했으며 오늘 복귀 85ms·추가 RSC 요청 0건을 관찰했다. 사용자 기기의 응답시간을 보장하는 수치는 아니다.
-
 
 ### 개발 앱 첫 배포 및 도메인 연결 — 2026-10-30
 
@@ -203,7 +197,6 @@ Actions용 전용 토큰 `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`은 사용자가
 사전 빌드 앱 `dpl_CJnFQAumrScYgcrgXVx2Y3vvFkTJ`는 Vercel Ready 상태로 생성됐지만 마지막 alias 명령에 팀 ID를 전달해 실패했다. CLI의 alias 명령에는 팀 slug를 사용하도록 `VERCEL_TEAM_SLUG=jgcman3` 변수를 추가했다. 이미 검증된 앱의 `dev.podoong.com` 연결을 CLI로 완료했다.
 
 Vercel 기본 인증이 개발 브랜치 도메인에도 적용되는 것을 확인해 개발 도메인 하나만 Deployment Protection Exception으로 등록했다. 전체 프로젝트 보호를 해제하지 않으며 앱의 Supabase 인증·가족 권한은 유지한다. 한국어 로그인 HTTPS 응답 200을 확인했고 두 언어·카카오 복귀 주소와 수정된 자동 배포의 재실행은 이어서 확인한다. 운영 도메인·운영 DB는 변경하지 않았다.
-
 
 ### CI 도메인 연결의 API 전환 — 2026-10-30
 

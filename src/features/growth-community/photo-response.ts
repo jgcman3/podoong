@@ -1,5 +1,6 @@
 import { photoVariantPath, renderPhotoVariant } from './photo-variants.mjs';
 import { z } from 'zod';
+import { authorizedDiaryPhotoClient } from './public-link';
 import { createClient, configured } from '@/lib/supabase/server';
 
 export async function diaryPhotoResponse(
@@ -27,6 +28,12 @@ export async function diaryPhotoResponse(
   if (photo.error || !photo.data)
     return new Response(null, { status: 404, headers });
 
+  // The viewer RPC above authorizes the exact photo; hosted Storage can still
+  // reject cross-family user downloads. Keep the bucket private and proxy only
+  // this authorized path through the server credential.
+  const storage = community ? authorizedDiaryPhotoClient() : db;
+  if (!storage) return new Response(null, { status: 503, headers });
+
   const requestedSize = new URL(request.url).searchParams.get('size');
   const size =
     requestedSize === '1600' ? 1600 : requestedSize === '480' ? 480 : null;
@@ -44,7 +51,7 @@ export async function diaryPhotoResponse(
   if (thumbnail && request.headers.get('if-none-match') === etag)
     return new Response(null, { status: 304, headers: imageHeaders });
   if (size && photo.data.variants_ready) {
-    const variant = await db.storage
+    const variant = await storage.storage
       .from('child-care-photos')
       .download(photoVariantPath(photo.data.path, size));
     if (!variant.error && variant.data)
@@ -52,7 +59,7 @@ export async function diaryPhotoResponse(
         headers: { ...imageHeaders, 'Content-Type': 'image/webp' },
       });
   }
-  const file = await db.storage
+  const file = await storage.storage
     .from('child-care-photos')
     .download(photo.data.path);
   if (file.error || !file.data)

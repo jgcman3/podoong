@@ -5,7 +5,7 @@ import {
 import { z } from 'zod';
 import {
   diaryLinkClient,
-  diaryLinkPhotoClient,
+  authorizedDiaryPhotoClient,
   validDiaryToken,
 } from '@/features/growth-community/public-link';
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,7 @@ export async function GET(
   if (error || !data) return new Response(null, { status: 404, headers });
   // Hosted Storage may reject the anonymous request even after the RPC
   // authorizes it. Read only the exact path returned by that authorization.
-  const storage = diaryLinkPhotoClient();
+  const storage = authorizedDiaryPhotoClient();
   if (!storage) return new Response(null, { status: 503, headers });
   if (data.variants_ready) {
     const variant = await storage.storage

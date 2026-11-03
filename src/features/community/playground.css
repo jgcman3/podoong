@@ -1,20 +1,17 @@
 /* Let the playground occupy the page below its tabs, without a card frame. */
 .app-shell .main-content:has(.parenting-playground) {
-  padding: 0;
-  max-width: none;
   height: calc(100dvh - 82px);
 }
 .parenting-playground {
   display: flex;
   flex-direction: column;
   height: 100%;
-  gap: 0;
+  gap: 10px;
   min-height: 0;
 }
 .parenting-playground > .parenting-tabs {
   flex: none;
   margin: 0;
-  padding: 8px 18px;
 }
 .parenting-playground .neighborhood-friends {
   flex: 1;
@@ -63,8 +60,9 @@ body:has(.parenting-playground) .app-footer {
       100dvh - var(--mobile-main-nav-height) - env(safe-area-inset-bottom)
     );
   }
-  .parenting-playground > .parenting-tabs {
-    padding: 7px 12px;
+  .parenting-playground .neighborhood-friends {
+    margin-inline: -18px;
+    margin-bottom: -34px;
   }
 }
 .parenting-playground .world-speech {
@@ -80,4 +78,10 @@ body:has(.parenting-playground) .app-footer {
   width: 8px;
   height: 8px;
   bottom: -4px;
+}
+
+@media (max-width: 700px) {
+  .parenting-playground {
+    gap: 4px;
+  }
 }

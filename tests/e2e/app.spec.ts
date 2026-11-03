@@ -678,7 +678,7 @@ test('public introduction explains the service on mobile and preserves invitatio
   await expect(page.locator('main')).toContainText('기록이 쌓이면, 우리 아이가 더 잘 보여요.');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.getByRole('heading',{name:'우리 동네에, 함께 크는 친구가 있어요.',exact:true})).toBeVisible();
-  await expect(page.locator('#parenting-intro-title').locator('..')).toContainText('전국 소통');
+  await expect(page.locator('#parenting-intro-title').locator('..')).toContainText('커뮤니티');
   const preview = page.locator('[aria-label="인사이트 미리보기 선택"]');
   for (const label of ['주간패턴', '통계', '성장곡선', '마일스톤', '가이드', '선물·용돈', '하루패턴']) {
     await preview.getByRole('button', {name:label,exact:true}).click();
@@ -1289,7 +1289,7 @@ test('responsive dashboard and current navigation remain within the viewport', a
     await expect(page.locator('.mobile-nav').getByRole('link', { name: '돌봄 기록', exact: true })).toHaveCount(0);
   }
   await page.goto(`/en/community?child=${child.id}`);
-  await expect(page.locator('.parenting-tabs').getByRole('link',{name:'Countrywide',exact:true})).toBeVisible();
+  await expect(page.locator('.parenting-tabs').getByRole('link',{name:'Community',exact:true})).toBeVisible();
   await expect(page.locator('.parenting-tabs').getByRole('link',{name:'Share & trade',exact:true})).toHaveCount(0);
   // A running timer must remain reachable beyond the first history page.
   const records = Array.from({ length: 101 }, (_, index) => ({
@@ -6409,6 +6409,23 @@ test('diary upload stores display variants and serves them without the original'
    expect(Math.max(meta.width!,meta.height!)).toBe(size);
   }
  }
+ const viewer=await browser.newContext({baseURL:'http://127.0.0.1:3188'});
+ try {
+  const other=await childCareFamily(viewer);
+  const viewerPage=await viewer.newPage();
+  await viewerPage.goto(`/ko/community/diaries?child=${other.child}&scope=all`);
+  for(const size of [480,1600]) {
+   const response=await viewer.request.get(`/api/community/diary-photos/${photo!.id}?size=${size}`);
+   expect(response.status()).toBe(200);
+   const meta=await sharp(await response.body()).metadata();
+   expect(Math.max(meta.width!,meta.height!)).toBe(size);
+  }
+  const record=(await admin.from('child_record_photos').select('record_id').eq('id',photo!.id).single()).data!.record_id;
+  expect((await admin.from('growth_diary_shares').update({everyone:false,same_birth_date:false}).eq('record_id',record)).error).toBeNull();
+  const denied=await viewer.request.get(`/api/community/diary-photos/${photo!.id}?size=480`,{headers:{'if-none-match':`"${photo!.id}-480-webp-v1"`}});
+  expect(denied.status()).toBe(404);
+  expect((await admin.from('growth_diary_shares').update({everyone:true}).eq('record_id',record)).error).toBeNull();
+ } finally { await viewer.close(); }
  await page.getByRole('button',{name:'일기 공유',exact:true}).click();
  const share=page.getByRole('dialog',{name:'일기 공유',exact:true});
  await share.getByRole('button',{name:'공유 링크 만들기',exact:true}).click();
@@ -7107,7 +7124,7 @@ test('side-view playground places daily arrivals without moving existing childre
  }
  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto(`/ko/community/playground?child=${home.child}`);
- await expect(page.locator('.parenting-tabs a')).toHaveText(['동네 놀이터','동네 이야기','전국 소통']);
+ await expect(page.locator('.parenting-tabs a')).toHaveText(['동네 놀이터','동네 이야기','커뮤니티']);
  await expect(page.locator('.world-player')).toHaveCount(1);
  await expect(page.locator('.world-player-own .world-name')).not.toBeEmpty();
  const visit=async(id:string)=>{
@@ -7140,10 +7157,10 @@ test('side-view playground places daily arrivals without moving existing childre
  await expect(page.locator('.world-player-own')).toHaveAttribute('aria-pressed','true');
  expect(await page.locator('.world-player-own').evaluate(el=>getComputedStyle(el.parentElement!).zIndex)).toBe('900');
  await expect(page.locator('.world-player-own .world-speech')).toContainText('동네 친구들 안녕!');
- await page.locator('.parenting-tabs').getByRole('link',{name:'전국 소통',exact:true}).click();
+ await page.locator('.parenting-tabs').getByRole('link',{name:'커뮤니티',exact:true}).click();
  await expect(page).toHaveURL(/\/community\/boards\?/);
  await page.goto(`/en/community/playground?child=${home.child}`);
- await expect(page.locator('.parenting-tabs a')).toHaveText(['Playground','Neighborhood','Countrywide']);
+ await expect(page.locator('.parenting-tabs a')).toHaveText(['Playground','Neighborhood','Community']);
  await expect(page.locator('.world-viewport')).toBeVisible();
 });
 
@@ -7191,7 +7208,7 @@ test('countrywide and neighborhood search preserve category and popular filters'
   ]) expect((await admin.from('neighborhood_posts').insert({region:region.data!,feature:'boards',family_id:home.family,author_id:home.owner,...post})).error).toBeNull();
   await page.setViewportSize({width:390,height:844});
   await page.goto(`/ko/community/boards?child=${home.child}`);
-  await expect(page.locator('.parenting-tabs a')).toHaveText(['동네 놀이터','동네 이야기','전국 소통']);
+  await expect(page.locator('.parenting-tabs a')).toHaveText(['동네 놀이터','동네 이야기','커뮤니티']);
   const search=page.getByRole('search',{name:'게시글 검색'});
   await search.getByRole('searchbox',{name:'제목·본문 검색'}).fill('검색유모차');
   await search.getByRole('button',{name:'검색',exact:true}).click();
@@ -7214,4 +7231,51 @@ test('countrywide and neighborhood search preserve category and popular filters'
   await expect(page.getByText('검색 결과가 없어요. 다른 검색어로 찾아보세요.',{exact:true})).toBeVisible();
   await search.getByRole('link',{name:'검색 초기화'}).click();
   await expect(search.getByRole('searchbox')).toHaveValue('');
+});
+
+
+test('community tab geometry stays identical when selecting the playground', async ({page,context}) => {
+ const home=await childCareFamily(context);
+ for(const width of [320,390,1280]) {
+  await page.setViewportSize({width,height:844});
+  await page.goto(`/ko/community/neighborhood?child=${home.child}`);
+  const tabs=page.locator('.parenting-tabs');
+  await expect(tabs).toBeVisible();
+  const baseline=(await tabs.boundingBox())!;
+  for(const name of ['동네 놀이터','커뮤니티','동네 이야기']) {
+   await tabs.getByRole('link',{name,exact:true}).click();
+   await expect(tabs.getByRole('link',{name,exact:true})).toHaveAttribute('aria-current','page');
+   const current=(await tabs.boundingBox())!;
+   for(const key of ['x','y','width','height'] as const) expect(Math.abs(current[key]-baseline[key])).toBeLessThan(1);
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  }
+ }
+});
+
+test('outing shows nearby information when permission finishes before saving and when it is granted later', async ({page,context}) => {
+ const home=await childCareFamily(context);
+ await page.addInitScript(()=>{
+  const status=new EventTarget() as EventTarget & {state:string};status.state='prompt';
+  Object.defineProperty(navigator.permissions,'query',{value:async()=>status});
+  Object.defineProperty(navigator.geolocation,'getCurrentPosition',{value:(success:PositionCallback)=>success({coords:{latitude:37.545,longitude:126.98}} as GeolocationPosition)});
+  (window as Window & {grantOutingLocation?:()=>void}).grantOutingLocation=()=>{status.state='granted';status.dispatchEvent(new Event('change'));};
+ });
+ let requests=0;
+ await page.route('**/api/nearby',async route=>{
+  requests++;
+  await route.fulfill({json:{ok:true,summary:{temperature:18,condition:'clear',dust:'good',station:null,hospital:null,pharmacy:null,diaper:null}}});
+ });
+ await page.goto(`/ko/today?child=${home.child}`);
+ await page.getByRole('button',{name:'나들이',exact:true}).click();
+ await page.locator('.quick-editor-form').getByRole('button',{name:'나들이 시작',exact:true}).click();
+ await expect(page.locator('.today-nearby')).toBeVisible();
+ expect(requests).toBe(1);
+ // A fresh page has no handoff and must wait without prompting again.
+ await page.reload();
+ await expect(page.locator('.quick-running-list').getByRole('button',{name:'나들이 종료',exact:true})).toBeVisible();
+ await expect(page.locator('.today-nearby')).toHaveCount(0);
+ expect(requests).toBe(1);
+ await page.evaluate(()=>(window as Window & {grantOutingLocation?:()=>void}).grantOutingLocation?.());
+ await expect(page.locator('.today-nearby')).toBeVisible();
+ expect(requests).toBe(2);
 });

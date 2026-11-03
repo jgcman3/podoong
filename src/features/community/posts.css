@@ -1000,9 +1000,6 @@ body:has(.parenting-post-page) .app-footer {
   .parenting-community {
     gap: 6px;
   }
-  .parenting-community .parenting-tabs {
-    padding-bottom: 3px;
-  }
   .community-post-open {
     height: 146px;
     padding: 10px 0;
@@ -1117,4 +1114,19 @@ body:has(.parenting-post-page) .app-footer {
   font-size: 12px;
   background: transparent;
   border: 0;
+}
+
+@media (max-width: 700px) {
+  .parenting-community {
+    row-gap: 4px;
+  }
+  .parenting-community .category-pills {
+    padding-block: 2px;
+  }
+  .parenting-community .community-search {
+    margin-block: 0;
+  }
+  .parenting-community .community-popular-help {
+    margin-block: 2px;
+  }
 }

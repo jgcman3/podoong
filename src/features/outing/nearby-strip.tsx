@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import {
   requestOutingLocation,
   hasPendingOutingLocation,
+  recentOutingLocation,
+  clearOutingLocation,
 } from '@/features/outing/location';
 import { Baby, Hospital, Pill, Thermometer } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
@@ -33,6 +35,12 @@ export function NearbyStrip({
   childId: string;
   enabled: boolean;
 }) {
+  useEffect(() => {
+    if (!enabled) {
+      recent = undefined;
+      clearOutingLocation();
+    }
+  }, [enabled]);
   return enabled ? (
     <ActiveNearbyStrip key={childId} locale={locale} childId={childId} />
   ) : null;
@@ -49,31 +57,38 @@ function ActiveNearbyStrip({
     if (!window.isSecureContext || !navigator.geolocation) return;
     let active = true,
       status: PermissionStatus | undefined;
-    const controller = new AbortController();
+    let controller: AbortController | undefined;
     let sequence = 0;
     let refreshTimer: number | undefined;
-    function permissionLost() {
-      return status !== undefined && status.state !== 'granted';
+    function permissionDenied() {
+      return status?.state === 'denied';
     }
     function hide() {
+      sequence++;
       setSummary(null);
       recent = undefined;
-      controller.abort();
+      clearOutingLocation();
+      controller?.abort();
     }
-    function locate() {
-      if (!active || document.hidden || controller.signal.aborted) return;
+    function locate(position?: GeolocationPosition) {
+      if (!active || document.hidden || permissionDenied()) return;
       const current = ++sequence;
-      void requestOutingLocation().then(async (position) => {
+      void (
+        position ? Promise.resolve(position) : requestOutingLocation()
+      ).then(async (position) => {
         if (!position) {
           if (active && current === sequence) hide();
           return;
         }
-        if (!active || current !== sequence || permissionLost()) return;
+        if (!active || current !== sequence || permissionDenied()) return;
         const key = `${Math.round(position.coords.latitude * 1000)},${Math.round(position.coords.longitude * 1000)}`;
         if (recent?.key === key && Date.now() - recent.at < 300000) {
           setSummary(recent.summary);
           return;
         }
+        controller?.abort();
+        const request = new AbortController();
+        controller = request;
         try {
           const response = await fetch('/api/nearby', {
             method: 'POST',
@@ -84,14 +99,19 @@ function ActiveNearbyStrip({
               lon: position.coords.longitude,
             }),
             cache: 'no-store',
-            signal: controller.signal,
+            signal: request.signal,
           });
           if (!response.ok) {
             if (response.status === 401 || response.status === 403) hide();
             return;
           }
           const data = await response.json();
-          if (active && current === sequence && !permissionLost() && data.ok) {
+          if (
+            active &&
+            current === sequence &&
+            !permissionDenied() &&
+            data.ok
+          ) {
             recent = { key, at: Date.now(), summary: data.summary };
             setSummary(data.summary);
           }
@@ -100,9 +120,24 @@ function ActiveNearbyStrip({
         }
       });
     }
-
+    const refresh = () => locate();
+    function stop() {
+      window.clearInterval(refreshTimer);
+      refreshTimer = undefined;
+      document.removeEventListener('visibilitychange', refresh);
+    }
+    function start() {
+      if (!active || refreshTimer !== undefined) return;
+      locate(recentOutingLocation());
+      refreshTimer = window.setInterval(refresh, 300000);
+      document.addEventListener('visibilitychange', refresh);
+    }
     function changed() {
-      if (permissionLost()) hide();
+      if (status?.state === 'granted') start();
+      else {
+        stop();
+        hide();
+      }
     }
     void (async () => {
       try {
@@ -111,24 +146,21 @@ function ActiveNearbyStrip({
         status.addEventListener('change', changed);
         if (
           status.state === 'denied' ||
-          (status.state === 'prompt' && !hasPendingOutingLocation())
+          (status.state === 'prompt' &&
+            !hasPendingOutingLocation() &&
+            !recentOutingLocation())
         )
           return;
       } catch {
         /* Safari may not expose Permissions API. */
       }
-      if (active) {
-        locate();
-        refreshTimer = window.setInterval(locate, 300000);
-        document.addEventListener('visibilitychange', locate);
-      }
+      start();
     })();
     return () => {
       active = false;
       recent = undefined;
-      controller.abort();
-      window.clearInterval(refreshTimer);
-      document.removeEventListener('visibilitychange', locate);
+      controller?.abort();
+      stop();
       status?.removeEventListener('change', changed);
     };
   }, [childId]);
@@ -170,8 +202,8 @@ function ActiveNearbyStrip({
       </div>
       {(
         [
-          ['hospital', Hospital, ko ? '소아과' : 'Pediatrics'],
-          ['pharmacy', Pill, ko ? '약국' : 'Pharmacy'],
+          ['hospital', Hospital, ko ? '운영중 소아과' : 'Open pediatrics'],
+          ['pharmacy', Pill, ko ? '운영중 약국' : 'Open pharmacy'],
           ['diaper', Baby, ko ? '기저귀맵' : 'Diaper map'],
         ] as const
       ).map(([kind, Icon, label]) => {
