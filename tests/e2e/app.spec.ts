@@ -6519,6 +6519,7 @@ test('diary upload stores display variants and serves them without the original'
  const sheet=page.getByRole('dialog',{name:'일기 쓰기',exact:true});
  const original=await sharp({create:{width:1800,height:2400,channels:3,background:'#f4d5bc'}}).jpeg().toBuffer();
  await sheet.getByRole('textbox',{name:'일기 내용'}).fill('표시용 사진 검증');
+ await sheet.getByRole('checkbox',{name:'공개하기',exact:true}).check();
  await sheet.getByLabel('사진 추가',{exact:true}).setInputFiles({name:'photo.jpg',mimeType:'image/jpeg',buffer:original});
  await sheet.getByRole('button',{name:'저장',exact:true}).click();
  await expect(sheet).toBeHidden();
@@ -6781,7 +6782,7 @@ test('service documents are readable from account settings and retain the child 
  await page.setViewportSize({width:390,height:844});
  await page.goto(`/ko/account?child=${child}&panel=service`);
  await page.getByRole('link',{name:/이용약관/}).click();
- await expect(page.getByRole('heading',{name:'서비스 이용약관',exact:true})).toBeVisible();await expect(page.locator('main')).toContainText('검토용 초안');await expect(page.locator('main')).toContainText('정경철');
+ await expect(page.getByRole('heading',{name:'서비스 이용약관',exact:true})).toBeVisible();await expect(page.locator('main')).toContainText('시행일 2026-11-03');await expect(page.locator('main')).toContainText('정경철');
  await page.getByRole('link',{name:'돌아가기',exact:true}).click();await expect(page).toHaveURL(new RegExp(`account\\?panel=service&child=${child}`));
  await page.getByRole('link',{name:/개인정보 처리방침/}).click();await expect(page.getByRole('heading',{name:'개인정보 처리방침',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
