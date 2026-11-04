@@ -70,7 +70,7 @@ select ok(not (select validate_playground_push(id,lease_token) from leased),'tur
 update notification_preferences set playground_enabled=true,playground_enabled_at=now()+interval '1 second' where user_id='a9960000-0000-4000-8000-000000000002';
 select ok(not (select validate_playground_push(id,lease_token) from leased),'re-enabling does not backfill older reactions');
 update notification_preferences set playground_enabled_at=now()-interval '1 hour',playground_quiet=true where user_id='a9960000-0000-4000-8000-000000000002';
-update profiles set timezone=(select name from pg_timezone_names where extract(hour from now() at time zone name)=2 limit 1) where id='a9960000-0000-4000-8000-000000000002';
+update profiles set timezone=(select name from pg_timezone_names where public.valid_iana_timezone(name) and extract(hour from now() at time zone name)=2 limit 1) where id='a9960000-0000-4000-8000-000000000002';
 select ok(not (select validate_playground_push(id,lease_token) from leased),'night quiet hours suppress playground delivery');
 update notification_preferences set playground_quiet=false where user_id='a9960000-0000-4000-8000-000000000002';
 select ok((select validate_playground_push(id,lease_token) from leased),'playground quiet setting is independent of feeding');
