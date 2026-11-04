@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Form from 'next/form';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Flash } from '@/components/flash';
 import type { CareContext } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
@@ -8,8 +8,9 @@ import { FeedSortPicker } from './feed-sort-picker';
 import { PostComposer } from './post-composer';
 import { PostCard } from './post-card';
 import { postDetailSchema } from './post-model';
-import { parentingCategories, parentingTags } from './options';
+import { communityTags, parentingTags } from './options';
 import { NeighborhoodFriends } from './friends';
+import { CommunityResidence } from './residence';
 function minutesSince(createdAt: string) {
   return Math.max(0, Math.floor((Date.now() - Date.parse(createdAt)) / 60000));
 }
@@ -39,56 +40,62 @@ export async function CommunityHub({
   const ko = locale === 'ko',
     neighborhood = area === 'neighborhood',
     posts = area !== 'friends';
-  const category =
-    parentingCategories.find(([id]) => id === query.category)?.[0] ?? 'all';
+  const tags = communityTags(neighborhood);
+  const category = tags.find(([id]) => id === query.category)?.[0] ?? 'all';
+  const hasResidence =
+    !!context.family.residence_country_code &&
+    (area === 'boards' ||
+      (!!context.family.residence_city && !!context.family.residence_locality));
   const search = typeof query.q === 'string' ? query.q.trim().slice(0, 80) : '';
   const sort = query.sort === 'popular' ? 'popular' : 'all';
   const path = `/${locale}/community${neighborhood ? '/neighborhood' : '/boards'}`;
   const href = (values: Record<string, string>) =>
     `${path}?${new URLSearchParams({ child: context.child.id, category, sort, ...(search ? { q: search } : {}), ...values })}`;
-  const [feed, topics] = posts
-    ? await Promise.all([
-        context.db.rpc('parenting_feed', {
-          p_family: context.family.id,
-          p_neighborhood: neighborhood,
-          p_category: category,
-          p_sort: sort,
-          p_query: search,
-          ...(query.beforeScore && /^\d{1,15}$/.test(query.beforeScore)
-            ? { p_before_score: Number(query.beforeScore) }
-            : {}),
-          ...(query.before && !Number.isNaN(Date.parse(query.before))
-            ? { p_before: new Date(query.before).toISOString() }
-            : {}),
-          ...(query.beforeId &&
-          /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(
-            query.beforeId,
-          )
-            ? { p_before_id: query.beforeId }
-            : {}),
-        }),
-        context.db.rpc('parenting_topics', { p_family: context.family.id }),
-      ])
-    : [null, null];
+  const [feed, topics] =
+    posts && hasResidence
+      ? await Promise.all([
+          context.db.rpc('parenting_feed', {
+            p_family: context.family.id,
+            p_neighborhood: neighborhood,
+            p_category: category,
+            p_sort: sort,
+            p_query: search,
+            ...(query.beforeScore && /^\d{1,15}$/.test(query.beforeScore)
+              ? { p_before_score: Number(query.beforeScore) }
+              : {}),
+            ...(query.before && !Number.isNaN(Date.parse(query.before))
+              ? { p_before: new Date(query.before).toISOString() }
+              : {}),
+            ...(query.beforeId &&
+            /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(
+              query.beforeId,
+            )
+              ? { p_before_id: query.beforeId }
+              : {}),
+          }),
+          neighborhood
+            ? Promise.resolve(null)
+            : context.db.rpc('parenting_topics', {
+                p_family: context.family.id,
+              }),
+        ])
+      : [null, null];
   if (feed?.error || topics?.error) throw Error('Community feed unavailable');
   const orderedTags = topics?.data?.flatMap((topic) => {
     const tag = parentingTags.find(([id]) => id === topic.category);
     return tag ? [tag] : [];
-  }) ?? [...parentingTags];
-  const hasResidence =
-    !!context.family.residence_country_code &&
-    (!neighborhood || !!context.family.residence_locality);
+  }) ?? [...tags];
   return (
     <section
-      className={`community-hub parenting-community${!posts ? ' parenting-playground' : ''}`}
+      className={`community-hub parenting-community${!posts && hasResidence ? ' parenting-playground' : ''}`}
     >
       <Flash error={error} />
       <h1 className="visually-hidden">
-        {ko ? '육아 소통' : 'Parenting community'}
+        {ko ? '동네 소통' : 'Neighborhood community'}
       </h1>
       <nav
         className="diary-tabs parenting-tabs"
-        aria-label={ko ? '육아 소통 메뉴' : 'Community sections'}
+        aria-label={ko ? '동네 소통 메뉴' : 'Community sections'}
       >
         {(
           [
@@ -107,7 +114,9 @@ export async function CommunityHub({
           </Link>
         ))}
       </nav>
-      {!posts ? (
+      {!hasResidence ? (
+        <CommunityResidence context={context} locale={locale} area={area} />
+      ) : !posts ? (
         <NeighborhoodFriends context={context} locale={locale} />
       ) : (
         <>
@@ -126,10 +135,21 @@ export async function CommunityHub({
               {orderedTags.map(([id, k, e]) => (
                 <Link
                   key={id}
-                  href={href({ category: id, sort: 'all' })}
+                  href={href({
+                    category: category === id ? 'all' : id,
+                    sort: 'all',
+                  })}
+                  title={
+                    category === id
+                      ? ko
+                        ? '선택 해제'
+                        : 'Clear category'
+                      : undefined
+                  }
                   aria-current={category === id ? 'page' : undefined}
                 >
                   {ko ? k : e}
+                  {category === id && <X size={12} aria-hidden="true" />}
                 </Link>
               ))}
             </nav>
@@ -170,21 +190,13 @@ export async function CommunityHub({
                 : 'Popular posts from the past 7 days, ranked by likes, commenters and views.'}
             </p>
           )}
-          {hasResidence ? (
-            <PostComposer
-              child={context.child.id}
-              source={neighborhood ? 'neighborhood' : 'boards'}
-              locale={locale}
-              tags={orderedTags}
-              initialTag={category}
-            />
-          ) : (
-            <p className="community-feed-empty">
-              {ko
-                ? '거주 지역을 설정하면 이야기를 나눌 수 있어요.'
-                : 'Set your residence to join the conversation.'}
-            </p>
-          )}
+          <PostComposer
+            child={context.child.id}
+            source={neighborhood ? 'neighborhood' : 'boards'}
+            locale={locale}
+            tags={orderedTags}
+            initialTag={category}
+          />
           {feed?.data?.length ? (
             <div className="parenting-posts">
               {feed.data.map((post) => {
@@ -226,9 +238,8 @@ export async function CommunityHub({
                     child={context.child.id}
                     source={neighborhood ? 'neighborhood' : 'boards'}
                     tag={
-                      parentingTags.find(([id]) => id === post.category)?.[
-                        ko ? 1 : 2
-                      ] ?? ''
+                      tags.find(([id]) => id === post.category)?.[ko ? 1 : 2] ??
+                      ''
                     }
                     time={time}
                     locale={locale}

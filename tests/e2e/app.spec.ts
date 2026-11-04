@@ -1394,7 +1394,7 @@ test('responsive dashboard and current navigation remain within the viewport', a
     });
   }
   await expect(page.locator('.mobile-nav a')).toHaveText([
-    '오늘', '일정', '인사이트', '성장 일기', '육아 소통', '도담이',
+    '오늘', '일정', '인사이트', '성장 일기', '동네 소통', '도담이',
   ]);
   for (const section of ['today','calendar','insights','community/diaries','community','account']) {
     await page.goto(`/ko/${section}?child=${child.id}`);
@@ -6973,7 +6973,7 @@ test('diary composer attaches daily records alongside a pattern with the child a
  expect(combined.some(draw=>/^D\+\d+$/.test(draw.text)&&draw.x===900)).toBe(true);
  await sheet.getByRole('button',{name:'2번 사진 앞으로',exact:true}).click();await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const photos=await admin.from('child_record_photos').select('id,sort_order').eq('child_id',child).order('sort_order');expect(photos.error).toBeNull();expect(photos.data?.map(photo=>photo.sort_order)).toEqual([0,1]);
- await page.goto(`/ko/community?child=${child}`);await expect(page.getByRole('heading',{name:'육아 소통',exact:true})).toBeVisible();await expect(page.getByText('육아맘 커뮤니티',{exact:true})).toHaveCount(0);
+ await page.goto(`/ko/community?child=${child}`);await expect(page.getByRole('heading',{name:'동네 소통',exact:true})).toBeVisible();await expect(page.getByText('육아맘 커뮤니티',{exact:true})).toHaveCount(0);
 });
 
 
@@ -7067,11 +7067,11 @@ test('parenting community shows country topics and neighborhood posts without re
         })
     ).error,
   ).toBeNull();
-  expect((await admin.from('neighborhood_posts').insert({region:region.data!,feature:'boards',family_id:family,author_id:owner,title:'Fixture hospital question',body:'Fixture neighborhood story',category:'health',audience:'neighborhood'})).error).toBeNull();
+  expect((await admin.from('neighborhood_posts').insert({region:region.data!,feature:'boards',family_id:family,author_id:owner,title:'Fixture hospital question',body:'Fixture neighborhood story',category:'local-help',audience:'neighborhood'})).error).toBeNull();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/ko/community/boards?child=${child}`);
   await expect(
-    page.getByRole('heading', { name: '육아 소통', exact: true }),
+    page.getByRole('heading', { name: '동네 소통', exact: true }),
   ).toBeVisible();
   await page
     .getByRole('navigation', { name: '게시판 주제' })
@@ -7097,7 +7097,7 @@ test('parenting community shows country topics and neighborhood posts without re
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/en/community/boards?child=${child}&category=health`);
   await expect(
-    page.getByRole('heading', { name: 'Parenting community', exact: true }),
+    page.getByRole('heading', { name: 'Neighborhood community', exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole('link', { name: 'Fixture hospital question', exact:true }),
@@ -7271,7 +7271,7 @@ test('countrywide and neighborhood search preserve category and popular filters'
   for (const post of [
     {title:'검색유모차 산책',body:'산책 후기를 나눠요',category:'play',audience:'country'},
     {title:'준비한 물건',body:'검색유모차 정보가 있어요',category:'gear',audience:'country'},
-    {title:'동네에서 만나요',body:'검색유모차 이웃 이야기',category:'play',audience:'neighborhood'},
+    {title:'동네에서 만나요',body:'검색유모차 이웃 이야기',category:'local-daily',audience:'neighborhood'},
   ]) expect((await admin.from('neighborhood_posts').insert({region:region.data!,feature:'boards',family_id:home.family,author_id:home.owner,...post})).error).toBeNull();
   await page.setViewportSize({width:390,height:844});
   await page.goto(`/ko/community/boards?child=${home.child}`);
@@ -7389,4 +7389,48 @@ test('mobile installed app shows a startup splash once and ordinary browsers sta
  }finally{release();await installed.close();}
  const ordinary=await browser.newContext({...devices['iPhone 13'],baseURL:'http://127.0.0.1:3188'});
  try{const page=await ordinary.newPage();await page.goto('/ko/login');await expect(page.locator('[data-app-splash]')).toBeHidden();await expect(page.getByRole('main')).toBeVisible();}finally{await ordinary.close();}
+});
+
+test('neighborhood entry collects residence and keeps local topics separate with removable filters', async ({page,context}) => {
+  const own=await childCareFamily(context);
+  await page.setViewportSize({width:390,height:844});
+  await page.goto(`/ko/community/neighborhood?child=${own.child}`);
+  await expect(page.getByRole('heading',{name:'어느 동네에 살고 계세요?',exact:true})).toBeVisible();
+  await expect(page.locator('.community-write-fab')).toHaveCount(0);
+  const residence=page.locator('.community-residence');
+  await residence.getByRole('combobox', {name:'국가 / 지역', exact:true}).selectOption('KR');
+  await residence.getByRole('combobox', {name:'시·도', exact:true}).selectOption('11');
+  await residence.getByRole('combobox', {name:'시·군·구', exact:true}).selectOption('11680');
+  await residence.getByRole('combobox', {name:'읍·면·동', exact:true}).selectOption('1168010100');
+  await residence.getByRole('button',{name:'거주지역 저장',exact:true}).click();
+  await expect(page).toHaveURL(/community\/neighborhood/);
+  await expect(page.getByRole('heading',{name:'어느 동네에 살고 계세요?',exact:true})).toHaveCount(0);
+  const categories=page.getByRole('navigation',{name:'게시판 주제',exact:true});
+  await expect(categories.getByRole('link',{name:'동네 일상',exact:true})).toBeVisible();
+  await expect(categories.getByRole('link',{name:'수유·분유',exact:true})).toHaveCount(0);
+  await categories.getByRole('link',{name:'동네 일상',exact:true}).click();
+  await expect(categories.locator('[aria-current=page]')).toHaveText('동네 일상');
+  await categories.locator('[aria-current=page]').click();
+  await expect(page).toHaveURL(/category=all/);
+  await categories.getByRole('link',{name:'질문·도움',exact:true}).click();
+  await page.getByRole('combobox',{name:'전체·인기',exact:true}).selectOption({label:'전체'});
+  await expect(page).toHaveURL(/category=all/);
+  const picker=page.getByRole('combobox',{name:'전체·인기',exact:true});
+  await picker.focus();
+  expect(await picker.evaluate(element=>getComputedStyle(element).outlineStyle==='none'||parseFloat(getComputedStyle(element).outlineOffset)<0)).toBe(true);
+  await page.getByRole('button',{name:'글쓰기',exact:true}).click();
+  const composer=page.getByRole('dialog',{name:'글쓰기',exact:true});
+  await composer.getByRole('combobox',{name:'카테고리',exact:true}).selectOption('local-help');
+  await composer.getByRole('textbox',{name:'제목',exact:true}).fill('동네 질문 카테고리 확인');
+  await composer.getByRole('textbox',{name:'내용',exact:true}).fill('함께 산책할 곳을 찾고 있어요.');
+  await composer.getByRole('button',{name:'완료',exact:true}).click();
+  await expect(composer).toBeHidden();
+  await expect(page.locator('.community-post-tag')).toContainText('질문·도움');
+  const post=await admin.from('neighborhood_posts').select('category,audience').eq('family_id',own.family).eq('title','동네 질문 카테고리 확인').single();
+  expect(post.data).toEqual({category:'local-help',audience:'neighborhood'});
+  await page.screenshot({path:test.info().outputPath('neighborhood-mobile.png'),fullPage:true});
+  await page.getByRole('link',{name:'커뮤니티',exact:true}).click();
+  await expect(categories.getByRole('link',{name:'수유·분유',exact:true})).toBeVisible();
+  await expect(categories.getByRole('link',{name:'동네 일상',exact:true})).toHaveCount(0);
+  await expect(page.locator('.mobile-nav').getByRole('link',{name:'동네 소통',exact:true})).toBeVisible();
 });

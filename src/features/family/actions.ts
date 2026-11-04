@@ -29,12 +29,27 @@ function familyReturn(form: FormData, locale: Locale) {
 export async function saveFamilyResidence(form: FormData) {
   const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
   const { db } = await requireUser(locale);
+  const returnTo = (child: string | undefined, error?: string) => {
+    const page = form.get('returnPage');
+    const community = [
+      'community/playground',
+      'community/neighborhood',
+      'community/boards',
+    ].includes(String(page));
+    const params = new URLSearchParams({
+      ...(child ? { child } : {}),
+      ...(error ? { error } : {}),
+    });
+    if (community) {
+      revalidatePath(`/${locale}`, 'layout');
+      return `/${locale}/${page}?${params}`;
+    }
+    return `${familyReturn(form, locale)}&${params}${error ? '' : '&notice=saved'}`;
+  };
   const value = residenceSchema.safeParse(Object.fromEntries(form));
   if (!value.success) {
     const child = uuid.safeParse(form.get('childId'));
-    redirect(
-      `${familyReturn(form, locale)}&${child.success ? `child=${child.data}&` : ''}error=invalid`,
-    );
+    redirect(returnTo(child.success ? child.data : undefined, 'invalid'));
   }
   const v = value.data;
   const child = await db
@@ -43,7 +58,7 @@ export async function saveFamilyResidence(form: FormData) {
     .eq('id', v.childId)
     .maybeSingle();
   if (child.error || child.data?.family_id !== v.familyId)
-    redirect(`${familyReturn(form, locale)}&child=${v.childId}&error=invalid`);
+    redirect(returnTo(v.childId, 'invalid'));
   const result =
     v.countryCode !== 'KR'
       ? await db.rpc('save_global_residence', {
@@ -61,7 +76,14 @@ export async function saveFamilyResidence(form: FormData) {
           p_version: v.version,
         });
   redirect(
-    `${familyReturn(form, locale)}&child=${v.childId}&${result.error ? `error=${result.error.message.includes('conflict') ? 'conflict' : 'generic'}` : 'notice=saved'}`,
+    returnTo(
+      v.childId,
+      result.error
+        ? result.error.message.includes('conflict')
+          ? 'conflict'
+          : 'generic'
+        : undefined,
+    ),
   );
 }
 export async function onboard(form: FormData) {

@@ -116,6 +116,42 @@
 }
 .parenting-community .category-pills a {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.parenting-community .category-pills :is(a, select):focus-visible {
+  outline: 2px solid var(--brown);
+  outline-offset: -4px;
+}
+.community-residence {
+  width: 100%;
+  max-width: 560px;
+  margin: 12px auto 0;
+  gap: 14px;
+}
+.community-residence h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.community-residence > p {
+  margin: 0;
+  line-height: 1.65;
+}
+.community-residence-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: var(--brown);
+  background: color-mix(in srgb, var(--brown) 10%, var(--surface));
+}
+.community-residence .residence-selects {
+  grid-template-columns: 1fr;
+}
+.community-residence .residence-actions .button {
+  width: 100%;
 }
 .community-write-fab {
   position: fixed;

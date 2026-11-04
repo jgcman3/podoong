@@ -16,7 +16,7 @@ import {
 import type { Locale } from '@/lib/domain';
 import { PostComposer } from './post-composer';
 import { PostShareSheet } from './post-share-sheet';
-import { parentingTags } from './options';
+import { communityTags } from './options';
 import {
   postAuthor,
   postHashtags,
@@ -215,7 +215,7 @@ export function ParentingPostDetail({
               ])}
               child={child}
               locale={locale}
-              tags={parentingTags}
+              tags={communityTags(post.audience === 'neighborhood')}
               initialTag={post.category}
               source={
                 post.audience === 'neighborhood' ? 'neighborhood' : 'boards'
@@ -233,7 +233,11 @@ export function ParentingPostDetail({
       </header>
       <div className="parenting-post-content">
         <span className="community-post-tag">
-          {parentingTags.find(([id]) => id === post.category)?.[ko ? 1 : 2]}
+          {
+            communityTags(post.audience === 'neighborhood').find(
+              ([id]) => id === post.category,
+            )?.[ko ? 1 : 2]
+          }
         </span>
         <div className="parenting-post-author">
           <span className="parenting-author-avatar">

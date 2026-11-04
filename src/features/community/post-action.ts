@@ -6,7 +6,7 @@ import { loadFamily, requireUser } from '@/lib/data';
 import { imageType } from '@/features/child-care/schema';
 import { renderPhotoVariant } from '@/features/growth-community/photo-variants.mjs';
 import { communityStorage } from './storage';
-import { parentingTags } from './options';
+import { communityTags } from './options';
 import {
   MAX_POST_PHOTOS,
   pollInputSchema,
@@ -24,12 +24,15 @@ export async function publishParentingPost(form: FormData): Promise<{
       child: z.uuid(),
       post: z.uuid().optional(),
       audience: z.enum(['country', 'neighborhood']),
-      category: z
-        .string()
-        .refine((value) => parentingTags.some(([id]) => id === value)),
+      category: z.string(),
       title: z.string().trim().min(1).max(100),
       body: z.string().trim().min(1).max(3000),
     })
+    .refine((value) =>
+      communityTags(value.audience === 'neighborhood').some(
+        ([id]) => id === value.category,
+      ),
+    )
     .safeParse(Object.fromEntries(form));
   const photos = form
     .getAll('photo')

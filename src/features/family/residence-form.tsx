@@ -31,7 +31,12 @@ export function ResidenceForm({
   family: Row<'families'>;
   childId: string;
   locale: Locale;
-  returnPage?: 'family' | 'account';
+  returnPage?:
+    | 'family'
+    | 'account'
+    | 'community/playground'
+    | 'community/neighborhood'
+    | 'community/boards';
 }) {
   const t = useTranslations();
   const initial = residenceRegions.find(
