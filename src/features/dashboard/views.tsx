@@ -1,4 +1,3 @@
-import { PrivacySettings } from '@/features/privacy/settings';
 import { serviceContacts } from '@/lib/contacts';
 import { DeveloperRequestForm } from '@/features/developer-requests/form';
 import { AppearanceSettings } from '@/components/appearance';
@@ -783,23 +782,6 @@ export async function ChildAccount({
             <ChevronRight size={16} />
           </summary>
           <Settings context={context} locale={locale} embedded mode="account" />
-        </details>
-        <details
-          className="panel account-settings-section"
-          open={panel === 'privacy'}
-        >
-          <summary>
-            <SettingsIcon size={18} />
-            <span>
-              {ko ? '개인정보·동의 설정' : 'Privacy and consent settings'}
-            </span>
-            <ChevronRight size={16} />
-          </summary>
-          <PrivacySettings
-            locale={locale}
-            child={child.id}
-            state={context.privacy}
-          />
         </details>
         <details
           className="panel account-settings-section"
