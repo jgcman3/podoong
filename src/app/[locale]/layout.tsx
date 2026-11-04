@@ -9,6 +9,7 @@ import { appleStartupImages } from '@/lib/app-startup.mjs';
 import { InstallAppProvider } from '@/components/install-app';
 import type { Metadata, Viewport } from 'next';
 import { cookies, headers } from 'next/headers';
+import { appName, appManifestPath } from '@/features/install/manifest';
 import {
   desktopBrowser,
   devicePlatform,
@@ -19,27 +20,36 @@ import {
   type ThemePreference,
 } from '@/components/appearance';
 const baseMetadata: Metadata = {
-  title: { default: '포둥 · podoong', template: '%s · podoong' },
   description: '가족과 함께 만드는 포근한 돌봄의 하루',
-  manifest: '/manifest.webmanifest',
-  applicationName: '포둥',
-  appleWebApp: {
-    capable: true,
-    title: '포둥',
-    statusBarStyle: 'default',
-    startupImage: appleStartupImages(),
-  },
   icons: {
     icon: '/icons/podung-192.png?v=full-20261029',
     apple: '/icons/podung-180.png?v=full-20261029',
   },
 };
-export async function generateMetadata() {
-  const token = (await cookies()).get('podoong-app-icon')?.value;
-  if (!token || !/^[a-f0-9]{64}$/.test(token)) return baseMetadata;
-  return {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const value = (await params).locale;
+  const locale = value === 'en' ? 'en' : 'ko';
+  const metadata: Metadata = {
     ...baseMetadata,
-    manifest: `/api/app-manifest/${token}`,
+    title: { default: appName(locale), template: '%s · podoong' },
+    applicationName: appName(locale),
+    manifest: appManifestPath(locale),
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      startupImage: appleStartupImages(),
+      title: appName(locale),
+    },
+  };
+  const token = (await cookies()).get('podoong-app-icon')?.value;
+  if (!token || !/^[a-f0-9]{64}$/.test(token)) return metadata;
+  return {
+    ...metadata,
+    manifest: appManifestPath(locale, token),
     icons: {
       icon: `/api/app-icon/${token}/192`,
       apple: `/api/app-icon/${token}/180`,

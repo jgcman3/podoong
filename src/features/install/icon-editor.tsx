@@ -5,19 +5,20 @@ import { Camera, Check, RotateCcw } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import { saveAppIcon } from './actions';
 import styles from './install.module.css';
+import { appName } from './manifest';
 
 export function IconEditor({
   locale,
   child,
-  name,
   token,
   editable,
+  prepared,
 }: {
   locale: Locale;
   child: string;
-  name: string;
   token?: string;
   editable: boolean;
+  prepared: boolean;
 }) {
   const ko = locale === 'ko';
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -31,12 +32,23 @@ export function IconEditor({
     // Installation must start on a fresh document: an earlier browser prompt
     // can otherwise retain the generic manifest from before the photo upload.
     const url = new URL(window.location.href);
-    if (!url.searchParams.has('ready')) {
+    if (!prepared) {
       window.location.replace(
         `/api/prepare-install?locale=${locale}&child=${encodeURIComponent(child)}${url.searchParams.has('error') ? '&error=photo' : ''}`,
       );
+    } else {
+      // Safari can save the current page URL rather than the manifest start_url.
+      // Keep the setup visible, but save an ordinary Today URL when installing.
+      url.searchParams.delete('install');
+      url.searchParams.delete('ready');
+      url.searchParams.delete('error');
+      window.history.replaceState(
+        window.history.state,
+        '',
+        url.pathname + url.search,
+      );
     }
-  }, [token, locale, child]);
+  }, [token, locale, child, prepared]);
   useEffect(() => {
     if (!source) return;
     const loaded = new Image();
@@ -111,7 +123,7 @@ export function IconEditor({
             height={112}
           />
         )}
-        <strong>{name}</strong>
+        <strong>{appName(locale)}</strong>
       </div>
       {editable && (
         <>

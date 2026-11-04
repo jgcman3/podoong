@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const response = new NextResponse(null, {
     status: 303,
     headers: {
-      Location: `/${locale}/install?child=${encodeURIComponent(child)}&ready=1${request.nextUrl.searchParams.has('error') ? '&error=photo' : ''}`,
+      Location: `/${locale}/today?child=${encodeURIComponent(child)}&install=1&ready=1${request.nextUrl.searchParams.has('error') ? '&error=photo' : ''}`,
     },
   });
   response.cookies.set('podoong-app-icon', data?.token || '', {

@@ -1107,7 +1107,7 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   await expect(page.getByLabel('아이와 나의 관계')).toHaveAttribute('required','');
   await page.getByLabel('아이와 나의 관계').selectOption('father');
   await page.getByRole('button', { name: '우리 가족 시작하기' }).click();
-  await expect(page).toHaveURL(/\/ko\/install\?.*ready=1/);
+  await expect(page).toHaveURL(/\/ko\/today\?child=[^&]+$/);
   await page.getByRole('link', { name: '포둥 시작하기' }).click();
   await expect(page).toHaveURL(/\/ko\/today/);
   await expect(page.locator('.topbar-child-info strong')).toHaveText('포근이');
@@ -1235,7 +1235,7 @@ test('mobile onboarding advances one field at a time and preserves input across 
     await page.getByLabel('가족 이름').fill('모바일 둥지');
     for (let index = 0; index < 6; index++) await next.click();
     await page.getByRole('button', { name: '우리 가족 시작하기', exact: true }).click();
-    await expect(page).toHaveURL(/\/ko\/install\?.*ready=1/);
+    await expect(page).toHaveURL(/\/ko\/today\?child=[^&]+$/);
     await page.getByRole('link', { name: '포둥 시작하기' }).click();
     await expect(page).toHaveURL(/\/ko\/today\?child=/);
     const child = new URL(page.url()).searchParams.get('child')!;
@@ -1297,7 +1297,7 @@ test('signup agreements support refusal and preserve the English invitation flow
     await invited.locator('select[name=relationship]').selectOption('maternal_aunt');
     await invited.locator('input[name=confirm]').check();
     await invited.getByRole('button',{name:'Join family',exact:true}).click();
-    await expect(invited).toHaveURL(new RegExp(`/en/install\\?child=${own.child}.*ready=1`));
+    await expect(invited).toHaveURL(new RegExp(`/en/today\\?child=${own.child}$`));
     await invited.getByRole('link',{name:'Start using podoong',exact:true}).click();
     await expect(invited).toHaveURL(new RegExp(`/en/today\\?child=${own.child}`));
     expect((await admin.from('signup_agreements').select('interface_locale').eq('user_id',invitedUser)).data?.every(row=>row.interface_locale==='en')).toBe(true);
@@ -5051,7 +5051,7 @@ test('home screen install exposes manifest, manual guidance and browser installa
   await page.goto(`/ko/install?child=${child}&ready=1`);
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
     'href',
-    '/manifest.webmanifest',
+    '/api/app-manifest?locale=ko',
   );
   await expect(
     page.locator('meta[name="mobile-web-app-capable"]'),
@@ -5105,7 +5105,7 @@ test('iPhone home screen guidance works from account settings without a native i
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto(`/ko/account?child=${child}`);
   await page.getByRole('link', {name:'아이 사진으로 홈 화면에 추가',exact:true}).click();
-  await expect(page).toHaveURL(/ready=1/);
+  await expect(page).toHaveURL(/\/ko\/today\?child=[^&]+$/);
   await page
     .getByRole('button', { name: '홈 화면에 추가', exact: true })
     .click();
@@ -6488,7 +6488,7 @@ test('invited caregiver must select relationship and diaries retain author relat
     await memberPage.getByLabel('아이와의 관계').selectOption('maternal_aunt');
     await memberPage.getByRole('checkbox').check();
     await memberPage.locator('form button[type=submit], form button.button.primary').click();
-    await expect(memberPage).toHaveURL(/\/install\?.*ready=1/);
+    await expect(memberPage).toHaveURL(/\/today\?child=[^&]+$/);
     await memberPage.getByRole('link',{name:'포둥 시작하기',exact:true}).click();
     await expect(memberPage).toHaveURL(/today/);
     expect((await admin.from('family_members').select('relationship').eq('family_id',own.family).eq('user_id',member).single()).data?.relationship).toBe('maternal_aunt');
@@ -6996,7 +6996,7 @@ test('personal child icon crops a photo, publishes install metadata and revokes 
   await page.setViewportSize({width:390,height:844});
   await page.goto(`/ko/account?child=${child}`);
   await page.getByRole('link',{name:'아이 사진으로 홈 화면에 추가',exact:true}).click();
-  await expect(page).toHaveURL(/ready=1/);
+  await expect(page).toHaveURL(/\/ko\/today\?child=[^&]+$/);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   const bytes = await sharp({create:{width:600,height:800,channels:3,background:'#d08b73'}}).jpeg().toBuffer();
   await page.locator('input[type=file]').setInputFiles({name:'child.jpg',mimeType:'image/jpeg',buffer:bytes});
@@ -7004,14 +7004,14 @@ test('personal child icon crops a photo, publishes install metadata and revokes 
   await page.getByRole('slider',{name:'확대'}).fill('1.5');
   await page.getByRole('button',{name:'이 사진으로 적용',exact:true}).click();
   await expect(page.locator('link[rel=manifest]')).toHaveAttribute('href',/\/api\/app-manifest\/[a-f0-9]{64}/);
-  await expect(page).toHaveURL(/ready=1/);
+  await expect(page).toHaveURL(/\/ko\/today\?child=[^&]+$/);
   const manifestPath = (await page.locator('link[rel=manifest]').getAttribute('href'))!;
   const {data:record} = await admin.from('child_app_icons').select('path,layout_version').eq('child_id',child).single();
   expect(record).toBeTruthy(); expect(record!.layout_version).toBe(2); createdChildPhotos.push(record!.path);
   const anonymous = await browser.newContext();
   try {
     const manifest = await (await anonymous.request.get(`http://127.0.0.1:3188${manifestPath}`)).json();
-    expect(manifest.id).toBe('/'); expect(manifest.start_url).toBe('/today');
+    expect(manifest.id).toBe('/'); expect(manifest.start_url).toBe('/ko/today'); expect(manifest.name).toBe('포둥이'); expect(manifest.short_name).toBe('포둥이');
     expect(JSON.stringify(manifest)).not.toContain(child);
     const apple = (await page.locator('link[rel=apple-touch-icon]').getAttribute('href'))!;
     for(const [path,size] of [[apple,180],...[...manifest.icons].map(icon=>[icon.src,Number(icon.sizes.split('x')[0])])] as Array<[string,number]>) {
@@ -7031,12 +7031,24 @@ test('personal child icon crops a photo, publishes install metadata and revokes 
     const oldEdge = await sharp(await (await anonymous.request.get(`http://127.0.0.1:3188${apple}`)).body()).removeAlpha().raw().toBuffer();
     expect(Math.abs(oldEdge[0]-208)).toBeLessThan(4);
     expect(Math.abs(oldEdge[1]-139)).toBeLessThan(4);
+    await expect(page).toHaveTitle('포둥이');
+    await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute('content', '포둥이');
     await page.screenshot({path:test.info().outputPath('personal-icon-mobile.png'),fullPage:true});
+    await page.goto(`/en/install?child=${child}`);
+    await expect(page).toHaveURL(new RegExp(`/en/today\\?child=${child}$`));
+    await expect(page).toHaveTitle('podoong');
+    await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute('content', 'podoong');
+    const englishManifestPath = (await page.locator('link[rel=manifest]').getAttribute('href'))!;
+    const englishManifest = await (await anonymous.request.get(`http://127.0.0.1:3188${englishManifestPath}`)).json();
+    expect(englishManifest.name).toBe('podoong'); expect(englishManifest.short_name).toBe('podoong'); expect(englishManifest.start_url).toBe('/en/today');
+    await page.reload();
+    await expect(page.locator('.quick-history-feed')).toBeVisible();
+
     await page.goto(`/ko/today?child=${child}`);
     await expect(page.locator('link[rel=manifest]')).toHaveAttribute('href',manifestPath);
     await page.goto(`/ko/install?child=${child}&ready=1`);
     await page.getByRole('button',{name:'기본 아이콘으로',exact:true}).click();
-    await expect(page.locator('link[rel=manifest]')).toHaveAttribute('href','/manifest.webmanifest');
+    await expect(page.locator('link[rel=manifest]')).toHaveAttribute('href','/api/app-manifest?locale=ko');
     expect((await anonymous.request.get(`http://127.0.0.1:3188${apple}`)).status()).toBe(404);
     expect((await anonymous.request.get(`http://127.0.0.1:3188${manifestPath}`)).status()).toBe(404);
     await page.getByRole('link',{name:'포둥 시작하기',exact:true}).click();

@@ -11,6 +11,22 @@ import {
   ChildAccount,
 } from '@/features/dashboard/views';
 import type { Locale } from '@/lib/domain';
+import { Installation, installationMetadata } from '@/features/install/page';
+
+export async function generateMetadata(props: {
+  params: Promise<{ locale: Locale; section: string }>;
+  searchParams: Promise<{
+    child?: string;
+    error?: string;
+    ready?: string;
+    install?: string;
+  }>;
+}) {
+  const { section } = await props.params;
+  if (section === 'today' && (await props.searchParams).install === '1')
+    return installationMetadata(props);
+  return {};
+}
 export default async function AppPage({
   params,
   searchParams,
@@ -30,10 +46,19 @@ export default async function AppPage({
     interval?: string;
     pattern?: string;
     panel?: string;
+    install?: string;
+    ready?: string;
   }>;
 }) {
   const { locale, section } = await params;
   const q = await searchParams;
+  if (section === 'today' && q.install === '1')
+    return (
+      <Installation
+        params={Promise.resolve({ locale })}
+        searchParams={Promise.resolve(q)}
+      />
+    );
   if (section === 'records')
     redirect(
       `/${locale}/today${q.child ? `?child=${encodeURIComponent(q.child)}` : ''}`,
