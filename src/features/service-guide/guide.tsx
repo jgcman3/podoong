@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
+import { useRouter } from 'next/navigation';
 import { FeedingPushSettings } from '@/features/notifications/feeding-push-settings';
 import { completeServiceGuide } from './actions';
 import styles from './guide.module.css';
@@ -80,6 +81,7 @@ export function ServiceGuide({
   locale: Locale;
   preferences: Preferences;
 }) {
+  const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const [step, setStep] = useState(0),
     [closed, setClosed] = useState(false),
@@ -101,11 +103,6 @@ export function ServiceGuide({
     setError(false);
     const url = new URL(window.location.href);
     url.searchParams.delete('guide');
-    window.history.replaceState(
-      window.history.state,
-      '',
-      url.pathname + url.search,
-    );
     try {
       const result = await completeServiceGuide(locale);
       if (result.error) {
@@ -114,6 +111,7 @@ export function ServiceGuide({
       }
       dialog.current?.close();
       setClosed(true);
+      router.replace(url.pathname + url.search, { scroll: false });
     } catch {
       setError(true);
     } finally {

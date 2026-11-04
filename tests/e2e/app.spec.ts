@@ -7601,7 +7601,8 @@ test('first-use guide saves notification choices only after permission and stays
  await expect(page.getByRole('dialog',{name:'빠른 기록'})).toBeVisible();
  await page.getByRole('button',{name:'안내 건너뛰기'}).click();
  await expect(page.getByRole('dialog')).not.toBeVisible();
- expect(page.url()).not.toContain('guide=');
+ await expect(page).not.toHaveURL(/guide=/);
+ await page.reload();await expect(page.getByRole('dialog')).not.toBeVisible();
  } finally {if(!config.data) await admin.from('feeding_push_config').delete().eq('token_secret_id',fixtureId);}
 });
 
