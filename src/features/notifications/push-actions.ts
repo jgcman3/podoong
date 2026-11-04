@@ -7,6 +7,8 @@ const inputSchema = z.object({
   interval: z.number().int().min(30).max(1440),
   quiet: z.boolean(),
   mode: z.enum(['interval', 'yesterday', 'off']),
+  playground: z.boolean(),
+  playgroundQuiet: z.boolean(),
   subscription: z
     .object({
       endpoint: z.url().max(2048),
@@ -17,17 +19,19 @@ const inputSchema = z.object({
     })
     .optional(),
 });
-export async function saveFeedingPush(input: unknown) {
+export async function savePushSettings(input: unknown) {
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) return { error: true } as const;
   const value = parsed.data,
     { db } = await requireUser(value.locale);
-  const result = await db.rpc('save_feeding_reminder', {
+  const result = await db.rpc('save_push_settings', {
     ...(value.subscription ? { p_subscription: value.subscription } : {}),
     p_mode: value.mode,
     p_interval: value.interval,
     p_quiet: value.quiet,
     p_locale: value.locale,
+    p_playground: value.playground,
+    p_playground_quiet: value.playgroundQuiet,
   });
   if (result.error) return { error: true } as const;
   if (value.subscription && result.data) {

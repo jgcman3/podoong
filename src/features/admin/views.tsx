@@ -19,6 +19,7 @@ import {
   requestStatuses,
   type AdminSection,
 } from './model';
+import { ReportReview } from './report-review';
 import { RequestEditor } from './request-editor';
 import { resolveAdminError } from './actions';
 import type { Locale } from '@/lib/domain';
@@ -126,6 +127,115 @@ export async function AdminView({
         </small>
       </div>
       {await (async () => {
+        if (section === 'reports') {
+          const status = ['open', 'resolved', 'all'].includes(
+            query.status ?? '',
+          )
+            ? query.status!
+            : 'open';
+          const result = await db.rpc('admin_reports', {
+            p_status: status,
+            ...adminCursor(query),
+          });
+          if (result.error) throw Error('Admin reports unavailable');
+          const rows = result.data.slice(0, 30);
+          return (
+            <section className="admin-panel">
+              <nav
+                className="admin-filters"
+                aria-label={ko ? '신고 상태' : 'Report status'}
+              >
+                {[
+                  ['open', ko ? '미처리' : 'Open'],
+                  ['resolved', ko ? '처리 완료' : 'Resolved'],
+                  ['all', copy.all],
+                ].map(([value, label]) => (
+                  <Link
+                    key={value}
+                    href={`/${locale}/admin/reports?status=${value}`}
+                    aria-current={status === value ? 'page' : undefined}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </nav>
+              {rows.length ? (
+                rows.map((report) => (
+                  <article key={report.id} className="admin-report-item">
+                    <div className="admin-report-meta">
+                      <span className="admin-badge">
+                        {report.kind === 'diary'
+                          ? ko
+                            ? '공개 성장일기'
+                            : 'Public diary'
+                          : report.kind === 'neighborhood'
+                            ? ko
+                              ? '동네 이야기'
+                              : 'Neighborhood'
+                            : ko
+                              ? '커뮤니티'
+                              : 'Community'}
+                      </span>
+                      <span>
+                        {report.status === 'resolved'
+                          ? ko
+                            ? '처리 완료'
+                            : 'Resolved'
+                          : ko
+                            ? '미처리'
+                            : 'Open'}{' '}
+                        ·{' '}
+                        {report.hidden
+                          ? ko
+                            ? '숨김'
+                            : 'Hidden'
+                          : ko
+                            ? '노출 중'
+                            : 'Visible'}
+                      </span>
+                      <time dateTime={report.created_at}>
+                        {adminDate(report.created_at, locale)}
+                      </time>
+                    </div>
+                    <h2>{report.title}</h2>
+                    <p>
+                      <strong>{ko ? '신고 사유' : 'Reason'}:</strong>{' '}
+                      {report.reason}
+                    </p>
+                    <details>
+                      <summary>
+                        {ko ? '신고 당시 내용 보기' : 'View reported content'}
+                      </summary>
+                      <p className="admin-report-body">{report.body}</p>
+                    </details>
+                    {report.resolution_note && (
+                      <p className="small muted">
+                        {ko ? '최근 처리 사유' : 'Latest review note'}:{' '}
+                        {report.resolution_note}
+                      </p>
+                    )}
+                    <ReportReview
+                      locale={locale}
+                      id={report.id}
+                      version={report.version}
+                      hidden={report.hidden}
+                      status={report.status}
+                    />
+                  </article>
+                ))
+              ) : (
+                <Empty locale={locale} />
+              )}
+              <PageLinks
+                locale={locale}
+                section={section}
+                query={{ ...query, status }}
+                rows={rows}
+                hasMore={result.data.length > 30}
+              />
+            </section>
+          );
+        }
         if (section === 'dashboard') {
           const result = await db.rpc('admin_dashboard');
           if (result.error) throw new Error('Admin dashboard unavailable');
@@ -834,6 +944,18 @@ export async function AdminView({
                       <td>
                         {(
                           {
+                            report_hide: ko
+                              ? '신고 글 숨김'
+                              : 'Reported content hidden',
+                            report_unhide: ko
+                              ? '신고 글 숨김 해제'
+                              : 'Reported content restored',
+                            report_resolve: ko
+                              ? '신고 처리 완료'
+                              : 'Report resolved',
+                            report_reopen: ko
+                              ? '신고 재검토'
+                              : 'Report reopened',
                             request_update: ko
                               ? '개발 요청 변경'
                               : 'Request updated',

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Heart, MessageCircleHeart, X } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 
@@ -17,7 +18,8 @@ export function FriendInbox({
   locale: Locale;
 }) {
   const ko = locale === 'ko';
-  const [open, setOpen] = useState(false),
+  const query = useSearchParams();
+  const [open, setOpen] = useState(query.get('inbox') === '1'),
     [items, setItems] = useState<Reaction[]>([]),
     [before, setBefore] = useState<string>(),
     [next, setNext] = useState<string>(),

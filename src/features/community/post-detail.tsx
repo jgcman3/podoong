@@ -14,6 +14,7 @@ import {
   Check,
 } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
+import { PostRowMenu } from './post-row-menu';
 import { PostComposer } from './post-composer';
 import { PostShareSheet } from './post-share-sheet';
 import { communityTags } from './options';
@@ -203,6 +204,16 @@ export function ParentingPostDetail({
           >
             <Share2 size={23} />
           </button>
+          {!post.mine && (
+            <PostRowMenu
+              id={post.id}
+              child={child}
+              locale={locale}
+              source={source}
+              mine={false}
+              row={false}
+            />
+          )}
           {post.mine && (
             <PostComposer
               key={JSON.stringify([

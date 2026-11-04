@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.100.0';
 import webpush from 'npm:web-push@3.6.7';
 import { deliverFeedingPush } from '../_shared/feeding-push.mjs';
+import { deliverPlaygroundPush } from '../_shared/playground-push.mjs';
 
 Deno.serve(async (request: Request) => {
   if (request.method !== 'POST') return new Response(null, { status: 405 });
@@ -16,35 +17,39 @@ Deno.serve(async (request: Request) => {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
   try {
-    const count = await deliverFeedingPush(
-      db,
-      token,
-      async (subscription, payload) => {
-        const notification = webpush.generateRequestDetails(
-          subscription,
-          JSON.stringify(payload),
-          {
-            TTL: 300,
-            urgency: 'normal',
-            vapidDetails: {
-              subject: 'mailto:admin@podoong.com',
-              publicKey,
-              privateKey,
-            },
-          },
-        );
-        const response = await fetch(notification.endpoint, {
-          method: 'POST',
-          headers: notification.headers,
-          body: notification.body,
-          redirect: 'error',
-          signal: AbortSignal.timeout(8000),
-        });
-        await response.body?.cancel();
-        return response.status;
+    const send = async (
+      subscription: {
+        endpoint: string;
+        keys: { p256dh: string; auth: string };
       },
-    );
-    return Response.json(count);
+      payload: Record<string, unknown>,
+    ) => {
+      const notification = webpush.generateRequestDetails(
+        subscription,
+        JSON.stringify(payload),
+        {
+          TTL: 300,
+          urgency: 'normal',
+          vapidDetails: {
+            subject: 'mailto:admin@podoong.com',
+            publicKey,
+            privateKey,
+          },
+        },
+      );
+      const response = await fetch(notification.endpoint, {
+        method: 'POST',
+        headers: notification.headers,
+        body: notification.body,
+        redirect: 'error',
+        signal: AbortSignal.timeout(8000),
+      });
+      await response.body?.cancel();
+      return response.status;
+    };
+    const feeding = await deliverFeedingPush(db, token, send);
+    const playground = await deliverPlaygroundPush(db, token, send);
+    return Response.json({ feeding, playground });
   } catch (error) {
     return new Response(null, {
       status:

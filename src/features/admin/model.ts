@@ -11,6 +11,7 @@ export const requestPriorities = ['low', 'normal', 'high', 'urgent'] as const;
 export const adminSections = [
   'dashboard',
   'requests',
+  'reports',
   'analytics',
   'people',
   'neighborhoods',
@@ -61,6 +62,7 @@ export function adminText(locale: Locale) {
       ? {
           dashboard: '대시보드',
           requests: '개발 요청',
+          reports: '신고 관리',
           analytics: '이용 분석',
           people: '사용자·가족',
           neighborhoods: '동네 현황',
@@ -70,6 +72,7 @@ export function adminText(locale: Locale) {
       : {
           dashboard: 'Dashboard',
           requests: 'Requests',
+          reports: 'Reports',
           analytics: 'Usage',
           people: 'Users & families',
           neighborhoods: 'Neighborhoods',

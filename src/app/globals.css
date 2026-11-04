@@ -10072,3 +10072,18 @@ html[data-standalone] :is(input, select, textarea) {
   line-height: 1.2;
   white-space: nowrap;
 }
+
+.playground-push-settings {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.playground-push-settings > p { margin: 0 0 12px; }
+.playground-push-settings .notification-setting-toggle + .notification-setting-toggle { margin-top: 10px; }
+
+.admin-report-item { padding: 20px 0; border-bottom: 1px solid var(--line); }
+.admin-report-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+.admin-report-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.admin-report-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.admin-filters a[aria-current='page'] { color: var(--brown); font-weight: 700; }

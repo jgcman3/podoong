@@ -39,6 +39,8 @@ export async function NotificationSettings({
       locale={locale}
       publicKey={config.data}
       initialDevice={subscription.data?.id ?? null}
+      initialPlayground={prefs.data?.playground_enabled ?? false}
+      initialPlaygroundQuiet={prefs.data?.playground_quiet ?? true}
       initialInterval={prefs.data?.feeding_interval_minutes ?? 180}
       initialMode={
         prefs.data?.feeding_enabled === false

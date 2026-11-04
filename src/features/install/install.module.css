@@ -136,3 +136,28 @@
   text-decoration: none;
   margin: 24px 0 12px;
 }
+
+.notificationNotice {
+  text-align: left;
+  padding: 16px;
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.notificationNotice > strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.notificationNotice > p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.notificationNotice > a {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brown);
+}

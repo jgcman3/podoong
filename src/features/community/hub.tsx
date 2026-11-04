@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
+import { feedPreference, feedPreferenceCookie } from './feed-preference';
+import { FeedCategoryNav } from './feed-category-nav';
 import Form from 'next/form';
 import { Search, X } from 'lucide-react';
 import { Flash } from '@/components/flash';
@@ -8,8 +11,9 @@ import { FeedSortPicker } from './feed-sort-picker';
 import { PostComposer } from './post-composer';
 import { PostCard } from './post-card';
 import { postDetailSchema } from './post-model';
-import { communityTags, parentingTags } from './options';
+import { communityTags } from './options';
 import { NeighborhoodFriends } from './friends';
+import { CommunityWelcome } from './community-welcome';
 import { CommunityResidence } from './residence';
 function minutesSince(createdAt: string) {
   return Math.max(0, Math.floor((Date.now() - Date.parse(createdAt)) / 60000));
@@ -41,50 +45,57 @@ export async function CommunityHub({
     neighborhood = area === 'neighborhood',
     posts = area !== 'friends';
   const tags = communityTags(neighborhood);
-  const category = tags.find(([id]) => id === query.category)?.[0] ?? 'all';
+  const preference = posts
+    ? feedPreference(
+        (await cookies()).get(
+          feedPreferenceCookie(
+            area === 'neighborhood' ? 'neighborhood' : 'boards',
+          ),
+        )?.value,
+        tags,
+      )
+    : { category: 'all', sort: 'all' };
+  const category =
+    query.category === undefined
+      ? preference.category
+      : (tags.find(([id]) => id === query.category)?.[0] ?? 'all');
   const hasResidence =
     !!context.family.residence_country_code &&
     (area === 'boards' ||
       (!!context.family.residence_city && !!context.family.residence_locality));
   const search = typeof query.q === 'string' ? query.q.trim().slice(0, 80) : '';
-  const sort = query.sort === 'popular' ? 'popular' : 'all';
+  const showWelcome = posts && !search && !query.before;
+  const sort =
+    (query.sort ?? (query.category === undefined ? preference.sort : 'all')) ===
+    'popular'
+      ? 'popular'
+      : 'all';
   const path = `/${locale}/community${neighborhood ? '/neighborhood' : '/boards'}`;
   const href = (values: Record<string, string>) =>
     `${path}?${new URLSearchParams({ child: context.child.id, category, sort, ...(search ? { q: search } : {}), ...values })}`;
-  const [feed, topics] =
+  const feed =
     posts && hasResidence
-      ? await Promise.all([
-          context.db.rpc('parenting_feed', {
-            p_family: context.family.id,
-            p_neighborhood: neighborhood,
-            p_category: category,
-            p_sort: sort,
-            p_query: search,
-            ...(query.beforeScore && /^\d{1,15}$/.test(query.beforeScore)
-              ? { p_before_score: Number(query.beforeScore) }
-              : {}),
-            ...(query.before && !Number.isNaN(Date.parse(query.before))
-              ? { p_before: new Date(query.before).toISOString() }
-              : {}),
-            ...(query.beforeId &&
-            /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(
-              query.beforeId,
-            )
-              ? { p_before_id: query.beforeId }
-              : {}),
-          }),
-          neighborhood
-            ? Promise.resolve(null)
-            : context.db.rpc('parenting_topics', {
-                p_family: context.family.id,
-              }),
-        ])
-      : [null, null];
-  if (feed?.error || topics?.error) throw Error('Community feed unavailable');
-  const orderedTags = topics?.data?.flatMap((topic) => {
-    const tag = parentingTags.find(([id]) => id === topic.category);
-    return tag ? [tag] : [];
-  }) ?? [...tags];
+      ? await context.db.rpc('parenting_feed', {
+          p_family: context.family.id,
+          p_neighborhood: neighborhood,
+          p_category: category,
+          p_sort: sort,
+          p_query: search,
+          ...(query.beforeScore && /^\d{1,15}$/.test(query.beforeScore)
+            ? { p_before_score: Number(query.beforeScore) }
+            : {}),
+          ...(query.before && !Number.isNaN(Date.parse(query.before))
+            ? { p_before: new Date(query.before).toISOString() }
+            : {}),
+          ...(query.beforeId &&
+          /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(
+            query.beforeId,
+          )
+            ? { p_before_id: query.beforeId }
+            : {}),
+        })
+      : null;
+  if (feed?.error) throw Error('Community feed unavailable');
   return (
     <section
       className={`community-hub parenting-community${!posts && hasResidence ? ' parenting-playground' : ''}`}
@@ -121,9 +132,9 @@ export async function CommunityHub({
       ) : (
         <>
           {posts && (
-            <nav
-              className="community-pills category-pills"
-              aria-label={ko ? '게시판 주제' : 'Post topics'}
+            <FeedCategoryNav
+              area={neighborhood ? 'neighborhood' : 'boards'}
+              label={ko ? '게시판 주제' : 'Post topics'}
             >
               <FeedSortPicker
                 locale={locale}
@@ -132,7 +143,7 @@ export async function CommunityHub({
                 all={href({ category: 'all', sort: 'all' })}
                 popularHref={href({ category: 'all', sort: 'popular' })}
               />
-              {orderedTags.map(([id, k, e]) => (
+              {tags.map(([id, k, e]) => (
                 <Link
                   key={id}
                   href={href({
@@ -152,7 +163,7 @@ export async function CommunityHub({
                   {category === id && <X size={12} aria-hidden="true" />}
                 </Link>
               ))}
-            </nav>
+            </FeedCategoryNav>
           )}
           <Form
             action={path}
@@ -194,9 +205,20 @@ export async function CommunityHub({
             child={context.child.id}
             source={neighborhood ? 'neighborhood' : 'boards'}
             locale={locale}
-            tags={orderedTags}
+            tags={tags}
             initialTag={category}
           />
+          {showWelcome && (
+            <CommunityWelcome
+              neighborhood={
+                neighborhood
+                  ? (context.family.residence_locality ?? '')
+                  : undefined
+              }
+              locale={locale}
+              expanded={!feed?.data?.length}
+            />
+          )}
           {feed?.data?.length ? (
             <div className="parenting-posts">
               {feed.data.map((post) => {
@@ -261,7 +283,7 @@ export async function CommunityHub({
                 </Link>
               )}
             </div>
-          ) : (
+          ) : showWelcome ? null : (
             <p className="community-feed-empty">
               {search
                 ? ko

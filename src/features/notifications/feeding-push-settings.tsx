@@ -2,7 +2,7 @@
 import { useState, useSyncExternalStore, useTransition } from 'react';
 import { Bell, BellOff } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
-import { saveFeedingPush, disableFeedingPush } from './push-actions';
+import { savePushSettings, disableFeedingPush } from './push-actions';
 import { DeviceGuide } from '@/components/device-guide';
 function capability() {
   if (!window.isSecureContext) return 'https';
@@ -39,6 +39,8 @@ export function FeedingPushSettings({
   initialInterval,
   initialQuiet,
   initialMode,
+  initialPlayground,
+  initialPlaygroundQuiet,
 }: {
   locale: Locale;
   publicKey: string | null;
@@ -46,6 +48,8 @@ export function FeedingPushSettings({
   initialInterval: number;
   initialQuiet: boolean;
   initialMode: 'interval' | 'yesterday' | 'off';
+  initialPlayground: boolean;
+  initialPlaygroundQuiet: boolean;
 }) {
   const ko = locale === 'ko',
     status = useSyncExternalStore(subscribe, capability, () => 'checking');
@@ -53,6 +57,8 @@ export function FeedingPushSettings({
     [interval, setInterval] = useState(initialInterval),
     [quiet, setQuiet] = useState(initialQuiet),
     [mode, setMode] = useState(initialMode),
+    [playground, setPlayground] = useState(initialPlayground),
+    [playgroundQuiet, setPlaygroundQuiet] = useState(initialPlaygroundQuiet),
     [error, setError] = useState(false),
     [pending, start] = useTransition();
   const available = status === 'ready' && !!publicKey;
@@ -103,11 +109,13 @@ export function FeedingPushSettings({
           });
           created = subscription;
         }
-        const result = await saveFeedingPush({
+        const result = await savePushSettings({
           locale,
           interval,
           quiet,
           mode,
+          playground,
+          playgroundQuiet,
           subscription: subscription.toJSON(),
         });
         if (!('id' in result)) {
@@ -126,7 +134,15 @@ export function FeedingPushSettings({
     start(async () => {
       setError(false);
       try {
-        const result = await saveFeedingPush({ locale, interval, quiet, mode });
+        if (playground && device) await registration();
+        const result = await savePushSettings({
+          locale,
+          interval,
+          quiet,
+          mode,
+          playground,
+          playgroundQuiet,
+        });
         setError(!!result.error);
       } catch {
         setError(true);
@@ -220,7 +236,45 @@ export function FeedingPushSettings({
           </label>
         )}
       </fieldset>
-      {problem && mode !== 'off' && (
+      <section
+        className="playground-push-settings"
+        aria-label={
+          ko ? '놀이터 알림 설정' : 'Playground notification settings'
+        }
+      >
+        <h3>
+          <Bell size={18} />
+          {ko ? '놀이터 알림' : 'Playground notifications'}
+        </h3>
+        <p className="small muted">
+          {ko
+            ? '동네 친구가 보낸 인사·하트를 알려드려요. 2분 동안 받은 마음은 모아서 한 번 알려드려요.'
+            : 'Get notified about waves and hearts from neighborhood friends. Reactions received within two minutes are grouped into one notification.'}
+        </p>
+        <label className="notification-setting-toggle">
+          <input
+            type="checkbox"
+            checked={playground}
+            disabled={pending}
+            onChange={(e) => setPlayground(e.target.checked)}
+          />
+          {ko ? '인사·하트 알림 받기' : 'Receive wave and heart notifications'}
+        </label>
+        {playground && (
+          <label className="notification-setting-toggle">
+            <input
+              type="checkbox"
+              checked={playgroundQuiet}
+              disabled={pending}
+              onChange={(e) => setPlaygroundQuiet(e.target.checked)}
+            />
+            {ko
+              ? '놀이터 알림도 밤에는 쉬기 (22:00–07:00)'
+              : 'Quiet playground notifications at night (22:00–07:00)'}
+          </label>
+        )}
+      </section>
+      {problem && (mode !== 'off' || playground) && (
         <p className="small feeding-push-availability">{problem}</p>
       )}
       <DeviceGuide locale={locale} purpose="notifications" />
@@ -232,7 +286,7 @@ export function FeedingPushSettings({
         </p>
       )}
       <div className="feeding-push-buttons">
-        {device || mode === 'off' ? (
+        {device || (mode === 'off' && !playground) ? (
           <>
             <button className="button" disabled={pending} onClick={save}>
               {ko ? '설정 저장' : 'Save settings'}

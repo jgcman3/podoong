@@ -595,14 +595,14 @@ isOneToOne: false
                   ]
                 },"community_reports": {
                   Row: {
-                    "comment_id": string | null,"created_at": string,"diary_nickname": string | null,"diary_note": string | null,"diary_record_id": string | null,"id": string,"post_id": string | null,"reason": string,"reporter_id": string,"status": string
+                    "comment_id": string | null,"created_at": string,"diary_nickname": string | null,"diary_note": string | null,"diary_record_id": string | null,"id": string,"parenting_post_id": string | null,"post_id": string | null,"post_snapshot": Json | null,"reason": string,"reporter_id": string,"resolution_note": string | null,"resolved_at": string | null,"resolved_by": string | null,"status": string,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "comment_id"?: string | null,"created_at"?: string,"diary_nickname"?: string | null,"diary_note"?: string | null,"diary_record_id"?: string | null,"id"?: string,"post_id"?: string | null,"reason": string,"reporter_id": string,"status"?: string
+                    "comment_id"?: string | null,"created_at"?: string,"diary_nickname"?: string | null,"diary_note"?: string | null,"diary_record_id"?: string | null,"id"?: string,"parenting_post_id"?: string | null,"post_id"?: string | null,"post_snapshot"?: Json | null,"reason": string,"reporter_id": string,"resolution_note"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: string,"version"?: number
                   }
                   Update: {
-                    "comment_id"?: string | null,"created_at"?: string,"diary_nickname"?: string | null,"diary_note"?: string | null,"diary_record_id"?: string | null,"id"?: string,"post_id"?: string | null,"reason"?: string,"reporter_id"?: string,"status"?: string
+                    "comment_id"?: string | null,"created_at"?: string,"diary_nickname"?: string | null,"diary_note"?: string | null,"diary_record_id"?: string | null,"id"?: string,"parenting_post_id"?: string | null,"post_id"?: string | null,"post_snapshot"?: Json | null,"reason"?: string,"reporter_id"?: string,"resolution_note"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: string,"version"?: number
                   }
                   Relationships: [
                     {
@@ -618,6 +618,12 @@ isOneToOne: false
       referencedRelation: "child_records"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "community_reports_parenting_post_id_fkey"
+      columns: ["parenting_post_id"]
+isOneToOne: false
+      referencedRelation: "neighborhood_posts"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "community_reports_post_id_fkey"
       columns: ["post_id"]
 isOneToOne: false
@@ -626,6 +632,12 @@ isOneToOne: false
     },{
       foreignKeyName: "community_reports_reporter_id_fkey"
       columns: ["reporter_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "community_reports_resolved_by_fkey"
+      columns: ["resolved_by"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
@@ -1055,14 +1067,14 @@ isOneToOne: false
                   ]
                 },"neighborhood_posts": {
                   Row: {
-                    "area_city": string | null,"area_district": string | null,"area_locality": string | null,"audience": string,"author_id": string | null,"author_identity": NonNullable<Json>,"body": string,"category": string,"country": string | null,"created_at": string,"family_id": string,"feature": string,"id": string,"region": string,"title": string,"view_count": number
+                    "area_city": string | null,"area_district": string | null,"area_locality": string | null,"audience": string,"author_id": string | null,"author_identity": NonNullable<Json>,"body": string,"category": string,"country": string | null,"created_at": string,"family_id": string,"feature": string,"hidden": boolean,"id": string,"region": string,"title": string,"view_count": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "area_city"?: string | null,"area_district"?: string | null,"area_locality"?: string | null,"audience"?: string,"author_id"?: string | null,"author_identity"?: NonNullable<Json>,"body": string,"category"?: string,"country"?: string | null,"created_at"?: string,"family_id": string,"feature": string,"id"?: string,"region": string,"title": string,"view_count"?: number
+                    "area_city"?: string | null,"area_district"?: string | null,"area_locality"?: string | null,"audience"?: string,"author_id"?: string | null,"author_identity"?: NonNullable<Json>,"body": string,"category"?: string,"country"?: string | null,"created_at"?: string,"family_id": string,"feature": string,"hidden"?: boolean,"id"?: string,"region": string,"title": string,"view_count"?: number
                   }
                   Update: {
-                    "area_city"?: string | null,"area_district"?: string | null,"area_locality"?: string | null,"audience"?: string,"author_id"?: string | null,"author_identity"?: NonNullable<Json>,"body"?: string,"category"?: string,"country"?: string | null,"created_at"?: string,"family_id"?: string,"feature"?: string,"id"?: string,"region"?: string,"title"?: string,"view_count"?: number
+                    "area_city"?: string | null,"area_district"?: string | null,"area_locality"?: string | null,"audience"?: string,"author_id"?: string | null,"author_identity"?: NonNullable<Json>,"body"?: string,"category"?: string,"country"?: string | null,"created_at"?: string,"family_id"?: string,"feature"?: string,"hidden"?: boolean,"id"?: string,"region"?: string,"title"?: string,"view_count"?: number
                   }
                   Relationships: [
                     {
@@ -1101,14 +1113,14 @@ isOneToOne: false
                   ]
                 },"notification_preferences": {
                   Row: {
-                    "delivery_hour": number,"event_enabled": boolean,"feeding_enabled": boolean,"feeding_interval_minutes": number,"feeding_reference": string,"frequency_minutes": number,"quiet_end": string,"quiet_start": string,"snooze_until": string | null,"task_enabled": boolean,"user_id": string
+                    "delivery_hour": number,"event_enabled": boolean,"feeding_enabled": boolean,"feeding_interval_minutes": number,"feeding_reference": string,"frequency_minutes": number,"playground_enabled": boolean,"playground_enabled_at": string | null,"playground_quiet": boolean,"quiet_end": string,"quiet_start": string,"snooze_until": string | null,"task_enabled": boolean,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id": string
+                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"playground_enabled"?: boolean,"playground_enabled_at"?: string | null,"playground_quiet"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id": string
                   }
                   Update: {
-                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id"?: string
+                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"playground_enabled"?: boolean,"playground_enabled_at"?: string | null,"playground_quiet"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1680,7 +1692,35 @@ isOneToOne: false
     }
                   ]
                 }
-          }
+
+"playground_push_deliveries": {
+                  Row: {
+                    "attempts": number,"batch_start": string,"child_id": string,"id": string,"lease_token": string | null,"leased_until": string | null,"scheduled_at": string,"sent_at": string | null,"status": string,"subscription_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts"?: number,"batch_start": string,"child_id": string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"scheduled_at": string,"sent_at"?: string | null,"status"?: string,"subscription_id": string
+                  }
+                  Update: {
+                    "attempts"?: number,"batch_start"?: string,"child_id"?: string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"scheduled_at"?: string,"sent_at"?: string | null,"status"?: string,"subscription_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "playground_push_deliveries_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "children"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "playground_push_deliveries_subscription_id_fkey"
+      columns: ["subscription_id"]
+isOneToOne: false
+      referencedRelation: "web_push_subscriptions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },
+}
           Views: {
             "calendar_entries": {
                   Row: {
@@ -2067,11 +2107,6 @@ isOneToOne: false
 "parenting_post_visible":
 { Args: { "p_post": string }; Returns: boolean
                            },
-"parenting_topics":
-{ Args: { "p_family": string }; Returns: {
-              "category": string,"posts": number
-            }[]
-                           },
 "permit_account_deletion":
 { Args: { "p_user": string }; Returns: string
                            },
@@ -2260,7 +2295,45 @@ isOneToOne: false
 "vote_daily_poll":
 { Args: { "p_id": string,"p_option": number }; Returns: undefined
                            }
-          }
+
+"finish_playground_push":
+{ Args: { "p_id": string,"p_lease": string,"p_result": string }; Returns: undefined
+                           },
+
+"validate_playground_push":
+{ Args: { "p_id": string,"p_lease": string }; Returns: boolean
+                           },
+
+"claim_playground_push":
+{ Args: { "p_token": string }; Returns: {
+              "auth_key": string,"child_id": string,"endpoint": string,"heart_count": number,"id": string,"lease_token": string,"locale": string,"p256dh": string,"wave_count": number
+            }[]
+                           },
+
+"playground_push_batch":
+{ Args: { "p_id": string }; Returns: {
+              "heart_count": number,"wave_count": number
+            }[]
+                           },
+
+"save_push_settings":
+{ Args: { "p_interval": number,"p_locale"?: string,"p_mode": string,"p_playground": boolean,"p_playground_quiet": boolean,"p_quiet": boolean,"p_subscription"?: Json }; Returns: string
+                           },
+
+"admin_review_report":
+{ Args: { "p_action": string,"p_expected_hidden": boolean,"p_reason": string,"p_report": string,"p_version": number }; Returns: undefined
+                           },
+
+"admin_reports":
+{ Args: { "p_before"?: string,"p_before_id"?: string,"p_status"?: string }; Returns: {
+              "body": string,"created_at": string,"hidden": boolean,"id": string,"kind": string,"reason": string,"resolution_note": string,"resolved_at": string,"status": string,"title": string,"version": number
+            }[]
+                           },
+
+"report_parenting_post":
+{ Args: { "p_post": string,"p_reason": string }; Returns: undefined
+                           },
+}
           Enums: {
             "caregiver_relationship": "mother"|"father"|"grandmother"|"grandfather"|"maternal_aunt"|"paternal_aunt"|"maternal_uncle"|"paternal_uncle"|"maternal_aunt_husband"|"paternal_aunt_husband"|"uncle_wife"|"relative"|"guardian"
           }

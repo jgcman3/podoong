@@ -1166,3 +1166,57 @@ body:has(.parenting-post-page) .app-footer {
     margin-block: 2px;
   }
 }
+
+/* Shared operator notices for the community and each neighborhood. */
+.community-welcome {
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.community-welcome > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+.community-welcome > summary::-webkit-details-marker {
+  display: none;
+}
+.community-welcome > summary strong {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.community-welcome > summary svg {
+  flex: none;
+  color: var(--muted);
+}
+.community-welcome[open] > summary svg {
+  transform: rotate(180deg);
+}
+.community-welcome-body {
+  padding: 0 16px 16px;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.community-welcome-body p {
+  margin: 0 0 12px;
+}
+.community-welcome-body p:last-child {
+  margin-bottom: 0;
+}
+.community-welcome-body strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.post-report-dialog { max-height: 90dvh; overflow-y: auto; }
+.post-report-dialog textarea { resize: vertical; }

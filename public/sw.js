@@ -1,4 +1,10 @@
 /* No page or child-data caching. This worker only handles opted-in push alerts. */
+self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
 self.addEventListener('push', (event) => {
   let payload;
   try {
@@ -12,7 +18,7 @@ self.addEventListener('push', (event) => {
     const proposed = new URL(data.url, self.location.origin);
     if (
       proposed.origin === self.location.origin &&
-      /^\/(ko|en)\/today$/.test(proposed.pathname)
+      /^\/(ko|en)\/(today|community\/playground)$/.test(proposed.pathname)
     )
       target = proposed;
   } catch {
@@ -36,7 +42,11 @@ self.addEventListener('notificationclick', (event) => {
         event.notification.data?.url || '/ko/today',
         self.location.origin,
       );
-      if (target.origin !== self.location.origin) return;
+      if (
+        target.origin !== self.location.origin ||
+        !/^\/(ko|en)\/(today|community\/playground)$/.test(target.pathname)
+      )
+        return;
       const windows = await self.clients.matchAll({
         type: 'window',
         includeUncontrolled: true,

@@ -35,14 +35,13 @@ export function PostCard({
   const ko = locale === 'ko';
   return (
     <article className="community-list-item">
-      {post.mine && (
-        <PostRowMenu
-          id={post.id}
-          child={child}
-          source={source}
-          locale={locale}
-        />
-      )}
+      <PostRowMenu
+        mine={post.mine}
+        id={post.id}
+        child={child}
+        source={source}
+        locale={locale}
+      />
       <Link
         className="community-post-open"
         aria-label={post.title}

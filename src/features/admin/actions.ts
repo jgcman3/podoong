@@ -53,3 +53,35 @@ export async function adminLogout(form: FormData) {
   await db.auth.signOut();
   redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/admin`)}`);
 }
+
+export async function reviewAdminReport(
+  _state: AdminActionState,
+  form: FormData,
+): Promise<AdminActionState> {
+  const input = z
+    .object({
+      locale: z.enum(['ko', 'en']),
+      id: z.uuid(),
+      action: z.enum(['hide', 'unhide', 'resolve', 'reopen']),
+      reason: z.string().trim().min(1).max(500),
+      version: z.coerce.number().int().min(0),
+      hidden: z.enum(['true', 'false']),
+    })
+    .safeParse(Object.fromEntries(form));
+  if (!input.success) return { error: 'invalid' };
+  const { db } = await requireAdmin(input.data.locale),
+    v = input.data;
+  const result = await db.rpc('admin_review_report', {
+    p_report: v.id,
+    p_action: v.action,
+    p_reason: v.reason,
+    p_version: v.version,
+    p_expected_hidden: v.hidden === 'true',
+  });
+  if (result.error)
+    return { error: result.error.code === '40001' ? 'conflict' : 'failed' };
+  revalidatePath(`/${v.locale}/admin`, 'layout');
+  revalidatePath(`/${v.locale}/community`, 'layout');
+  revalidatePath(`/${v.locale}/share`, 'layout');
+  return { saved: true };
+}

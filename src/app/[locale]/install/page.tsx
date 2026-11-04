@@ -1,6 +1,8 @@
 import { appleStartupImages } from '@/lib/app-startup.mjs';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Bell } from 'lucide-react';
+import { DeviceGuide } from '@/components/device-guide';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
@@ -106,6 +108,26 @@ export default async function Install({ params, searchParams }: Props) {
         <div className={styles.actions}>
           <InstallAppButton locale={locale} nativeReady={query.ready === '1'} />
         </div>
+        <aside
+          className={styles.notificationNotice}
+          aria-label={ko ? '웹앱 알림 안내' : 'Web app notifications'}
+        >
+          <strong>
+            <Bell size={17} aria-hidden="true" />
+            {ko ? '필요한 소식도 받아보세요' : 'Stay in the loop'}
+          </strong>
+          <p>
+            {ko
+              ? '식사 시간 알림과 동네 친구가 보낸 인사·하트를 알림으로 받을 수 있어요. 각각 켜고 끌 수 있고, 밤에는 쉬도록 설정할 수 있어요.'
+              : 'Receive feeding reminders and notifications for waves and hearts from neighborhood friends. Turn each on or off, and choose quiet hours at night.'}
+          </p>
+          <DeviceGuide locale={locale} purpose="notifications" />
+          <Link
+            href={`/${locale}/account?child=${selected.id}&panel=notifications`}
+          >
+            {ko ? '알림 설정하기' : 'Set up notifications'}
+          </Link>
+        </aside>
         <aside
           className={styles.reinstallNotice}
           aria-label={ko ? '아이콘 사진 변경 안내' : 'Updating your app icon'}

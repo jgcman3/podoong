@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   MessageSquareText,
+  Flag,
   ChartNoAxesCombined,
   Users,
   MapPin,
@@ -15,6 +16,7 @@ import { adminSections, adminText } from './model';
 const icons = [
   LayoutDashboard,
   MessageSquareText,
+  Flag,
   ChartNoAxesCombined,
   Users,
   MapPin,

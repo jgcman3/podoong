@@ -114,7 +114,7 @@ export function DeviceGuide({
                   'iOS·iPadOS 16.4 이상에서 홈 화면에 추가하고, 그 아이콘으로 실행해요.',
                 ]
               : []),
-            '알림 기준을 선택한 뒤 ‘이 기기에서 알림 켜기’를 누르고 허용해요.',
+            '받을 알림을 선택한 뒤 ‘이 기기에서 알림 켜기’를 누르고 허용해요.',
             '차단했다면 기기 설정의 ‘알림 → 포둥’에서 허용해요.',
           ]
         : [
@@ -123,20 +123,20 @@ export function DeviceGuide({
                   'On iOS / iPadOS 16.4 or later, add podoong to the Home Screen and launch its icon.',
                 ]
               : []),
-            'Choose a reminder mode, select “Enable on this device” and allow notifications.',
+            'Choose the notifications you want, select “Enable on this device” and allow notifications.',
             'If blocked, allow podoong under Notifications in device settings.',
           ]
       : ko
         ? [
             '홈 화면 추가나 앱 설치 없이도 지원 브라우저에서 알림을 받을 수 있어요.',
-            '알림 기준을 선택한 뒤 ‘이 기기에서 알림 켜기’를 누르고 허용해요.',
+            '받을 알림을 선택한 뒤 ‘이 기기에서 알림 켜기’를 누르고 허용해요.',
             platform === 'android'
               ? '차단했다면 Chrome의 사이트 설정과 안드로이드의 Chrome 앱 알림 설정을 확인해요.'
               : '차단했다면 브라우저의 사이트 알림과 운영체제의 브라우저·포둥 알림 설정을 확인해요.',
           ]
         : [
             'Supported browsers can receive notifications without installing the app.',
-            'Choose a reminder mode, select “Enable on this device” and allow notifications.',
+            'Choose the notifications you want, select “Enable on this device” and allow notifications.',
             platform === 'android'
               ? 'If blocked, check Chrome site permissions and Android notification permissions for Chrome.'
               : 'If blocked, check site permissions and OS notification settings for your browser or podoong.',
