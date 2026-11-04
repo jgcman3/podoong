@@ -184,7 +184,7 @@ async function childCareFamily(context: BrowserContext) {
   await admin.from('profiles').insert({
     id: owner,
     display_name: 'Care test',
-    consented_at: new Date().toISOString(),
+    consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
   });
   const { data: family, error } = await admin
     .from('families')
@@ -324,7 +324,7 @@ test('family residence persists across children and sessions, respects family ro
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'Location viewer',
-      consented_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -533,7 +533,7 @@ test('calendar loads the whole selected month and Today groups all care shortcut
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'Care reader',
-      consented_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -657,7 +657,7 @@ test('vaccination plans, completion history, official guidance and readonly acce
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'Vaccine viewer',
-      consented_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -794,7 +794,7 @@ test('family owner can add another child and read both children after saving', a
   await admin.from('profiles').insert({
     id: userId,
     display_name: '아이 추가 테스트',
-    consented_at: new Date().toISOString(),
+    consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
   });
   const { data: family, error } = await admin
     .from('families')
@@ -1355,7 +1355,7 @@ test('responsive dashboard and current navigation remain within the viewport', a
   await admin.from('profiles').insert({
     id,
     display_name: 'Preview',
-    consented_at: new Date().toISOString(),
+    consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
   });
   const { data: family } = await admin
     .from('families')
@@ -1665,7 +1665,7 @@ test('daily polls, previews and inbox work in both languages', async ({
   await admin.from('profiles').insert({
     id: author,
     display_name: 'Poll fixture',
-    consented_at: new Date().toISOString(),
+    consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
   });
   await admin.from('community_moderators').insert({ user_id: author });
   const day = new Intl.DateTimeFormat('en-CA', {
@@ -1776,7 +1776,7 @@ test('data export includes every record; ownership transfer and account deletion
       await admin.from('profiles').insert({
         id,
         display_name: 'Data fixture',
-        consented_at: new Date().toISOString(),
+        consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
       });
     const familyId = crypto.randomUUID(),
       childId = crypto.randomUUID();
@@ -2161,7 +2161,7 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'Quick reader',
-      consented_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -2335,7 +2335,7 @@ test('today care shows all local-day records and overnight sleep without a last 
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'History reader',
-      consented_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -2702,7 +2702,7 @@ test('calendar quick actions save hospital, vaccine, medication and tasks into o
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'Calendar reader',
-      consented_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -2945,7 +2945,7 @@ test('tasks and events stay in calendar with writable and readonly completion', 
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'Task reader',
-      consented_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -3306,7 +3306,7 @@ test('calendar filters tasks by date and full swipes execute edit and delete wit
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'Calendar reader',
-      consented_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -3976,7 +3976,7 @@ test('insights supports rolling seven days, multiple activity patterns and child
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'Stats reader',
-      consented_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -6422,7 +6422,7 @@ test('caregivers can switch children without administrator settings or service s
   const memberContext = await browser.newContext({baseURL:'http://127.0.0.1:3188'});
   try {
     const member = await signIn(memberContext);
-    expect((await admin.from('profiles').insert({id:member,display_name:'Caregiver',consented_at:new Date().toISOString()})).error).toBeNull();
+    expect((await admin.from('profiles').insert({id:member,display_name:'Caregiver',consented_at:new Date().toISOString(),service_tour_completed_at:new Date().toISOString()})).error).toBeNull();
     expect((await admin.from('family_members').insert({family_id:own.family,user_id:member,role:'editor'})).error).toBeNull();
     expect((await admin.from('child_access').insert([own.child,second].map(child_id=>({child_id,family_id:own.family,user_id:member,role:'editor'})))).error).toBeNull();
     const memberPage = await memberContext.newPage();
@@ -6481,7 +6481,7 @@ test('invited caregiver must select relationship and diaries retain author relat
   const invited = await browser.newContext({baseURL:'http://127.0.0.1:3188',viewport:{width:390,height:844}});
   try {
     const member = await signIn(invited);
-    await admin.from('profiles').insert({id:member,display_name:'이모 보호자',consented_at:new Date().toISOString()});
+    await admin.from('profiles').insert({id:member,display_name:'이모 보호자',consented_at:new Date().toISOString(),service_tour_completed_at:new Date().toISOString()});
     const memberPage = await invited.newPage();
     await memberPage.goto(new URL(link).pathname);
     await expect(memberPage.getByLabel('아이와의 관계')).toHaveAttribute('required','');
@@ -7560,4 +7560,67 @@ test('neighborhood and community reports reach admin review without revealing th
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:test.info().outputPath('reports-admin-mobile.png'),fullPage:true});
  }finally {await authorContext.close();}
+});
+
+test('first-use guide saves notification choices only after permission and stays completed', async ({page,context})=>{
+ const {child,owner}=await childCareFamily(context);
+ await admin.from('profiles').update({service_tour_completed_at:null}).eq('id',owner);
+ const config=await admin.from('feeding_push_config').select('singleton').maybeSingle();
+ const fixtureId=crypto.randomUUID();
+ if(!config.data) expect((await admin.from('feeding_push_config').insert({public_key:'B'.repeat(87),worker_url:'https://example.invalid',token_secret_id:fixtureId})).error).toBeNull();
+ try {
+ await page.addInitScript(()=>{
+  (window as unknown as {permissionRequests:number}).permissionRequests=0;
+  Object.defineProperty(Notification,'permission',{get:()=> 'granted'});
+  Notification.requestPermission=async()=>{(window as unknown as {permissionRequests:number}).permissionRequests++;return await new Promise<NotificationPermission>(resolve=>{(window as unknown as {allowNotifications:()=>void}).allowNotifications=()=>resolve('granted');});};
+  PushManager.prototype.getSubscription=async()=>null;
+  PushManager.prototype.subscribe=async()=>({toJSON:()=>({endpoint:'https://fcm.googleapis.com/fcm/send/tour-'+location.pathname,keys:{p256dh:'B'.repeat(87),auth:'A'.repeat(22)}}),unsubscribe:async()=>true}) as unknown as PushSubscription;
+ });
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/today?child=${child}`);
+ const guide=page.getByRole('dialog',{name:'빠른 기록'});
+ await expect(guide).toBeVisible();
+ for(let i=0;i<5;i++) await page.getByRole('dialog').getByRole('button',{name:'다음',exact:true}).click();
+ const last=page.getByRole('dialog',{name:'필요한 알림만 골라요'});
+ await expect(last.getByRole('checkbox',{name:'식사 알림',exact:true})).toBeChecked();
+ await expect(last.getByRole('checkbox',{name:'놀이터 인사·하트',exact:true})).not.toBeChecked();
+ await expect(last.getByRole('checkbox',{name:'오늘 일정 알림 받기',exact:true})).not.toBeChecked();
+ expect(await page.evaluate(()=>(window as unknown as {permissionRequests:number}).permissionRequests)).toBe(0);
+ await last.getByRole('checkbox',{name:'식사 알림',exact:true}).uncheck();
+ await last.getByRole('checkbox',{name:'오늘 일정 알림 받기',exact:true}).check();
+ await page.screenshot({path:'/tmp/podoong-first-use-notifications.png'});
+ await last.getByRole('button',{name:'선택한 알림 켜기',exact:true}).click();
+ await expect(last.getByRole('button',{name:'이전 안내'})).toBeDisabled();
+ await expect(last.getByRole('button',{name:'안내 건너뛰기'})).toBeDisabled();
+ await page.evaluate(()=>(window as unknown as {allowNotifications:()=>void}).allowNotifications());
+ await expect(last).not.toBeVisible({timeout:15000});
+ expect(await page.evaluate(()=>(window as unknown as {permissionRequests:number}).permissionRequests)).toBe(1);
+ await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_enabled,playground_enabled,schedule_enabled').eq('user_id',owner).single()).data).toEqual({feeding_enabled:false,playground_enabled:false,schedule_enabled:true});
+ await page.reload();await expect(page.getByRole('dialog')).not.toBeVisible();
+ await page.goto(`/ko/today?child=${child}&guide=1`);
+ await expect(page.getByRole('dialog',{name:'빠른 기록'})).toBeVisible();
+ await page.getByRole('button',{name:'안내 건너뛰기'}).click();
+ await expect(page.getByRole('dialog')).not.toBeVisible();
+ expect(page.url()).not.toContain('guide=');
+ } finally {if(!config.data) await admin.from('feeding_push_config').delete().eq('token_secret_id',fixtureId);}
+});
+
+test('first-use guide can wait without requesting permission and agenda opens privately', async ({page,context})=>{
+ const {child,owner}=await childCareFamily(context);
+ await admin.from('profiles').update({service_tour_completed_at:null}).eq('id',owner);
+ await page.setViewportSize({width:320,height:740});
+ await page.goto(`/ko/today?child=${child}`);
+ await expect(page.getByRole('dialog',{name:'빠른 기록'})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ for(let i=0;i<5;i++) await page.getByRole('dialog').getByRole('button',{name:'다음',exact:true}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'나중에',exact:true}).click();
+ await expect(page.getByRole('dialog')).not.toBeVisible();
+ expect((await admin.from('web_push_subscriptions').select('id').eq('user_id',owner)).data).toHaveLength(0);
+ await page.reload();await expect(page.getByRole('dialog')).not.toBeVisible();
+ const day='2026-11-04';
+ expect((await admin.from('events').insert({child_id:child,title:'아침 일정 테스트',date:day,event_time:'10:00',record_timezone:'Asia/Seoul',created_by:owner})).error).toBeNull();
+ expect((await admin.from('tasks').insert({child_id:child,title:'준비물 테스트',service:'general',due_date:day,created_by:owner})).error).toBeNull();
+ await page.goto(`/ko/calendar?agenda=${day}`);
+ await expect(page.locator('.schedule-agenda').getByText('아침 일정 테스트',{exact:true})).toBeVisible();
+ await expect(page.locator('.schedule-agenda').getByText('준비물 테스트',{exact:true})).toBeVisible();
 });

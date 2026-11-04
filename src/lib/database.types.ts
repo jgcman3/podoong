@@ -1113,14 +1113,14 @@ isOneToOne: false
                   ]
                 },"notification_preferences": {
                   Row: {
-                    "delivery_hour": number,"event_enabled": boolean,"feeding_enabled": boolean,"feeding_interval_minutes": number,"feeding_reference": string,"frequency_minutes": number,"playground_enabled": boolean,"playground_enabled_at": string | null,"playground_quiet": boolean,"quiet_end": string,"quiet_start": string,"snooze_until": string | null,"task_enabled": boolean,"user_id": string
+                    "delivery_hour": number,"event_enabled": boolean,"feeding_enabled": boolean,"feeding_interval_minutes": number,"feeding_reference": string,"frequency_minutes": number,"playground_enabled": boolean,"playground_enabled_at": string | null,"playground_quiet": boolean,"quiet_end": string,"quiet_start": string,"schedule_enabled": boolean,"schedule_enabled_at": string | null,"snooze_until": string | null,"task_enabled": boolean,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"playground_enabled"?: boolean,"playground_enabled_at"?: string | null,"playground_quiet"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id": string
+                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"playground_enabled"?: boolean,"playground_enabled_at"?: string | null,"playground_quiet"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"schedule_enabled"?: boolean,"schedule_enabled_at"?: string | null,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id": string
                   }
                   Update: {
-                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"playground_enabled"?: boolean,"playground_enabled_at"?: string | null,"playground_quiet"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id"?: string
+                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"playground_enabled"?: boolean,"playground_enabled_at"?: string | null,"playground_quiet"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"schedule_enabled"?: boolean,"schedule_enabled_at"?: string | null,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1445,16 +1445,42 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"profiles": {
+                },"playground_push_deliveries": {
                   Row: {
-                    "consented_at": string | null,"created_at": string,"display_name": string,"id": string,"locale": string,"timezone": string
+                    "attempts": number,"batch_start": string,"child_id": string,"id": string,"lease_token": string | null,"leased_until": string | null,"scheduled_at": string,"sent_at": string | null,"status": string,"subscription_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "consented_at"?: string | null,"created_at"?: string,"display_name"?: string,"id": string,"locale"?: string,"timezone"?: string
+                    "attempts"?: number,"batch_start": string,"child_id": string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"scheduled_at": string,"sent_at"?: string | null,"status"?: string,"subscription_id": string
                   }
                   Update: {
-                    "consented_at"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string,"locale"?: string,"timezone"?: string
+                    "attempts"?: number,"batch_start"?: string,"child_id"?: string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"scheduled_at"?: string,"sent_at"?: string | null,"status"?: string,"subscription_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "playground_push_deliveries_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "children"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "playground_push_deliveries_subscription_id_fkey"
+      columns: ["subscription_id"]
+isOneToOne: false
+      referencedRelation: "web_push_subscriptions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"profiles": {
+                  Row: {
+                    "consented_at": string | null,"created_at": string,"display_name": string,"id": string,"locale": string,"service_tour_completed_at": string | null,"timezone": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "consented_at"?: string | null,"created_at"?: string,"display_name"?: string,"id": string,"locale"?: string,"service_tour_completed_at"?: string | null,"timezone"?: string
+                  }
+                  Update: {
+                    "consented_at"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string,"locale"?: string,"service_tour_completed_at"?: string | null,"timezone"?: string
                   }
                   Relationships: [
 
@@ -1497,6 +1523,26 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "residence_regions"
       referencedColumns: ["country_code","code","level"]
+    }
+                  ]
+                },"schedule_push_deliveries": {
+                  Row: {
+                    "attempts": number,"day": string,"id": string,"lease_token": string | null,"leased_until": string | null,"scheduled_at": string,"sent_at": string | null,"status": string,"subscription_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts"?: number,"day": string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"scheduled_at": string,"sent_at"?: string | null,"status"?: string,"subscription_id": string
+                  }
+                  Update: {
+                    "attempts"?: number,"day"?: string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"scheduled_at"?: string,"sent_at"?: string | null,"status"?: string,"subscription_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "schedule_push_deliveries_subscription_id_fkey"
+      columns: ["subscription_id"]
+isOneToOne: false
+      referencedRelation: "web_push_subscriptions"
+      referencedColumns: ["id"]
     }
                   ]
                 },"service_admins": {
@@ -1692,35 +1738,7 @@ isOneToOne: false
     }
                   ]
                 }
-
-"playground_push_deliveries": {
-                  Row: {
-                    "attempts": number,"batch_start": string,"child_id": string,"id": string,"lease_token": string | null,"leased_until": string | null,"scheduled_at": string,"sent_at": string | null,"status": string,"subscription_id": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "attempts"?: number,"batch_start": string,"child_id": string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"scheduled_at": string,"sent_at"?: string | null,"status"?: string,"subscription_id": string
-                  }
-                  Update: {
-                    "attempts"?: number,"batch_start"?: string,"child_id"?: string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"scheduled_at"?: string,"sent_at"?: string | null,"status"?: string,"subscription_id"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "playground_push_deliveries_child_id_fkey"
-      columns: ["child_id"]
-isOneToOne: false
-      referencedRelation: "children"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "playground_push_deliveries_subscription_id_fkey"
-      columns: ["subscription_id"]
-isOneToOne: false
-      referencedRelation: "web_push_subscriptions"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },
-}
+          }
           Views: {
             "calendar_entries": {
                   Row: {
@@ -1777,6 +1795,11 @@ isOneToOne: false
 "admin_operations":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"admin_reports":
+{ Args: { "p_before"?: string,"p_before_id"?: string,"p_status"?: string }; Returns: {
+              "body": string,"created_at": string,"hidden": boolean,"id": string,"kind": string,"reason": string,"resolution_note": string,"resolved_at": string,"status": string,"title": string,"version": number
+            }[]
+                           },
 "admin_requests":
 { Args: { "p_before"?: string,"p_before_id"?: string,"p_category"?: string,"p_status"?: string }; Returns: {
               "body": string,"category": string,"created_at": string,"display_name": string,"id": string,"internal_note": string,"priority": string,"status": string,"user_id": string,"version": number
@@ -1784,6 +1807,9 @@ isOneToOne: false
                            },
 "admin_resolve_error":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"admin_review_report":
+{ Args: { "p_action": string,"p_expected_hidden": boolean,"p_reason": string,"p_report": string,"p_version": number }; Returns: undefined
                            },
 "admin_service_page_views":
 { Args: { "p_days"?: number }; Returns: Json
@@ -1854,6 +1880,16 @@ isOneToOne: false
               "auth_key": string,"child_id": string,"endpoint": string,"id": string,"lease_token": string,"locale": string,"meal_kind": string,"p256dh": string,"reference": string
             }[]
                            },
+"claim_playground_push":
+{ Args: { "p_token": string }; Returns: {
+              "auth_key": string,"child_id": string,"endpoint": string,"heart_count": number,"id": string,"lease_token": string,"locale": string,"p256dh": string,"wave_count": number
+            }[]
+                           },
+"claim_schedule_push":
+{ Args: { "p_token": string }; Returns: {
+              "auth_key": string,"day": string,"endpoint": string,"id": string,"item_count": number,"lease_token": string,"locale": string,"p256dh": string
+            }[]
+                           },
 "cleanup_admin_logs":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
@@ -1894,6 +1930,9 @@ isOneToOne: false
                            },
 "complete_child_photo_variants":
 { Args: { "p_photo": string }; Returns: undefined
+                           },
+"complete_service_tour":
+{ Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "configure_feeding_push":
 { Args: { "p_public_key": string,"p_worker_url": string }; Returns: undefined
@@ -1976,6 +2015,12 @@ isOneToOne: false
 "finish_feeding_push":
 { Args: { "p_id": string,"p_lease": string,"p_result": string }; Returns: undefined
                            },
+"finish_playground_push":
+{ Args: { "p_id": string,"p_lease": string,"p_result": string }; Returns: undefined
+                           },
+"finish_schedule_push":
+{ Args: { "p_id": string,"p_lease": string,"p_result": string }; Returns: undefined
+                           },
 "get_feeding_push_config":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -2051,6 +2096,19 @@ isOneToOne: false
 "moderate_growth_diary":
 { Args: { "p_hidden": boolean,"p_reason": string,"p_record": string }; Returns: undefined
                            },
+"morning_push_at":
+{ Args: { "p_day": string,"p_timezone": string,"p_user": string }; Returns: string
+                           },
+"morning_push_candidates":
+{ Args: { "p_now"?: string,"p_subscription"?: string }; Returns: {
+              "day": string,"item_count": number,"scheduled_at": string,"subscription_id": string
+            }[]
+                           },
+"my_schedule_items":
+{ Args: { "p_day": string }; Returns: {
+              "child_id": string,"event_time": string,"id": string,"kind": string,"title": string
+            }[]
+                           },
 "neighborhood_region":
 { Args: { "p_family": string }; Returns: string
                            },
@@ -2113,6 +2171,11 @@ isOneToOne: false
 "place_name_key":
 { Args: { "p_name": string }; Returns: string
                            },
+"playground_push_batch":
+{ Args: { "p_id": string }; Returns: {
+              "heart_count": number,"wave_count": number
+            }[]
+                           },
 "playground_reactions":
 { Args: { "p_before"?: string,"p_child": string }; Returns: Json
                            },
@@ -2166,6 +2229,9 @@ isOneToOne: false
                            },
 "report_growth_diary":
 { Args: { "p_child": string,"p_reason": string,"p_record": string }; Returns: undefined
+                           },
+"report_parenting_post":
+{ Args: { "p_post": string,"p_reason": string }; Returns: undefined
                            },
 "report_service_error":
 { Args: { "p_code": string,"p_digest"?: string,"p_id": string,"p_section": string }; Returns: undefined
@@ -2233,6 +2299,9 @@ isOneToOne: false
 "save_parenting_post":
 { Args: { "p_audience"?: string,"p_body": string,"p_category": string,"p_child"?: string,"p_family": string,"p_id"?: string,"p_photo_ids"?: (string)[],"p_poll"?: Json,"p_title": string }; Returns: string
                            },
+"save_push_settings":
+{ Args: { "p_interval": number,"p_locale"?: string,"p_mode": string,"p_playground": boolean,"p_playground_quiet": boolean,"p_quiet": boolean,"p_schedule"?: boolean,"p_subscription"?: Json }; Returns: string
+                           },
 "save_received_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_version"?: number }; Returns: string
                            },
@@ -2241,6 +2310,11 @@ isOneToOne: false
                            },
 "save_vaccination_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_version"?: number }; Returns: string
+                           },
+"schedule_items":
+{ Args: { "p_day": string,"p_user": string }; Returns: {
+              "child_id": string,"event_time": string,"id": string,"kind": string,"title": string
+            }[]
                            },
 "send_playground_reaction":
 { Args: { "p_child": string,"p_friend": string,"p_kind": string }; Returns: undefined
@@ -2292,48 +2366,16 @@ isOneToOne: false
 "validate_feeding_push":
 { Args: { "p_id": string,"p_lease": string }; Returns: boolean
                            },
-"vote_daily_poll":
-{ Args: { "p_id": string,"p_option": number }; Returns: undefined
-                           }
-
-"finish_playground_push":
-{ Args: { "p_id": string,"p_lease": string,"p_result": string }; Returns: undefined
-                           },
-
 "validate_playground_push":
 { Args: { "p_id": string,"p_lease": string }; Returns: boolean
                            },
-
-"claim_playground_push":
-{ Args: { "p_token": string }; Returns: {
-              "auth_key": string,"child_id": string,"endpoint": string,"heart_count": number,"id": string,"lease_token": string,"locale": string,"p256dh": string,"wave_count": number
-            }[]
+"validate_schedule_push":
+{ Args: { "p_id": string,"p_lease": string }; Returns: boolean
                            },
-
-"playground_push_batch":
-{ Args: { "p_id": string }; Returns: {
-              "heart_count": number,"wave_count": number
-            }[]
-                           },
-
-"save_push_settings":
-{ Args: { "p_interval": number,"p_locale"?: string,"p_mode": string,"p_playground": boolean,"p_playground_quiet": boolean,"p_quiet": boolean,"p_subscription"?: Json }; Returns: string
-                           },
-
-"admin_review_report":
-{ Args: { "p_action": string,"p_expected_hidden": boolean,"p_reason": string,"p_report": string,"p_version": number }; Returns: undefined
-                           },
-
-"admin_reports":
-{ Args: { "p_before"?: string,"p_before_id"?: string,"p_status"?: string }; Returns: {
-              "body": string,"created_at": string,"hidden": boolean,"id": string,"kind": string,"reason": string,"resolution_note": string,"resolved_at": string,"status": string,"title": string,"version": number
-            }[]
-                           },
-
-"report_parenting_post":
-{ Args: { "p_post": string,"p_reason": string }; Returns: undefined
-                           },
-}
+"vote_daily_poll":
+{ Args: { "p_id": string,"p_option": number }; Returns: undefined
+                           }
+          }
           Enums: {
             "caregiver_relationship": "mother"|"father"|"grandmother"|"grandfather"|"maternal_aunt"|"paternal_aunt"|"maternal_uncle"|"paternal_uncle"|"maternal_aunt_husband"|"paternal_aunt_husband"|"uncle_wife"|"relative"|"guardian"
           }

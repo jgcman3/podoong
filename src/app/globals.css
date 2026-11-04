@@ -10087,3 +10087,12 @@ html[data-standalone] :is(input, select, textarea) {
 .admin-report-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .admin-filters a[aria-current='page'] { color: var(--brown); font-weight: 700; }
+
+.schedule-push-settings { margin-top:18px;padding-top:14px;border-top:1px solid var(--line); }
+.schedule-agenda header { display:flex;align-items:center;gap:12px;margin-bottom:18px; }
+.schedule-agenda h1 { margin:0;font-size:21px; }
+.schedule-agenda ul { list-style:none;margin:0 0 18px;padding:0; }
+.schedule-agenda li { display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line); }
+.schedule-agenda li div { flex:1;min-width:0; }
+.schedule-agenda li strong,.schedule-agenda li small { display:block;overflow-wrap:anywhere; }
+.schedule-agenda li a { display:grid;place-items:center;min-width:40px;min-height:40px; }

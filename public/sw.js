@@ -18,7 +18,7 @@ self.addEventListener('push', (event) => {
     const proposed = new URL(data.url, self.location.origin);
     if (
       proposed.origin === self.location.origin &&
-      /^\/(ko|en)\/(today|community\/playground)$/.test(proposed.pathname)
+      /^\/(ko|en)\/(today|calendar|community\/playground)$/.test(proposed.pathname)
     )
       target = proposed;
   } catch {
@@ -44,7 +44,7 @@ self.addEventListener('notificationclick', (event) => {
       );
       if (
         target.origin !== self.location.origin ||
-        !/^\/(ko|en)\/(today|community\/playground)$/.test(target.pathname)
+        !/^\/(ko|en)\/(today|calendar|community\/playground)$/.test(target.pathname)
       )
         return;
       const windows = await self.clients.matchAll({

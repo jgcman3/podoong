@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { ScheduleAgenda } from '@/features/notifications/schedule-agenda';
 import { Insights } from '@/features/insights/view';
 import { notFound, redirect } from 'next/navigation';
 import { loadCare } from '@/lib/data';
@@ -19,6 +21,8 @@ export async function generateMetadata(props: {
     child?: string;
     error?: string;
     ready?: string;
+    guide?: string;
+    agenda?: string;
     install?: string;
   }>;
 }) {
@@ -48,6 +52,8 @@ export default async function AppPage({
     panel?: string;
     install?: string;
     ready?: string;
+    guide?: string;
+    agenda?: string;
   }>;
 }) {
   const { locale, section } = await params;
@@ -84,9 +90,15 @@ export default async function AppPage({
   let view;
   switch (section) {
     case 'today':
-      view = <Today {...props} />;
+      view = <Today {...props} guide={q.guide === '1'} />;
       break;
     case 'calendar':
+      if (q.agenda && z.iso.date().safeParse(q.agenda).success) {
+        view = (
+          <ScheduleAgenda context={context} locale={locale} day={q.agenda} />
+        );
+        break;
+      }
       view = (
         <Calendar
           {...props}

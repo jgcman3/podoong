@@ -1,5 +1,11 @@
 'use client';
-import { useState, useSyncExternalStore, useTransition } from 'react';
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from 'react';
+import Link from 'next/link';
 import { Bell, BellOff } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import { savePushSettings, disableFeedingPush } from './push-actions';
@@ -41,6 +47,10 @@ export function FeedingPushSettings({
   initialMode,
   initialPlayground,
   initialPlaygroundQuiet,
+  initialSchedule = false,
+  compact = false,
+  onSaved,
+  onPendingChange,
 }: {
   locale: Locale;
   publicKey: string | null;
@@ -50,6 +60,10 @@ export function FeedingPushSettings({
   initialMode: 'interval' | 'yesterday' | 'off';
   initialPlayground: boolean;
   initialPlaygroundQuiet: boolean;
+  initialSchedule?: boolean;
+  compact?: boolean;
+  onSaved?: () => void;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const ko = locale === 'ko',
     status = useSyncExternalStore(subscribe, capability, () => 'checking');
@@ -59,8 +73,12 @@ export function FeedingPushSettings({
     [mode, setMode] = useState(initialMode),
     [playground, setPlayground] = useState(initialPlayground),
     [playgroundQuiet, setPlaygroundQuiet] = useState(initialPlaygroundQuiet),
+    [schedule, setSchedule] = useState(initialSchedule),
     [error, setError] = useState(false),
     [pending, start] = useTransition();
+  useEffect(() => {
+    onPendingChange?.(pending);
+  }, [pending, onPendingChange]);
   const available = status === 'ready' && !!publicKey;
   const problem =
     status === 'https'
@@ -116,6 +134,7 @@ export function FeedingPushSettings({
           mode,
           playground,
           playgroundQuiet,
+          schedule,
           subscription: subscription.toJSON(),
         });
         if (!('id' in result)) {
@@ -124,6 +143,7 @@ export function FeedingPushSettings({
           return;
         }
         setDevice(result.id!);
+        onSaved?.();
       } catch {
         if (created) await created.unsubscribe().catch(() => {});
         setError(true);
@@ -134,7 +154,7 @@ export function FeedingPushSettings({
     start(async () => {
       setError(false);
       try {
-        if (playground && device) await registration();
+        if ((playground || schedule) && device) await registration();
         const result = await savePushSettings({
           locale,
           interval,
@@ -142,8 +162,10 @@ export function FeedingPushSettings({
           mode,
           playground,
           playgroundQuiet,
+          schedule,
         });
         setError(!!result.error);
+        if (!result.error) onSaved?.();
       } catch {
         setError(true);
       }
@@ -168,116 +190,178 @@ export function FeedingPushSettings({
   }
   return (
     <div className="feeding-push-settings">
-      <h3>
-        <Bell size={18} />
-        {ko ? '식사 알림' : 'Feeding reminders'}
-      </h3>
-      <p className="small muted">
-        {mode === 'yesterday'
-          ? ko
-            ? '어제 모유·분유·이유식을 먹은 시각에 지난 기록을 알려드려요. 최근 90분 안에 먹였다면 알리지 않아요.'
-            : 'A reference to yesterday’s breastfeed, formula or solids at the same local time. Skipped if a feed was recorded in the past 90 minutes.'
-          : mode === 'off'
-            ? ko
-              ? '식사 알림을 받지 않아요.'
-              : 'Feeding reminders are off.'
-            : ko
-              ? '마지막 모유·분유·이유식 기록부터 설정한 시간이 지나면 한 번 알려드려요.'
-              : 'One reminder after your chosen interval from the latest breast milk, formula or solids record.'}
-      </p>
-      <fieldset disabled={pending}>
-        <legend>{ko ? '알림 기준' : 'Reminder mode'}</legend>
-        <div
-          className="quick-choices feeding-push-modes"
-          role="group"
-          aria-label={ko ? '알림 기준' : 'Reminder mode'}
-        >
-          {(['interval', 'yesterday', 'off'] as const).map((value, i) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={mode === value}
-              onClick={() => setMode(value)}
+      {!compact && (
+        <>
+          <h3>
+            <Bell size={18} />
+            {ko ? '식사 알림' : 'Feeding reminders'}
+          </h3>
+          <p className="small muted">
+            {mode === 'yesterday'
+              ? ko
+                ? '어제 모유·분유·이유식을 먹은 시각에 지난 기록을 알려드려요. 최근 90분 안에 먹였다면 알리지 않아요.'
+                : 'A reference to yesterday’s breastfeed, formula or solids at the same local time. Skipped if a feed was recorded in the past 90 minutes.'
+              : mode === 'off'
+                ? ko
+                  ? '식사 알림을 받지 않아요.'
+                  : 'Feeding reminders are off.'
+                : ko
+                  ? '마지막 모유·분유·이유식 기록부터 설정한 시간이 지나면 한 번 알려드려요.'
+                  : 'One reminder after your chosen interval from the latest breast milk, formula or solids record.'}
+          </p>
+          <fieldset disabled={pending}>
+            <legend>{ko ? '알림 기준' : 'Reminder mode'}</legend>
+            <div
+              className="quick-choices feeding-push-modes"
+              role="group"
+              aria-label={ko ? '알림 기준' : 'Reminder mode'}
             >
-              {ko
-                ? ['간격 기준', '어제 식사 시간', '끄기'][i]
-                : ['Interval', 'Yesterday', 'Off'][i]}
-            </button>
-          ))}
-        </div>
-        {mode === 'interval' && (
-          <>
-            <span className="feeding-push-interval-label">
-              {ko ? '알림 간격' : 'Reminder interval'}
-            </span>
-            <div className="quick-choices feeding-push-intervals">
-              {[120, 180, 240, 300, 360].map((minutes) => (
+              {(['interval', 'yesterday', 'off'] as const).map((value, i) => (
                 <button
-                  key={minutes}
+                  key={value}
                   type="button"
-                  aria-pressed={interval === minutes}
-                  onClick={() => setInterval(minutes)}
+                  aria-pressed={mode === value}
+                  onClick={() => setMode(value)}
                 >
-                  {minutes / 60}
-                  {ko ? '시간' : 'h'}
+                  {ko
+                    ? ['간격 기준', '어제 식사 시간', '끄기'][i]
+                    : ['Interval', 'Yesterday', 'Off'][i]}
                 </button>
               ))}
             </div>
-          </>
-        )}
-        {mode !== 'off' && (
-          <label className="notification-setting-toggle">
-            <input
-              type="checkbox"
-              checked={quiet}
-              onChange={(e) => setQuiet(e.target.checked)}
-            />
-            {ko ? '밤에는 쉬기 (22:00–07:00)' : 'Quiet at night (22:00–07:00)'}
-          </label>
-        )}
-      </fieldset>
+            {mode === 'interval' && (
+              <>
+                <span className="feeding-push-interval-label">
+                  {ko ? '알림 간격' : 'Reminder interval'}
+                </span>
+                <div className="quick-choices feeding-push-intervals">
+                  {[120, 180, 240, 300, 360].map((minutes) => (
+                    <button
+                      key={minutes}
+                      type="button"
+                      aria-pressed={interval === minutes}
+                      onClick={() => setInterval(minutes)}
+                    >
+                      {minutes / 60}
+                      {ko ? '시간' : 'h'}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            {mode !== 'off' && (
+              <label className="notification-setting-toggle">
+                <input
+                  type="checkbox"
+                  checked={quiet}
+                  onChange={(e) => setQuiet(e.target.checked)}
+                />
+                {ko
+                  ? '밤에는 쉬기 (22:00–07:00)'
+                  : 'Quiet at night (22:00–07:00)'}
+              </label>
+            )}
+          </fieldset>
+          <section
+            className="playground-push-settings"
+            aria-label={
+              ko ? '놀이터 알림 설정' : 'Playground notification settings'
+            }
+          >
+            <h3>
+              <Bell size={18} />
+              {ko ? '놀이터 알림' : 'Playground notifications'}
+            </h3>
+            <p className="small muted">
+              {ko
+                ? '동네 친구가 보낸 인사·하트를 알려드려요. 2분 동안 받은 마음은 모아서 한 번 알려드려요.'
+                : 'Get notified about waves and hearts from neighborhood friends. Reactions received within two minutes are grouped into one notification.'}
+            </p>
+            <label className="notification-setting-toggle">
+              <input
+                type="checkbox"
+                checked={playground}
+                disabled={pending}
+                onChange={(e) => setPlayground(e.target.checked)}
+              />
+              {ko
+                ? '인사·하트 알림 받기'
+                : 'Receive wave and heart notifications'}
+            </label>
+            {playground && (
+              <label className="notification-setting-toggle">
+                <input
+                  type="checkbox"
+                  checked={playgroundQuiet}
+                  disabled={pending}
+                  onChange={(e) => setPlaygroundQuiet(e.target.checked)}
+                />
+                {ko
+                  ? '놀이터 알림도 밤에는 쉬기 (22:00–07:00)'
+                  : 'Quiet playground notifications at night (22:00–07:00)'}
+              </label>
+            )}
+          </section>
+        </>
+      )}
       <section
-        className="playground-push-settings"
+        className="schedule-push-settings"
         aria-label={
-          ko ? '놀이터 알림 설정' : 'Playground notification settings'
+          ko ? '아침 일정 알림 설정' : 'Morning schedule notifications'
         }
       >
-        <h3>
-          <Bell size={18} />
-          {ko ? '놀이터 알림' : 'Playground notifications'}
-        </h3>
-        <p className="small muted">
-          {ko
-            ? '동네 친구가 보낸 인사·하트를 알려드려요. 2분 동안 받은 마음은 모아서 한 번 알려드려요.'
-            : 'Get notified about waves and hearts from neighborhood friends. Reactions received within two minutes are grouped into one notification.'}
-        </p>
+        {!compact && (
+          <h3>
+            <Bell size={18} />
+            {ko ? '아침 일정 알림' : 'Morning schedule'}
+          </h3>
+        )}
+        {compact && (
+          <div className="guide-alert-choices">
+            <label className="notification-setting-toggle">
+              <input
+                type="checkbox"
+                checked={mode !== 'off'}
+                disabled={pending}
+                onChange={(e) => setMode(e.target.checked ? 'interval' : 'off')}
+              />
+              {ko ? '식사 알림' : 'Feeding reminders'}
+            </label>
+            <label className="notification-setting-toggle">
+              <input
+                type="checkbox"
+                checked={playground}
+                disabled={pending}
+                onChange={(e) => setPlayground(e.target.checked)}
+              />
+              {ko ? '놀이터 인사·하트' : 'Playground waves & hearts'}
+            </label>
+          </div>
+        )}
         <label className="notification-setting-toggle">
           <input
             type="checkbox"
-            checked={playground}
+            checked={schedule}
             disabled={pending}
-            onChange={(e) => setPlayground(e.target.checked)}
+            onChange={(e) => setSchedule(e.target.checked)}
           />
-          {ko ? '인사·하트 알림 받기' : 'Receive wave and heart notifications'}
+          {ko ? '오늘 일정 알림 받기' : 'Receive today’s schedule'}
         </label>
-        {playground && (
-          <label className="notification-setting-toggle">
-            <input
-              type="checkbox"
-              checked={playgroundQuiet}
-              disabled={pending}
-              onChange={(e) => setPlaygroundQuiet(e.target.checked)}
-            />
-            {ko
-              ? '놀이터 알림도 밤에는 쉬기 (22:00–07:00)'
-              : 'Quiet playground notifications at night (22:00–07:00)'}
-          </label>
-        )}
+        <p className="small muted">
+          {ko
+            ? '계정에 설정한 시간대의 매일 오전 8시부터 10분 안에 순차적으로, 일정이 있는 날에만 알려드려요.'
+            : 'Between 8:00 and 8:10 am in your account’s time zone, only on days with plans.'}
+        </p>
       </section>
-      {problem && (mode !== 'off' || playground) && (
+      {problem && (mode !== 'off' || playground || schedule) && (
         <p className="small feeding-push-availability">{problem}</p>
       )}
-      <DeviceGuide locale={locale} purpose="notifications" />
+      {!compact && <DeviceGuide locale={locale} purpose="notifications" />}
+      {compact && status === 'install' && (
+        <Link href={`/${locale}/install`}>
+          {ko ? '홈 화면에 추가하는 방법' : 'How to add to Home Screen'}
+        </Link>
+      )}
       {error && (
         <p role="alert" className="small">
           {ko
@@ -286,10 +370,16 @@ export function FeedingPushSettings({
         </p>
       )}
       <div className="feeding-push-buttons">
-        {device || (mode === 'off' && !playground) ? (
+        {device || (mode === 'off' && !playground && !schedule) ? (
           <>
             <button className="button" disabled={pending} onClick={save}>
-              {ko ? '설정 저장' : 'Save settings'}
+              {compact
+                ? ko
+                  ? '선택 저장하고 마치기'
+                  : 'Save and finish'
+                : ko
+                  ? '설정 저장'
+                  : 'Save settings'}
             </button>
             {device && (
               <button
@@ -309,7 +399,13 @@ export function FeedingPushSettings({
             onClick={connect}
           >
             <Bell size={16} />
-            {ko ? '이 기기에서 알림 켜기' : 'Enable on this device'}
+            {compact
+              ? ko
+                ? '선택한 알림 켜기'
+                : 'Enable selected notifications'
+              : ko
+                ? '이 기기에서 알림 켜기'
+                : 'Enable on this device'}
           </button>
         )}
       </div>

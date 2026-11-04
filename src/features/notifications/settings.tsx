@@ -7,13 +7,7 @@ import type { Locale } from '@/lib/domain';
 import { notificationCopy } from './copy';
 import { notificationAction } from './actions';
 
-export async function NotificationSettings({
-  context,
-  locale,
-}: {
-  context: CareContext;
-  locale: Locale;
-}) {
+export async function loadPushPreferences(context: CareContext) {
   const jar = await cookies(),
     device = z.uuid().safeParse(jar.get('podung-push-device')?.value);
   const [prefs, config, subscription] = await Promise.all([
@@ -34,24 +28,33 @@ export async function NotificationSettings({
   ]);
   if (prefs.error || config.error || subscription.error)
     throw new Error('Notifications unavailable');
+  return {
+    publicKey: config.data,
+    initialDevice: subscription.data?.id ?? null,
+    initialPlayground: prefs.data?.playground_enabled ?? false,
+    initialPlaygroundQuiet: prefs.data?.playground_quiet ?? true,
+    initialSchedule: prefs.data?.schedule_enabled ?? false,
+    initialInterval: prefs.data?.feeding_interval_minutes ?? 180,
+    initialMode: (prefs.data?.feeding_enabled === false
+      ? 'off'
+      : prefs.data?.feeding_reference === 'yesterday'
+        ? 'yesterday'
+        : 'interval') as 'off' | 'yesterday' | 'interval',
+    initialQuiet:
+      !prefs.data || prefs.data.quiet_start !== prefs.data.quiet_end,
+  };
+}
+export async function NotificationSettings({
+  context,
+  locale,
+}: {
+  context: CareContext;
+  locale: Locale;
+}) {
   return (
     <FeedingPushSettings
       locale={locale}
-      publicKey={config.data}
-      initialDevice={subscription.data?.id ?? null}
-      initialPlayground={prefs.data?.playground_enabled ?? false}
-      initialPlaygroundQuiet={prefs.data?.playground_quiet ?? true}
-      initialInterval={prefs.data?.feeding_interval_minutes ?? 180}
-      initialMode={
-        prefs.data?.feeding_enabled === false
-          ? 'off'
-          : prefs.data?.feeding_reference === 'yesterday'
-            ? 'yesterday'
-            : 'interval'
-      }
-      initialQuiet={
-        !prefs.data || prefs.data.quiet_start !== prefs.data.quiet_end
-      }
+      {...await loadPushPreferences(context)}
     />
   );
 }
