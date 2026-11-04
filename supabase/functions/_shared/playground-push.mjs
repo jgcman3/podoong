@@ -21,11 +21,12 @@ export function playgroundPushPayload(job) {
     url: `/${ko ? 'ko' : 'en'}/community/playground?child=${job.child_id}&inbox=1`,
   };
 }
-export function deliverPlaygroundPush(db, token, send) {
+export function deliverPlaygroundPush(db, token, send, report) {
   return deliverPushBatch(db, token, send, {
     claim: 'claim_playground_push',
     validate: 'validate_playground_push',
     finish: 'finish_playground_push',
     payload: playgroundPushPayload,
+    report,
   });
 }

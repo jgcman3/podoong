@@ -27,11 +27,12 @@ export function feedingPushPayload(job) {
     url: `/${ko ? 'ko' : 'en'}/today?child=${job.child_id}`,
   };
 }
-export function deliverFeedingPush(db, token, send) {
+export function deliverFeedingPush(db, token, send, report) {
   return deliverPushBatch(db, token, send, {
     claim: 'claim_feeding_push',
     validate: 'validate_feeding_push',
     finish: 'finish_feeding_push',
     payload: feedingPushPayload,
+    report,
   });
 }

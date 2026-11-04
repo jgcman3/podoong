@@ -10,7 +10,7 @@ export function schedulePushPayload(job) {
     url: `/${ko ? 'ko' : 'en'}/calendar?agenda=${job.day}`,
   };
 }
-export async function deliverSchedulePush(db, token, send) {
+export async function deliverSchedulePush(db, token, send, report) {
   const count = { sent: 0, retry: 0, gone: 0, cancelled: 0 };
   const deadline = Date.now() + 60_000;
   do {
@@ -19,6 +19,7 @@ export async function deliverSchedulePush(db, token, send) {
       validate: 'validate_schedule_push',
       finish: 'finish_schedule_push',
       payload: schedulePushPayload,
+      report,
     });
     for (const key of Object.keys(count)) count[key] += batch[key];
     if (batch.retry || Object.values(batch).reduce((sum, n) => sum + n, 0) < 10)

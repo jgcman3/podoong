@@ -575,6 +575,14 @@ function QuickEditor({
     : mode === 'record' && (feed || kind === 'sleep' || timed)
       ? endFromDuration(startIso, duration)
       : '';
+  function changeStart(nextStart: string) {
+    setStart(nextStart);
+    if (sleepEditing) {
+      const nextEnd = endFromClock(nextStart, sleepEnd.slice(11, 16));
+      setSleepEnd(nextEnd ? localDateInput(nextEnd) : '');
+    }
+    setTimeEdited(true);
+  }
   const title = shortLabels(locale)[kind];
   const clock = startIso
     ? new Intl.DateTimeFormat(locale, {
@@ -873,87 +881,36 @@ function QuickEditor({
                 )}
               </fieldset>
             )}
-            <div className="quick-time-edit">
-              <label>
-                <QuickFieldTitle>
-                  {diaper
-                    ? c.diaperTime
-                    : timed
+            <QuickTimeField
+              label={
+                diaper
+                  ? c.diaperTime
+                  : timed
+                    ? locale === 'ko'
+                      ? '시작 시각'
+                      : 'Start time'
+                    : activity
                       ? locale === 'ko'
-                        ? '시작 시각'
-                        : 'Start time'
-                      : activity
-                        ? locale === 'ko'
-                          ? '기록 시각'
-                          : 'Time'
-                        : c.time}
-                </QuickFieldTitle>
-                <span
-                  className="quick-time-control"
-                  style={{
-                    display: 'flex',
-                    position: 'relative',
-                    width: '100%',
-                    minWidth: 0,
-                    boxSizing: 'border-box',
-                    overflow: 'hidden',
-                    height: 46,
-                    alignItems: 'center',
-                    marginTop: 0,
-                  }}
-                >
-                  <span aria-hidden="true">{clock}</span>
-                  <input
-                    aria-label={
-                      diaper
-                        ? c.diaperTime
-                        : timed
-                          ? locale === 'ko'
-                            ? '시작 시각'
-                            : 'Start time'
-                          : activity
-                            ? locale === 'ko'
-                              ? '기록 시각'
-                              : 'Time'
-                            : c.time
-                    }
-                    type="time"
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      opacity: 0,
-                      width: '100%',
-                      maxWidth: '100%',
-                      minWidth: 0,
-                      height: '100%',
-                      boxSizing: 'border-box',
-                      margin: 0,
-                      padding: 0,
-                      border: 0,
-                    }}
-                    value={start ? start.slice(11, 16) : ''}
-                    onChange={(event) => {
-                      const date = (
-                        start || localDateInput(new Date().toISOString())
-                      ).slice(0, 10);
-                      const nextStart = event.target.value
-                        ? `${date}T${event.target.value}`
-                        : '';
-                      setStart(nextStart);
-                      if (sleepEditing) {
-                        const nextEnd = endFromClock(
-                          nextStart,
-                          sleepEnd.slice(11, 16),
-                        );
-                        setSleepEnd(nextEnd ? localDateInput(nextEnd) : '');
-                      }
-                      setTimeEdited(true);
-                    }}
-                    required
-                  />
-                </span>
-              </label>
-            </div>
+                        ? '기록 시각'
+                        : 'Time'
+                      : c.time
+              }
+              value={start}
+              locale={locale}
+              onDateChange={(date) => {
+                const nextStart = date
+                  ? `${date}T${start.slice(11, 16) || '00:00'}`
+                  : '';
+                changeStart(nextStart);
+              }}
+              onChange={(time) => {
+                const date = (
+                  start || localDateInput(new Date().toISOString())
+                ).slice(0, 10);
+                const nextStart = time ? `${date}T${time}` : '';
+                changeStart(nextStart);
+              }}
+            />
             {sleepEditing && (
               <>
                 <QuickTimeField

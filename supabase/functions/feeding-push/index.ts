@@ -18,6 +18,11 @@ Deno.serve(async (request: Request) => {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
   try {
+    const diagnostics: Record<string, unknown>[] = [];
+    const report = (detail: Record<string, unknown>) => {
+      if (diagnostics.length < 20) diagnostics.push(detail);
+      console.warn('web_push_diagnostic', detail);
+    };
     const send = async (
       subscription: {
         endpoint: string;
@@ -25,33 +30,57 @@ Deno.serve(async (request: Request) => {
       },
       payload: Record<string, unknown>,
     ) => {
-      const notification = webpush.generateRequestDetails(
-        subscription,
-        JSON.stringify(payload),
-        {
-          TTL: 300,
-          urgency: 'normal',
-          vapidDetails: {
-            subject: 'mailto:admin@podoong.com',
-            publicKey,
-            privateKey,
+      let stage = 'encode';
+      let responseStatus: number | undefined;
+      try {
+        const notification = webpush.generateRequestDetails(
+          subscription,
+          JSON.stringify(payload),
+          {
+            TTL: 300,
+            urgency: 'normal',
+            vapidDetails: {
+              subject: 'mailto:admin@podoong.com',
+              publicKey,
+              privateKey,
+            },
           },
-        },
-      );
-      const response = await fetch(notification.endpoint, {
-        method: 'POST',
-        headers: notification.headers,
-        body: notification.body,
-        redirect: 'error',
-        signal: AbortSignal.timeout(8000),
-      });
-      await response.body?.cancel();
-      return response.status;
+        );
+        stage = 'request';
+        const response = await fetch(notification.endpoint, {
+          method: 'POST',
+          headers: notification.headers,
+          body: notification.body,
+          redirect: 'error',
+          signal: AbortSignal.timeout(8000),
+        });
+        responseStatus = response.status;
+        stage = 'response_cleanup';
+        await response.body?.cancel();
+        return response.status;
+      } catch (error) {
+        const name = error instanceof Error ? error.name : 'Error';
+        report({
+          operation: 'transport',
+          stage,
+          status: responseStatus,
+          errorType: [
+            'Error',
+            'TypeError',
+            'TimeoutError',
+            'AbortError',
+            'NotSupportedError',
+          ].includes(name)
+            ? name
+            : 'Error',
+        });
+        throw error;
+      }
     };
-    const feeding = await deliverFeedingPush(db, token, send);
-    const playground = await deliverPlaygroundPush(db, token, send);
-    const schedule = await deliverSchedulePush(db, token, send);
-    return Response.json({ feeding, playground, schedule });
+    const feeding = await deliverFeedingPush(db, token, send, report);
+    const playground = await deliverPlaygroundPush(db, token, send, report);
+    const schedule = await deliverSchedulePush(db, token, send, report);
+    return Response.json({ feeding, playground, schedule, diagnostics });
   } catch (error) {
     return new Response(null, {
       status:

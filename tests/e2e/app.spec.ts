@@ -7625,3 +7625,22 @@ test('first-use guide can wait without requesting permission and agenda opens pr
  await expect(page.locator('.schedule-agenda').getByText('아침 일정 테스트',{exact:true})).toBeVisible();
  await expect(page.locator('.schedule-agenda').getByText('준비물 테스트',{exact:true})).toBeVisible();
 });
+
+test('quick records allow a previous date with the clock time after midnight', async ({browser})=>{
+ const context=await browser.newContext({timezoneId:'Asia/Seoul',viewport:{width:390,height:844}});
+ try {
+ const {child,owner}=await childCareFamily(context);const page=await context.newPage();
+ const previous=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date(Date.now()-86400000));
+ await page.goto(`/ko/today?child=${child}`);
+ await page.getByRole('button',{name:'분유',exact:true}).first().click();
+ const sheet=page.locator('dialog.quick-composer');
+ await sheet.getByLabel('기록 날짜',{exact:true}).fill(previous);
+ await sheet.getByLabel('시작 시각',{exact:true}).fill('22:40');
+ await page.screenshot({path:'/tmp/podoong-record-date-mobile.png'});
+ await sheet.getByRole('button',{name:'저장하기',exact:true}).click();
+ await expect(sheet).not.toBeVisible();
+ const record=await admin.from('care_records').select('id,started_at').eq('child_id',child).eq('created_by',owner).eq('kind','formula').single();
+ expect(record.error).toBeNull();expect(Date.parse(record.data!.started_at)).toBe(Date.parse(`${previous}T22:40:00+09:00`));
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ } finally {await context.close();}
+});

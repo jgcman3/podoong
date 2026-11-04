@@ -10096,3 +10096,7 @@ html[data-standalone] :is(input, select, textarea) {
 .schedule-agenda li div { flex:1;min-width:0; }
 .schedule-agenda li strong,.schedule-agenda li small { display:block;overflow-wrap:anywhere; }
 .schedule-agenda li a { display:grid;place-items:center;min-width:40px;min-height:40px; }
+
+.quick-date-time-row { display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:10px; }
+.quick-date-time-row > label { min-width:0; }
+.quick-date-time-row .quick-time-control { padding:0 10px;font-size:14px; }

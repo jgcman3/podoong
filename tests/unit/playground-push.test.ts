@@ -133,3 +133,41 @@ it('opens the received reactions from a playground notification and blocks other
   await pending;
   expect(navigate).not.toHaveBeenCalled();
 });
+it('records provider failure status without logging subscription keys or private content', async () => {
+  const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    const rpc = vi.fn(async (name: string) => ({
+      data: name === 'claim_playground_push' ? [job] : true,
+      error: null,
+    }));
+    await deliverPlaygroundPush(
+      { rpc },
+      'secret-worker-token',
+      async () => 403,
+    );
+    expect(warning).toHaveBeenCalledWith('web_push_delivery_failed', {
+      operation: 'claim_playground_push',
+      stage: 'provider',
+      status: 403,
+    });
+    expect(JSON.stringify(warning.mock.calls)).not.toContain(
+      'secret-worker-token',
+    );
+    expect(JSON.stringify(warning.mock.calls)).not.toContain(job.endpoint);
+  } finally {
+    warning.mockRestore();
+  }
+});
+it('returns safe diagnostics to the scheduled invocation reporter', async () => {
+  const report = vi.fn();
+  const rpc = vi.fn(async (name: string) => ({
+    data: name === 'claim_playground_push' ? [job] : true,
+    error: null,
+  }));
+  await deliverPlaygroundPush({ rpc }, 'secret', async () => 403, report);
+  expect(report).toHaveBeenCalledWith({
+    operation: 'claim_playground_push',
+    stage: 'provider',
+    status: 403,
+  });
+});

@@ -18,7 +18,13 @@ export async function deliverPushBatch(
   db,
   token,
   send,
-  { claim, validate, finish, payload },
+  {
+    claim,
+    validate,
+    finish,
+    payload,
+    report = (detail) => console.warn('web_push_delivery_failed', detail),
+  },
 ) {
   const batch = await db.rpc(claim, { p_token: token });
   if (batch.error)
@@ -36,6 +42,14 @@ export async function deliverPushBatch(
         p_id: job.id,
         p_lease: job.lease_token,
       });
+      if (valid.error)
+        report({
+          operation: claim,
+          stage: 'validate',
+          code: /^[A-Z0-9_]{1,20}$/.test(valid.error.code ?? '')
+            ? valid.error.code
+            : 'unknown',
+        });
       if (!valid.error && !valid.data) result = 'cancelled';
       else if (!valid.error) {
         if (!validPushEndpoint(job.endpoint)) result = 'gone';
@@ -48,6 +62,12 @@ export async function deliverPushBatch(
               },
               payload(job),
             );
+            if (status < 200 || status >= 300)
+              report({
+                operation: claim,
+                stage: 'provider',
+                status,
+              });
             result =
               status >= 200 && status < 300
                 ? 'sent'
