@@ -2672,7 +2672,7 @@ test('calendar quick actions save hospital, vaccine, medication and tasks into o
       cancel: {x: cancel.x, y: cancel.y},
       save: {x: save.x, y: save.y},
       title: {x: title.x, width: title.width},
-      controls: [...node.querySelectorAll('.quick-time-control')].map(control => {
+      controls: [...node.querySelectorAll('.quick-date-time-row, .quick-time-edit:not(.quick-date-time-row) .quick-time-control')].map(control => {
         const box = control.getBoundingClientRect();
         return {x: box.x, width: box.width};
       }),
@@ -4846,8 +4846,8 @@ test('quick feeding remembers each kind across days and allows direct start-time
     await expect(
       dialog.getByRole('link', { name: '자세히 기록', exact: true }),
     ).toHaveCount(0);
-    await expect(dialog.locator('.quick-time-edit input')).toBeVisible();
-    const timeBox = await dialog.locator('.quick-time-control').boundingBox();
+    await expect(dialog.locator('.quick-time-edit input[type="time"]')).toBeVisible();
+    const timeBox = await dialog.locator('.quick-date-time-row').boundingBox();
     const rulerBox = await dialog.locator('.quick-ruler').boundingBox();
     expect(Math.abs(timeBox!.x - rulerBox!.x)).toBeLessThan(2);
     expect(Math.abs(timeBox!.width - rulerBox!.width)).toBeLessThan(2);
@@ -4878,10 +4878,10 @@ test('quick feeding remembers each kind across days and allows direct start-time
     return { value, iso: date.toISOString() };
   });
   await dialog
-    .locator('.quick-time-edit input')
+    .locator('.quick-time-edit input[type="time"]')
     .fill(start.value.slice(11, 16));
   await dialog.getByRole('button', { name: '15분', exact: true }).click();
-  await expect(dialog.locator('.quick-time-edit input')).toHaveValue(
+  await expect(dialog.locator('.quick-time-edit input[type="time"]')).toHaveValue(
     start.value.slice(11, 16),
   );
   await dialog.getByRole('button', { name: '저장하기', exact: true }).click();
@@ -4985,7 +4985,7 @@ test('quick record subtitles and control gaps stay consistent across mobile and 
         }
       }
       const timeWidth = (await dialog
-        .locator('.quick-time-control')
+        .locator('.quick-date-time-row')
         .boundingBox())!.width;
       const fieldWidth = (await dialog.locator('.quick-fields').boundingBox())!
         .width;
