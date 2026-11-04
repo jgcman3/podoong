@@ -347,7 +347,10 @@ export function FriendWorld({
             variant={mine ? 0 : stableHash(person.id) % 6}
           />
           <span className="world-name" title={person.nickname}>
-            {person.nickname}
+            {person.child_name}
+          </span>
+          <span className="world-family-name" title={person.family_name}>
+            {person.family_name}
           </span>
           <span className="world-age">{ageLabel}</span>
         </button>

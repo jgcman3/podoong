@@ -1,3 +1,8 @@
+import { cookies } from 'next/headers';
+import {
+  LAST_SOCIAL_COOKIE,
+  socialProvider,
+} from '@/features/auth/last-social';
 import { ConfirmButton } from './confirm-button';
 import { getTranslations } from 'next-intl/server';
 import { socialLogin } from '@/features/auth/actions';
@@ -13,6 +18,9 @@ export async function SocialButtons({
   link?: boolean;
 }) {
   const t = await getTranslations();
+  const lastSocial = link
+    ? null
+    : socialProvider((await cookies()).get(LAST_SOCIAL_COOKIE)?.value);
   const allowed = (process.env.NEXT_PUBLIC_AUTH_PROVIDERS ?? '').split(',');
   return (
     <div className="social-buttons">
@@ -37,9 +45,12 @@ export async function SocialButtons({
               <span className="social-symbol" aria-hidden="true">
                 {provider === 'kakao' ? '●' : provider === 'naver' ? 'N' : 'G'}
               </span>
-              {link
-                ? `${t('link')} · ${provider === 'kakao' ? 'Kakao' : provider === 'naver' ? 'Naver' : 'Google'}`
-                : t(provider)}
+              <span>{t(provider)}</span>
+              {lastSocial === provider && (
+                <span className="social-last-used">
+                  {locale === 'ko' ? '최근 로그인' : 'Last used'}
+                </span>
+              )}
             </button>
           )}
         </form>

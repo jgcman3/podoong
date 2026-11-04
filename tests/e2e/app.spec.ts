@@ -7214,7 +7214,9 @@ test('side-view playground places daily arrivals without moving existing childre
  await expect.poll(()=>page.locator('.world-viewport').evaluate(el=>el.scrollLeft)).toBeGreaterThan(before+20);
  await page.getByRole('button',{name:'우리 아이로 돌아가기',exact:true}).click();
  await expect(page.locator('.world-speech-own')).toContainText('동네 친구들 안녕!');
- await expect(page.locator('.world-player-own .world-name')).toHaveText('포둥네 지혜');
+ await expect(page.locator('.world-player-own .world-name')).toHaveText('지혜');
+ await expect(page.locator('.world-player-own .world-family-name')).toHaveText('포둥네');
+ expect(await page.locator('.world-player-own .world-name').evaluate(el=>getComputedStyle(el).whiteSpace)).toBe('normal');
  await page.locator('.world-player-own').evaluate(el=>(el as HTMLButtonElement).click());
  await expect(page.locator('.world-player-own')).toHaveAttribute('aria-pressed','true');
  expect(await page.locator('.world-player-own').evaluate(el=>getComputedStyle(el.parentElement!).zIndex)).toBe('900');
@@ -7433,4 +7435,16 @@ test('neighborhood entry collects residence and keeps local topics separate with
   await expect(categories.getByRole('link',{name:'수유·분유',exact:true})).toBeVisible();
   await expect(categories.getByRole('link',{name:'동네 일상',exact:true})).toHaveCount(0);
   await expect(page.locator('.mobile-nav').getByRole('link',{name:'동네 소통',exact:true})).toBeVisible();
+});
+
+test('login highlights only the last successful social provider stored on this browser', async ({page,context}) => {
+ await context.addCookies([{name:'podoong-last-social',value:'naver',url:'http://127.0.0.1:3188',httpOnly:true,sameSite:'Lax'}]);
+ await page.goto('/ko/login');
+ await expect(page.locator('.social-last-used')).toHaveText('최근 로그인');
+ await expect(page.locator('.social.naver .social-last-used')).toBeVisible();
+ await page.goto('/en/login');
+ await expect(page.locator('.social.naver .social-last-used')).toHaveText('Last used');
+ await context.addCookies([{name:'podoong-last-social',value:'invalid',url:'http://127.0.0.1:3188'}]);
+ await page.reload();
+ await expect(page.locator('.social-last-used')).toHaveCount(0);
 });

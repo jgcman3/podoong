@@ -2,6 +2,8 @@ export type BabyPose = 'lying' | 'sitting' | 'crawling' | 'standing';
 export type WorldFriend = {
   id: string;
   nickname: string;
+  family_name: string;
+  child_name: string;
   status: string;
   sex: string;
   age_days: number;

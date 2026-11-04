@@ -31,6 +31,8 @@ set local role authenticated;
 select public.parenting_playground('c9710000-0000-4000-8000-000000000001') as first \gset
 select is(:'first'::jsonb->>'population','1','only a child that visits is counted');
 select is(:'first'::jsonb->'own'->>'nickname','포둥네 지혜','display name is composed automatically');
+select is(:'first'::jsonb->'own'->>'child_name','지혜','child name is available without splitting spaces');
+select is(:'first'::jsonb->'own'->>'family_name','포둥네','family name is separate');
 select is(jsonb_array_length(:'first'::jsonb->'members'),0,'registered but absent children do not appear');
 select public.parenting_playground('c9710000-0000-4000-8000-000000000002') as second \gset
 select is(:'second'::jsonb->>'population','2','new arrival is added immediately');
@@ -38,6 +40,7 @@ select public.parenting_playground('c9710000-0000-4000-8000-000000000001') as re
 select is(:'returned'::jsonb->'own'->'x',:'first'::jsonb->'own'->'x','new arrivals never shift existing x');
 select is(:'returned'::jsonb->'own'->'y',:'first'::jsonb->'own'->'y','refresh preserves the daily depth');
 select is(jsonb_array_length(:'returned'::jsonb->'members'),1,'a visiting published neighbor appears');
+select ok((:'returned'::jsonb->'members'->0) ?& array['child_name','family_name'],'neighbor names are also separated');
 select ok(abs((:'second'::jsonb->'own'->>'x')::integer-(:'first'::jsonb->'own'->>'x')::integer)<300,'new child is placed near the first child');
 select lives_ok($$select save_parenting_friend('c9710000-0000-4000-8000-000000000001','New status')$$,'status-only save preserves the generated name');
 select is(public.parenting_playground('c9710000-0000-4000-8000-000000000001')->'own'->>'nickname','포둥네 지혜','public name stays derived from family and child');

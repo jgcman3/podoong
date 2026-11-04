@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, configured } from '@/lib/supabase/server';
+import {
+  LAST_SOCIAL_COOKIE,
+  socialProvider,
+} from '@/features/auth/last-social';
 import { isLocale, safeReturnPath } from '@/lib/domain';
 export async function GET(request: NextRequest) {
   const rawLocale = request.nextUrl.searchParams.get('locale');
@@ -10,7 +14,21 @@ export async function GET(request: NextRequest) {
   if (code && configured()) {
     const db = await createClient();
     const { error } = await db.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL(next, origin));
+    if (!error) {
+      const response = NextResponse.redirect(new URL(next, origin));
+      const provider = socialProvider(
+        request.nextUrl.searchParams.get('provider'),
+      );
+      if (provider)
+        response.cookies.set(LAST_SOCIAL_COOKIE, provider, {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          secure: new URL(origin).protocol === 'https:',
+          maxAge: 60 * 60 * 24 * 365,
+        });
+      return response;
+    }
   }
   return NextResponse.redirect(
     new URL(

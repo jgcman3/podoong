@@ -9543,7 +9543,9 @@ html[data-standalone] :is(input, select, textarea) {
   height: 91px;
 }
 .world-name {
-  max-width: 100%;
+  flex-shrink: 0;
+  width: max-content;
+  max-width: 150px;
   padding: 0.2rem 0.45rem;
   border-radius: 7px;
   color: #62584a;
@@ -9551,10 +9553,21 @@ html[data-standalone] :is(input, select, textarea) {
   box-shadow: 0 2px 0 #a89a7535;
   font-size: 0.76rem;
   font-weight: 750;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  line-height: 1.35;
+  position: relative;
+}
+.world-family-name {
+  max-width: 100%;
+  margin-top: 4px;
+  font-size: 0.58rem;
+  line-height: 1.2;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
-  position: relative;
+  white-space: nowrap;
 }
 .world-age {
   margin-top: 0.18rem;
@@ -10048,4 +10061,14 @@ html[data-standalone] :is(input, select, textarea) {
 @media (max-width: 680px) {
   .signup-consent .signup-consent-row label { font-size: 13px; line-height: 1.5; }
   .signup-consent .signup-consent-row label > span { white-space: nowrap; overflow-wrap: normal; }
+}
+
+.social-last-used {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
 }

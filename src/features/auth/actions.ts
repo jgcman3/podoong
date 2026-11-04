@@ -30,6 +30,8 @@ export async function socialLogin(form: FormData) {
   );
   callback.searchParams.set('locale', locale);
   callback.searchParams.set('next', next);
+  if (form.get('link') !== 'true')
+    callback.searchParams.set('provider', providerName);
   const options = {
     redirectTo: callback.toString(),
     skipBrowserRedirect: true,

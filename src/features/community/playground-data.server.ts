@@ -5,6 +5,8 @@ import type { Playground } from './friend-world-model';
 const member = z.object({
   id: z.string(),
   nickname: z.string().max(121),
+  family_name: z.string().max(60),
+  child_name: z.string().max(60),
   status: z.string().max(80),
   sex: z.string(),
   age_days: z.number().int().nonnegative(),
