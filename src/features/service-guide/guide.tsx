@@ -64,7 +64,7 @@ const steps = [
     icon: Bell,
     ko: '필요한 알림만 골라요',
     en: 'Choose your notifications',
-    body: '식사 알림은 기본 3시간 간격이에요. 놀이터 인사·하트와 오전 8시부터 순차적으로 보내는 오늘 일정 알림도 따로 선택할 수 있어요.',
+    body: '식사 알림은 기본 3시간 간격이에요. 놀이터 인사·하트·토닥토닥과 오전 8시부터 순차적으로 보내는 오늘 일정 알림도 따로 선택할 수 있어요.',
     english:
       'Feeding reminders default to three-hour intervals. You can also choose playground reactions and a daily schedule reminder delivered between 8:00 and 8:10 am.',
     target: 'account',

@@ -274,8 +274,8 @@ export function FeedingPushSettings({
             </h3>
             <p className="small muted">
               {ko
-                ? '동네 친구가 보낸 인사·하트를 알려드려요. 2분 동안 받은 마음은 모아서 한 번 알려드려요.'
-                : 'Get notified about waves and hearts from neighborhood friends. Reactions received within two minutes are grouped into one notification.'}
+                ? '동네 친구가 보낸 인사·하트·토닥토닥을 알려드려요. 2분 동안 받은 마음은 모아서 한 번 알려드려요.'
+                : 'Get notified about waves, hearts and comforting pats from neighborhood friends. Reactions received within two minutes are grouped into one notification.'}
             </p>
             <label className="notification-setting-toggle">
               <input
@@ -285,8 +285,8 @@ export function FeedingPushSettings({
                 onChange={(e) => setPlayground(e.target.checked)}
               />
               {ko
-                ? '인사·하트 알림 받기'
-                : 'Receive wave and heart notifications'}
+                ? '인사·하트·토닥토닥 알림 받기'
+                : 'Receive wave, heart and comfort notifications'}
             </label>
             {playground && (
               <label className="notification-setting-toggle">
@@ -334,7 +334,9 @@ export function FeedingPushSettings({
                 disabled={pending}
                 onChange={(e) => setPlayground(e.target.checked)}
               />
-              {ko ? '놀이터 인사·하트' : 'Playground waves & hearts'}
+              {ko
+                ? '놀이터 인사·하트·토닥토닥'
+                : 'Playground waves, hearts & comfort'}
             </label>
           </div>
         )}

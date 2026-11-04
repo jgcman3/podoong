@@ -47,11 +47,15 @@ select is((select count(*) from playground_push_deliveries),0::bigint,'opted-out
 delete from parenting_playground_reactions where sender_child='c9960000-0000-4000-8000-000000000001';
 update notification_preferences set playground_enabled=true where user_id='a9960000-0000-4000-8000-000000000002';
 set local role authenticated;
+select send_playground_reaction('c9960000-0000-4000-8000-000000000001','d9960000-0000-4000-8000-000000000002','comfort');
+reset role;
+select is((select count(*) from playground_push_deliveries),1::bigint,'comfort alone queues a playground notification');
+set local role authenticated;
 select send_playground_reaction('c9960000-0000-4000-8000-000000000001','d9960000-0000-4000-8000-000000000002','heart');
 select send_playground_reaction('c9960000-0000-4000-8000-000000000003','d9960000-0000-4000-8000-000000000002','wave');
 select send_playground_reaction('c9960000-0000-4000-8000-000000000001','d9960000-0000-4000-8000-000000000002','heart');
 reset role;
-select is((select count(*) from playground_push_deliveries),1::bigint,'two reactions and a duplicate share one delivery');
+select is((select count(*) from playground_push_deliveries),1::bigint,'all reaction types and duplicates share one delivery');
 select is((select count(*) from playground_push_deliveries where scheduled_at>now()),1::bigint,'batch waits for the two-minute window');
 select is((select count(*) from claim_playground_push(repeat('a',64))),0::bigint,'a batch never sends early');
 update parenting_playground_reactions set created_at=created_at-interval '3 minutes' where receiver_child='c9960000-0000-4000-8000-000000000002';
@@ -61,6 +65,7 @@ create temporary table leased as select * from claim_playground_push(repeat('a',
 select is((select count(*) from leased),1::bigint,'one due batch is claimed');
 select is((select wave_count from leased),1::bigint,'batch counts waves');
 select is((select heart_count from leased),1::bigint,'batch counts hearts once');
+select is((select comfort_count from leased),1::bigint,'batch includes comfort reactions');
 select ok((select validate_playground_push(id,lease_token) from leased),'leased batch is valid');
 select is((select count(*) from claim_playground_push(repeat('a',64))),0::bigint,'another worker cannot claim a live lease');
 select finish_playground_push(id,gen_random_uuid(),'sent') from leased;

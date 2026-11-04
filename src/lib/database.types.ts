@@ -1882,7 +1882,7 @@ isOneToOne: false
                            },
 "claim_playground_push":
 { Args: { "p_token": string }; Returns: {
-              "auth_key": string,"child_id": string,"endpoint": string,"heart_count": number,"id": string,"lease_token": string,"locale": string,"p256dh": string,"wave_count": number
+              "auth_key": string,"child_id": string,"comfort_count": number,"endpoint": string,"heart_count": number,"id": string,"lease_token": string,"locale": string,"p256dh": string,"wave_count": number
             }[]
                            },
 "claim_schedule_push":
@@ -2173,7 +2173,7 @@ isOneToOne: false
                            },
 "playground_push_batch":
 { Args: { "p_id": string }; Returns: {
-              "heart_count": number,"wave_count": number
+              "comfort_count": number,"heart_count": number,"wave_count": number
             }[]
                            },
 "playground_reactions":

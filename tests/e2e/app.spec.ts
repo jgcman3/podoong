@@ -6838,9 +6838,9 @@ test('feeding reminders opt in per device, save interval and quiet hours, and ca
  });
  await page.setViewportSize({width:390,height:844});await page.goto(`/ko/account?child=${child}&panel=notifications`);
  const settings=page.locator('.feeding-push-settings');await expect(settings.getByRole('heading',{name:'식사 알림',exact:true})).toBeVisible();
- await expect(settings.getByRole('checkbox',{name:'인사·하트 알림 받기',exact:true})).not.toBeChecked();
+ await expect(settings.getByRole('checkbox',{name:'인사·하트·토닥토닥 알림 받기',exact:true})).not.toBeChecked();
  await settings.getByRole('button',{name:'끄기',exact:true}).click();
- await settings.getByRole('checkbox',{name:'인사·하트 알림 받기',exact:true}).check();
+ await settings.getByRole('checkbox',{name:'인사·하트·토닥토닥 알림 받기',exact:true}).check();
  await settings.getByRole('checkbox',{name:'놀이터 알림도 밤에는 쉬기 (22:00–07:00)',exact:true}).uncheck();
  await settings.getByRole('button',{name:'이 기기에서 알림 켜기',exact:true}).click();
  await expect(settings.getByRole('button',{name:'이 기기 알림 끄기',exact:true})).toBeVisible({timeout:15000});
@@ -6852,7 +6852,7 @@ test('feeding reminders opt in per device, save interval and quiet hours, and ca
  await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_enabled,feeding_interval_minutes,quiet_start').eq('user_id',owner).single()).data).toMatchObject({feeding_enabled:true,feeding_interval_minutes:240,quiet_start:'22:00:00'});
  expect((await admin.from('web_push_subscriptions').select('id').eq('user_id',owner)).data).toHaveLength(1);
  const sw=await page.request.get('/sw.js');expect(sw.status()).toBe(200);expect(await sw.text()).toContain("self.addEventListener('push'");
- await page.reload();await expect(settings.getByRole('checkbox',{name:'인사·하트 알림 받기',exact:true})).toBeChecked();await settings.getByRole('button',{name:'2시간',exact:true}).click();await settings.getByRole('checkbox',{name:'밤에는 쉬기 (22:00–07:00)',exact:true}).uncheck();await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
+ await page.reload();await expect(settings.getByRole('checkbox',{name:'인사·하트·토닥토닥 알림 받기',exact:true})).toBeChecked();await settings.getByRole('button',{name:'2시간',exact:true}).click();await settings.getByRole('checkbox',{name:'밤에는 쉬기 (22:00–07:00)',exact:true}).uncheck();await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
  await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_interval_minutes').eq('user_id',owner).single()).data?.feeding_interval_minutes).toBe(120);
  await expect(page.getByRole('status')).toHaveCount(0);
  await page.screenshot({ caret: 'initial',path:'/tmp/podung-feeding-reminder-mobile.png',fullPage:true});
@@ -6864,7 +6864,7 @@ test('feeding reminders opt in per device, save interval and quiet hours, and ca
  await settings.getByRole('button',{name:'끄기',exact:true}).click();await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
  await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_enabled').eq('user_id',owner).single()).data?.feeding_enabled).toBe(false);
  await page.reload();await expect(settings.getByRole('button',{name:'끄기',exact:true})).toHaveAttribute('aria-pressed','true');
- await settings.getByRole('checkbox',{name:'인사·하트 알림 받기',exact:true}).uncheck();await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
+ await settings.getByRole('checkbox',{name:'인사·하트·토닥토닥 알림 받기',exact:true}).uncheck();await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
  await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_enabled,playground_enabled').eq('user_id',owner).single()).data).toMatchObject({feeding_enabled:false,playground_enabled:false});
  await settings.getByRole('button',{name:'간격 기준',exact:true}).click();await settings.getByRole('button',{name:'설정 저장',exact:true}).click();
  await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_enabled,feeding_reference').eq('user_id',owner).single()).data).toMatchObject({feeding_enabled:true,feeding_reference:'interval'});
@@ -7583,7 +7583,7 @@ test('first-use guide saves notification choices only after permission and stays
  for(let i=0;i<5;i++) await page.getByRole('dialog').getByRole('button',{name:'다음',exact:true}).click();
  const last=page.getByRole('dialog',{name:'필요한 알림만 골라요'});
  await expect(last.getByRole('checkbox',{name:'식사 알림',exact:true})).toBeChecked();
- await expect(last.getByRole('checkbox',{name:'놀이터 인사·하트',exact:true})).not.toBeChecked();
+ await expect(last.getByRole('checkbox',{name:'놀이터 인사·하트·토닥토닥',exact:true})).not.toBeChecked();
  await expect(last.getByRole('checkbox',{name:'오늘 일정 알림 받기',exact:true})).not.toBeChecked();
  expect(await page.evaluate(()=>(window as unknown as {permissionRequests:number}).permissionRequests)).toBe(0);
  await last.getByRole('checkbox',{name:'식사 알림',exact:true}).uncheck();

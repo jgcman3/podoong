@@ -117,8 +117,8 @@ export async function Installation({ params, searchParams }: InstallProps) {
           </strong>
           <p>
             {ko
-              ? '식사 시간 알림과 동네 친구가 보낸 인사·하트를 알림으로 받을 수 있어요. 각각 켜고 끌 수 있고, 밤에는 쉬도록 설정할 수 있어요.'
-              : 'Receive feeding reminders and notifications for waves and hearts from neighborhood friends. Turn each on or off, and choose quiet hours at night.'}
+              ? '식사 시간 알림과 동네 친구가 보낸 인사·하트·토닥토닥을 알림으로 받을 수 있어요. 식사·놀이터 알림을 따로 켜거나 끄고, 밤에는 쉬도록 설정할 수 있어요.'
+              : 'Receive feeding reminders and notifications for waves, hearts and comforting pats from neighborhood friends. Choose feeding and playground alerts separately, and set quiet hours at night.'}
           </p>
           <DeviceGuide locale={locale} purpose="notifications" />
           <Link

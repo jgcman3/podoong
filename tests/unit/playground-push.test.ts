@@ -12,6 +12,7 @@ const job = {
   locale: 'ko',
   wave_count: 2,
   heart_count: 3,
+  comfort_count: 0,
   endpoint: 'https://fcm.googleapis.com/fcm/send/test',
   p256dh: 'key',
   auth_key: 'auth',
@@ -19,6 +20,23 @@ const job = {
 it('groups counts without exposing names or photos on the lock screen', () => {
   const payload = playgroundPushPayload(job);
   expect(payload.body).toContain('인사 2개 · 하트 3개');
+  expect(
+    playgroundPushPayload({
+      ...job,
+      wave_count: 0,
+      heart_count: 0,
+      comfort_count: 2,
+    }).body,
+  ).toBe('토닥토닥 2번 받았어요. 놀이터에서 확인해 보세요.');
+  expect(
+    playgroundPushPayload({
+      ...job,
+      locale: 'en',
+      wave_count: 0,
+      heart_count: 0,
+      comfort_count: 1,
+    }).body,
+  ).toContain('1 comforting pat.');
   expect(payload.tag).toBe('playground:child');
   expect(payload.url).toBe('/ko/community/playground?child=child&inbox=1');
   expect(
