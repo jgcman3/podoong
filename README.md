@@ -29,6 +29,8 @@ npm run dev
 
 UI는 소셜 로그인만 제공합니다. 테스트가 만드는 임시 비밀번호 계정은 로컬 E2E 전용이며 로그인 우회 기능은 없습니다. 실제 화면을 이용하려면 아래 OAuth 설정이 필요합니다.
 
+Supabase Authentication → URL Configuration의 **Site URL과 Redirect URLs는 Vercel 앱 주소와 별도로 설정**합니다. 운영 프로젝트의 Site URL은 `https://podoong.com`, Redirect URLs는 `https://podoong.com/**`이며 로컬 주소를 넣지 않습니다. 개발 프로젝트의 기본 주소는 `https://dev.podoong.com`으로 두고 개발·로컬 복귀 주소만 허용합니다. Google/Kakao/Naver에 등록하는 Supabase `/auth/v1/callback`은 이 앱 복귀 주소와 다릅니다. 2026-11-04 운영에서 예전 LAN 주소가 남아 로그인 후 로컬로 복귀하던 문제를 두 URL 설정 수정으로 해결했습니다. 배포 점검 시 로그인 요청이 올바른 Supabase로 이동하는 것뿐 아니라, Supabase의 기본·허용 복귀 주소도 함께 확인합니다.
+
 ### 같은 공유기의 다른 기기에서 접속
 
 `127.0.0.1`은 각 기기 자신입니다. 같은 공유기의 다른 기기에서 소셜 로그인까지 시험하려면 Mac의 로컬 호스트 이름을 사용합니다. macOS에서 `scutil --get LocalHostName`으로 확인한 이름 뒤에 `.local`을 붙입니다. `npm run dev`는 이 컴퓨터에서만 접속하는 기본 실행입니다.

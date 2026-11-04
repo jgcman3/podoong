@@ -8,7 +8,7 @@
 
 운영 `main`과 개발 `develop`은 `.github/workflows/ci.yml`의 application/integration 검사 통과 후 각 환경의 DB·알림 함수·Vercel 앱을 배포한다. 배포를 위해 운영 DB 비밀번호를 GitHub에 저장할 필요는 없으며, DB 연결은 `SUPABASE_ACCESS_TOKEN`을 이용한다.
 
-운영 삭제 재처리는 `.github/workflows/data-cleanup.yml`에서 매시 17분(UTC)에 실행한다. GitHub 예약 작업은 지연될 수 있으며 정확한 시각 보장은 없다. `main`에서 수동 실행도 가능하다. GitHub `production` Environment의 기존 `SUPABASE_SERVICE_ROLE_KEY`를 사용하며 개발 데이터에는 접근하지 않는다. 평상시 사용자 요청 직후의 삭제 시도와 별도로 사진·Auth 삭제 큐를 재시도하고, 24시간 이상 미완료인 탈퇴 요청은 Actions 실패로 알린다. 운영자는 GitHub Actions 실패 알림을 수신하고 `/ko/admin`에서 작업 상태를 확인한다. 개발은 필요 시 명시적 개발 연결 정보로 같은 작업자를 수동 실행한다.
+운영 삭제 재처리는 `.github/workflows/data-cleanup.yml`에서 하루 한 번 UTC 19:17(한국 시간 다음 날 04:17)에 실행한다. GitHub 예약 작업은 지연될 수 있으며 정확한 시각 보장은 없다. `main`에서 수동 실행도 가능하다. GitHub `production` Environment의 기존 `SUPABASE_SERVICE_ROLE_KEY`를 사용하며 개발 데이터에는 접근하지 않는다. 평상시 사용자 요청 직후의 삭제 시도와 별도로 사진·Auth 삭제 큐를 재시도하고, 24시간 이상 미완료인 탈퇴 요청은 Actions 실패로 알린다. 운영자는 GitHub Actions 실패 알림을 수신하고 `/ko/admin`에서 작업 상태를 확인한다. 개발은 필요 시 명시적 개발 연결 정보로 같은 작업자를 수동 실행한다.
 
 보관기간에 따른 익명 집계·오류·감사 로그 정리는 DB 마이그레이션의 기존 `pg_cron` 작업이 담당한다. 위 작업자가 모든 사용자 기록을 주기적으로 삭제하는 것은 아니다. 요청된 삭제와 24시간 이상 연결되지 않은 업로드만 정리한다.
 
