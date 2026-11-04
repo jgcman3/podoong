@@ -1,0 +1,43 @@
+name: Production data cleanup
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: production-data-cleanup
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      OPERATIONS_SUPABASE_URL: https://atdyjsxfxlhwxmxgtnte.supabase.co
+      OPERATIONS_SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev --ignore-scripts
+      - name: Retry requested account and photo deletions
+        run: node scripts/process-operations.mjs
+      - name: Check overdue deletion requests
+        run: |
+          node --input-type=module <<'NODE'
+          import { createClient } from '@supabase/supabase-js';
+          const db = createClient(process.env.OPERATIONS_SUPABASE_URL,
+            process.env.OPERATIONS_SUPABASE_SECRET_KEY,
+            { auth: { persistSession: false, autoRefreshToken: false } });
+          const { count, error } = await db.from('data_operation_jobs')
+            .select('id', { count: 'exact', head: true })
+            .neq('status', 'complete')
+            .lt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+          if (error) throw new Error('Deletion queue monitoring failed');
+          console.log(JSON.stringify({ overdueDeletionRequests: count }));
+          if (count) throw new Error('Review overdue deletions in the administrator page');
+          NODE
