@@ -1132,7 +1132,7 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   await sheet.getByRole('textbox',{name:'일기 내용',exact:true}).fill('직접 공개를 선택한 하루');
   await sheet.getByRole('checkbox',{name:'공개하기',exact:true}).check();
   await expect(sheet.getByRole('textbox',{name:'일기 내용',exact:true})).toHaveValue('직접 공개를 선택한 하루');
-  await expect(sheet).toContainText('다른 이용자와 일기장 링크 방문자');
+  await expect(sheet).toContainText('공개된 성장일기는 다른 초보 부모들에게 많은 도움이 됩니다.');
   await sheet.getByRole('button',{name:'저장',exact:true}).click();
   await expect(sheet).not.toBeVisible();
   const publicDiary=await admin.from('child_records').select('id').eq('child_id',registeredChild).eq('note','직접 공개를 선택한 하루').single();
