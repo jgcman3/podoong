@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useId, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { PenLine, Check, ImagePlus, Ellipsis, Trash2 } from 'lucide-react';
 import { createDiary, removeDiary } from './composer-action';
+import { prepareCommunityPhoto } from '@/features/community/prepare-photo';
 
 export function DiaryComposer({
   child,
@@ -100,18 +101,6 @@ export function DiaryComposer({
   }
   async function submit(data: FormData) {
     if (patternBusy) return;
-    data.delete('photo');
-    let nextFile = 0;
-    data.set(
-      'photoOrder',
-      JSON.stringify(
-        attachments.map((item) => {
-          if (item.id) return item.id;
-          data.append('photo', item.file!);
-          return `new:${nextFile++}`;
-        }),
-      ),
-    );
     setPending(true);
     setError('');
     data.set('id', id.current);
@@ -121,6 +110,27 @@ export function DiaryComposer({
     data.set('occurredAt', new Date().toISOString());
     data.set('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
     try {
+      data.delete('photo');
+      const order: string[] = [];
+      let nextFile = 0;
+      try {
+        // Decode one at a time to keep phone memory usage bounded.
+        for (const item of attachments) {
+          if (item.id) order.push(item.id);
+          else {
+            data.append('photo', await prepareCommunityPhoto(item.file!));
+            order.push(`new:${nextFile++}`);
+          }
+        }
+      } catch {
+        setError(
+          ko
+            ? '사진을 준비하지 못했어요. 첨부 사진을 확인하고 다시 시도해 주세요.'
+            : 'Could not prepare a photo. Check your attachments and try again.',
+        );
+        return;
+      }
+      data.set('photoOrder', JSON.stringify(order));
       const result = await createDiary(data);
       if (result.saved) {
         dialog.current?.close();
@@ -351,8 +361,8 @@ export function DiaryComposer({
                 {publish && (
                   <p className="small muted">
                     {ko
-                      ? '공개하면 아이 닉네임·성별·생후 일수, 일기·사진·성장 수치를 다른 이용자와 일기장 링크 방문자가 볼 수 있어요. 이 일기를 비공개로 바꾸거나 삭제할 때까지 공개됩니다. 공개를 원하지 않으면 선택을 해제하세요. 외부에 저장된 사본은 회수할 수 없어요.'
-                      : 'Publishing shows your child’s nickname, sex, age, diary, photos and growth measurements to other users and diary-link visitors until made private or deleted. Uncheck to keep it private. Copies saved by others cannot be recalled.'}
+                      ? '공개된 성장일기는 다른 초보 부모들에게 많은 도움이 됩니다.'
+                      : 'Your public growth diary can be a great help to other new parents.'}
                   </p>
                 )}
                 {!privacy.health && (
@@ -388,7 +398,7 @@ export function DiaryComposer({
                       type="file"
                       multiple
                       disabled={attachments.length >= 9}
-                      accept="image/png,image/jpeg,image/webp"
+                      accept="image/*,.heic,.heif"
                       aria-label={ko ? '사진 추가' : 'Add photo'}
                       onChange={(event) => {
                         const files = Array.from(event.target.files ?? []);

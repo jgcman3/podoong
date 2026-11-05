@@ -4389,6 +4389,52 @@ test('growth community shares only opted-in diaries with audience-specific field
   }
 });
 
+test('diary phone photos fit the hosting request limit for three and nine attachments', async ({ page, context }) => {
+  const own = await childCareFamily(context);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/community/diaries?child=${own.child}`);
+  const png = await sharp({ create: { width: 2400, height: 3000, channels: 3, background: '#efd9c7' } }).png().toBuffer();
+  const phonePhoto = Buffer.concat([png, Buffer.alloc(1600 * 1024)]);
+  const submitted: number[] = [];
+  await page.route('**/ko/community/diaries**', async route => {
+    const request = route.request();
+    if (request.method() === 'POST' && request.headers()['next-action']) {
+      const size = request.postDataBuffer()?.length ?? 0;
+      submitted.push(size);
+      if (size > 4_500_000) {
+        await route.fulfill({ status: 413, body: 'FUNCTION_PAYLOAD_TOO_LARGE' });
+        return;
+      }
+    }
+    await route.continue();
+  });
+  for (const count of [3, 9]) {
+    expect(phonePhoto.length * count).toBeGreaterThan(4_500_000);
+    await page.getByRole('button', { name: '일기 쓰기', exact: true }).click();
+    const sheet = page.getByRole('dialog', { name: '일기 쓰기', exact: true });
+    await sheet.getByRole('textbox', { name: '일기 내용', exact: true }).fill(`휴대폰 사진 ${count}장`);
+    await sheet.getByLabel('사진 추가', { exact: true }).setInputFiles(Array.from({ length: count }, (_, i) => ({ name: `phone-${i}.png`, mimeType: 'image/png', buffer: phonePhoto })));
+    await sheet.getByRole('button', { name: '저장', exact: true }).click();
+    await expect(sheet).toBeHidden({ timeout: 20000 });
+    const record = await admin.from('child_records').select('id').eq('child_id', own.child).eq('note', `휴대폰 사진 ${count}장`).single();
+    expect(record.error).toBeNull();
+    const photos = await admin.from('child_record_photos').select('path').eq('record_id', record.data!.id);
+    expect(photos.error).toBeNull();
+    expect(photos.data).toHaveLength(count);
+    for (const photo of photos.data ?? []) {
+      createdChildPhotos.push(photo.path);
+      const stored = await admin.storage.from('child-care-photos').download(photo.path);
+      expect(stored.error).toBeNull();
+      expect(stored.data!.size).toBeLessThanOrEqual(350 * 1024);
+      const meta = await sharp(Buffer.from(await stored.data!.arrayBuffer())).metadata();
+      expect(meta.format).toBe('jpeg');
+      expect(Math.max(meta.width!, meta.height!)).toBeLessThanOrEqual(2048);
+    }
+  }
+  expect(submitted).toHaveLength(2);
+  expect(submitted.every(size => size < 4_500_000)).toBe(true);
+});
+
 test('own diary uses a bottom sheet with optional growth measurements', async ({
   page,
   context,
