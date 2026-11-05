@@ -1,3 +1,4 @@
+import { ServiceInvite } from '@/features/community/service-invite';
 import { serviceContacts } from '@/lib/contacts';
 import { DeveloperRequestForm } from '@/features/developer-requests/form';
 import { AppearanceSettings } from '@/components/appearance';
@@ -703,6 +704,10 @@ export async function ChildAccount({
   return (
     <div className="child-account-page">
       <div className="account-inline-settings" key={child.id}>
+        <ServiceInvite
+          locale={locale}
+          url={`${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://podoong.com'}/${locale}/intro`}
+        />
         <section
           className="panel account-children"
           aria-label={t('childSelect')}

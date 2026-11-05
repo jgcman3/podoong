@@ -1,4 +1,5 @@
 'use client';
+import './posts.css';
 import { useState } from 'react';
 import { Share2 } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
@@ -13,11 +14,9 @@ export function ServiceInvite({
 }) {
   const [open, setOpen] = useState(false);
   const ko = locale === 'ko';
-  const heading = ko
-    ? '친구에게 포둥 소개하기'
-    : 'Introduce podoong to a friend';
+  const heading = ko ? '포둥 소개하기' : 'Share podoong';
   return (
-    <aside className="service-invite">
+    <aside className="panel service-invite">
       <p>
         {ko
           ? '가까운 육아 친구와 함께해요'

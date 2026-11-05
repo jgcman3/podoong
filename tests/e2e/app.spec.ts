@@ -7196,16 +7196,7 @@ test('parenting tags route posts and playground status is visible without a chec
  await expect(page.locator('.world-player-own .world-name')).not.toBeEmpty();
  await expect(page.locator('.world-speech-own')).toContainText('산책 친구');
  await expect(page.locator('.world-player-own')).toHaveCount(1);
- await page.locator('.playground-participation > summary').click();
- await page.getByRole('button',{name:'참여 중단하기',exact:true}).click();
- await expect(page.getByRole('button',{name:'참여하기',exact:true})).toBeVisible();
- await expect(page.locator('.world-player-own')).toHaveCount(0);
- expect((await admin.from('parenting_friend_profiles').select('child_id').eq('child_id',home.child)).data).toHaveLength(0);
- expect((await admin.from('parenting_playground_positions').select('child_id').eq('child_id',home.child)).data).toHaveLength(0);
- expect((await admin.from('children').select('id').eq('id',home.child)).data).toHaveLength(1);
- await page.getByRole('button',{name:'참여하기',exact:true}).click();
- await expect(page.locator('.world-player-own')).toHaveCount(1);
- await expect(page.getByRole('textbox',{name:'한 줄 상태',exact:true})).toHaveValue('');
+ await expect(page.getByText('참여 중단',{exact:true})).toHaveCount(0);
 });
 
 test('side-view playground places daily arrivals without moving existing children and supports camera panning',async({page,context})=>{
@@ -7656,17 +7647,18 @@ test('quick records allow a previous date with the clock time after midnight', a
 });
 
 
-test('playground service invitation shares a public introduction without family details', async ({page,context,browser}) => {
+test('account service invitation shares a public introduction without family details', async ({page,context,browser}) => {
  const home=await childCareFamily(context);await setFamilyResidence(home.family,'1168010100');
  await page.setViewportSize({width:390,height:844});
- await page.goto(`/ko/community/playground?child=${home.child}`);
+ await page.goto(`/ko/account?child=${home.child}`);
+ await expect(page.locator('.account-inline-settings > :first-child')).toHaveClass(/service-invite/);
  await page.evaluate(()=>{
   Object.defineProperty(window,'isSecureContext',{configurable:true,value:true});
   Object.defineProperty(navigator,'share',{configurable:true,value:async(data:ShareData)=>sessionStorage.setItem('service-share',JSON.stringify(data))});
   Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async(text:string)=>sessionStorage.setItem('service-copy',text)}});
  });
- const trigger=page.getByRole('button',{name:'친구에게 포둥 소개하기',exact:true});
- await trigger.click();const sheet=page.getByRole('dialog',{name:'친구에게 포둥 소개하기',exact:true});
+ const trigger=page.getByRole('button',{name:'포둥 소개하기',exact:true});
+ await trigger.click();const sheet=page.getByRole('dialog',{name:'포둥 소개하기',exact:true});
  await expect(sheet).toBeVisible();await expect(sheet).toContainText('함께 시작해요!');
  const box=(await sheet.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(390);
  await sheet.getByRole('button',{name:'다른 앱에 공유',exact:true}).click();
@@ -7681,6 +7673,25 @@ test('playground service invitation shares a public introduction without family 
   await expect(recipient.locator('meta[property="og:title"]')).toHaveAttribute('content','포둥 · 육아 기록부터 동네 친구까지');
   await expect(recipient.locator('meta[property="og:image"]')).toHaveAttribute('content',/\/icons\/podung-512.png$/);
  }finally{await guest.close();}
- await page.goto(`/en/community/playground?child=${home.child}`);await page.getByRole('button',{name:'Introduce podoong to a friend',exact:true}).click();
- await expect(page.getByRole('dialog',{name:'Introduce podoong to a friend',exact:true})).toContainText('Join me!');
+ await page.goto(`/en/account?child=${home.child}`);await page.getByRole('button',{name:'Share podoong',exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'Share podoong',exact:true})).toContainText('Join me!');
+ await page.goto(`/ko/community/playground?child=${home.child}`);
+ await expect(page.getByRole('button',{name:'포둥 소개하기',exact:true})).toHaveCount(0);
+ await expect(page.getByText('참여 중단',{exact:true})).toHaveCount(0);
+});
+
+test('playground push validates through the read-only REST RPC without writing regions',async({page,context})=>{
+ const sender=await childCareFamily(context);await setFamilyResidence(sender.family,'1168010100');
+ const receiver=await childCareFamily(context);await setFamilyResidence(receiver.family,'1168010100');
+ await page.goto(`/ko/community/playground?child=${receiver.child}`);
+ await expect(page.locator('.world-player-own')).toHaveCount(1);
+ const past=new Date(Date.now()-10*60000).toISOString(), lease=crypto.randomUUID();
+ const pref=await admin.from('notification_preferences').upsert({user_id:receiver.owner,playground_enabled:true,playground_quiet:false});expect(pref.error).toBeNull();
+ expect((await admin.from('notification_preferences').update({playground_enabled_at:past}).eq('user_id',receiver.owner)).error).toBeNull();
+ const subscription=await admin.from('web_push_subscriptions').insert({user_id:receiver.owner,endpoint:`https://fcm.googleapis.com/fcm/send/local-fixture-${crypto.randomUUID()}`,p256dh:'B'.repeat(87),auth_key:'A'.repeat(22),locale:'ko',created_at:past}).select('id').single();expect(subscription.error).toBeNull();
+ const reaction=await admin.from('parenting_playground_reactions').insert({sender_child:sender.child,receiver_child:receiver.child,day:new Date(Date.now()+9*3600000).toISOString().slice(0,10),kind:'comfort',sender_name:'Fixture',created_at:new Date(Date.now()-90000).toISOString()});expect(reaction.error).toBeNull();
+ const delivery=await admin.from('playground_push_deliveries').insert({subscription_id:subscription.data!.id,child_id:receiver.child,batch_start:new Date(Date.now()-180000).toISOString(),scheduled_at:new Date(Date.now()-60000).toISOString(),status:'sending',attempts:1,lease_token:lease,leased_until:new Date(Date.now()+180000).toISOString()}).select('id').single();expect(delivery.error).toBeNull();
+ const valid=await admin.rpc('validate_playground_push',{p_id:delivery.data!.id,p_lease:lease});expect(valid.error).toBeNull();expect(valid.data).toBe(true);
+ expect((await admin.from('notification_preferences').update({playground_enabled:false}).eq('user_id',receiver.owner)).error).toBeNull();
+ const revoked=await admin.rpc('validate_playground_push',{p_id:delivery.data!.id,p_lease:lease});expect(revoked.error).toBeNull();expect(revoked.data).toBe(false);
 });

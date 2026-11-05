@@ -89,5 +89,10 @@ update child_privacy_consents set neighborhood=false where child_id='c9960000-00
 select ok(not (select validate_playground_push(id,lease_token) from leased),'leaving the playground invalidates queued notifications');
 select finish_playground_push(id,lease_token,'cancelled') from leased;
 select is((select status from playground_push_deliveries),'cancelled','invalidated batch is cancelled');
+select is(playground_region_key('b9960000-0000-4000-8000-000000000001'),playground_region('b9960000-0000-4000-8000-000000000001'),'read-only region key matches registered Korean region');
+update families set residence_country_code='AU',residence_province='NSW',residence_city='Sydney',residence_locality='Haymarket' where id='b9960000-0000-4000-8000-000000000001';
+select is(playground_region_key('b9960000-0000-4000-8000-000000000001'),playground_region('b9960000-0000-4000-8000-000000000001'),'read-only region key matches overseas region including province');
+update families set residence_country_code=null,residence_province=null,residence_city=null,residence_locality=null where id='b9960000-0000-4000-8000-000000000001';
+select is(playground_region_key('b9960000-0000-4000-8000-000000000001'),null::uuid,'incomplete residence has no region key');
 select * from finish();
 rollback;

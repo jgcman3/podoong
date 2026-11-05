@@ -2182,6 +2182,9 @@ isOneToOne: false
 "playground_region":
 { Args: { "p_family": string }; Returns: string
                            },
+"playground_region_key":
+{ Args: { "p_family": string }; Returns: string
+                           },
 "poll_results":
 { Args: { "p_id": string }; Returns: Json
                            },
