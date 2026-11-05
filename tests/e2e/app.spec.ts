@@ -7196,6 +7196,16 @@ test('parenting tags route posts and playground status is visible without a chec
  await expect(page.locator('.world-player-own .world-name')).not.toBeEmpty();
  await expect(page.locator('.world-speech-own')).toContainText('산책 친구');
  await expect(page.locator('.world-player-own')).toHaveCount(1);
+ await page.locator('.playground-participation > summary').click();
+ await page.getByRole('button',{name:'참여 중단하기',exact:true}).click();
+ await expect(page.getByRole('button',{name:'참여하기',exact:true})).toBeVisible();
+ await expect(page.locator('.world-player-own')).toHaveCount(0);
+ expect((await admin.from('parenting_friend_profiles').select('child_id').eq('child_id',home.child)).data).toHaveLength(0);
+ expect((await admin.from('parenting_playground_positions').select('child_id').eq('child_id',home.child)).data).toHaveLength(0);
+ expect((await admin.from('children').select('id').eq('id',home.child)).data).toHaveLength(1);
+ await page.getByRole('button',{name:'참여하기',exact:true}).click();
+ await expect(page.locator('.world-player-own')).toHaveCount(1);
+ await expect(page.getByRole('textbox',{name:'한 줄 상태',exact:true})).toHaveValue('');
 });
 
 test('side-view playground places daily arrivals without moving existing children and supports camera panning',async({page,context})=>{
@@ -7643,4 +7653,34 @@ test('quick records allow a previous date with the clock time after midnight', a
  expect(record.error).toBeNull();expect(Date.parse(record.data!.started_at)).toBe(Date.parse(`${previous}T22:40:00+09:00`));
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  } finally {await context.close();}
+});
+
+
+test('playground service invitation shares a public introduction without family details', async ({page,context,browser}) => {
+ const home=await childCareFamily(context);await setFamilyResidence(home.family,'1168010100');
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/community/playground?child=${home.child}`);
+ await page.evaluate(()=>{
+  Object.defineProperty(window,'isSecureContext',{configurable:true,value:true});
+  Object.defineProperty(navigator,'share',{configurable:true,value:async(data:ShareData)=>sessionStorage.setItem('service-share',JSON.stringify(data))});
+  Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async(text:string)=>sessionStorage.setItem('service-copy',text)}});
+ });
+ const trigger=page.getByRole('button',{name:'친구에게 포둥 소개하기',exact:true});
+ await trigger.click();const sheet=page.getByRole('dialog',{name:'친구에게 포둥 소개하기',exact:true});
+ await expect(sheet).toBeVisible();await expect(sheet).toContainText('함께 시작해요!');
+ const box=(await sheet.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(390);
+ await sheet.getByRole('button',{name:'다른 앱에 공유',exact:true}).click();
+ const payload=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('service-share')!));
+ expect(payload.url).toBe('http://127.0.0.1:3188/ko/intro');expect(payload.text).toContain('육아 기록');
+ expect(payload.url).not.toContain(home.child);expect(payload.url).not.toContain(home.family);
+ await sheet.getByRole('button',{name:'링크 복사',exact:true}).click();await expect(sheet.getByRole('status')).toHaveText('링크를 복사했어요.');
+ expect(await page.evaluate(()=>sessionStorage.getItem('service-copy'))).toBe(payload.url);
+ await sheet.getByRole('button',{name:'닫기',exact:true}).click();await expect(trigger).toBeFocused();
+ const guest=await browser.newContext();try{
+  const recipient=await guest.newPage();await recipient.goto(payload.url);await expect(recipient.getByRole('link',{name:'포둥 시작하기',exact:true}).first()).toBeVisible();
+  await expect(recipient.locator('meta[property="og:title"]')).toHaveAttribute('content','포둥 · 육아 기록부터 동네 친구까지');
+  await expect(recipient.locator('meta[property="og:image"]')).toHaveAttribute('content',/\/icons\/podung-512.png$/);
+ }finally{await guest.close();}
+ await page.goto(`/en/community/playground?child=${home.child}`);await page.getByRole('button',{name:'Introduce podoong to a friend',exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'Introduce podoong to a friend',exact:true})).toContainText('Join me!');
 });

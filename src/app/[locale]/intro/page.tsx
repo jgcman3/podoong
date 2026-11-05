@@ -8,7 +8,31 @@ export async function generateMetadata({
   params: Promise<{ locale: Locale }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://podoong.com';
   return {
+    metadataBase: new URL(origin),
+    openGraph: {
+      type: 'website',
+      siteName: 'podoong',
+      locale: locale === 'ko' ? 'ko_KR' : 'en_US',
+      url: `${origin}/${locale}/intro`,
+      title:
+        locale === 'ko'
+          ? '포둥 · 육아 기록부터 동네 친구까지'
+          : 'podoong · Care records and parenting friends',
+      description:
+        locale === 'ko'
+          ? '매일의 수유·수면 기록, 하루 패턴, 성장일기와 동네 놀이터. 함께 돌보는 육아를 시작해요.'
+          : 'Daily care records, insights, growing memories and a neighborhood playground. Start caring together.',
+      images: [
+        {
+          url: '/icons/podung-512.png',
+          width: 512,
+          height: 512,
+          alt: 'podoong',
+        },
+      ],
+    },
     title:
       locale === 'ko'
         ? '함께 돌보는, 포근한 둥지'

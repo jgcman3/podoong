@@ -1220,3 +1220,21 @@ body:has(.parenting-post-page) .app-footer {
 
 .post-report-dialog { max-height: 90dvh; overflow-y: auto; }
 .post-report-dialog textarea { resize: vertical; }
+
+.service-invite {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+.service-invite > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.post-share-sheet > .service-share-preview {
+  margin: 0 0 18px;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.6;
+}

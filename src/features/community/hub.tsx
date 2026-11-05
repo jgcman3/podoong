@@ -13,6 +13,7 @@ import { PostCard } from './post-card';
 import { postDetailSchema } from './post-model';
 import { communityTags } from './options';
 import { NeighborhoodFriends } from './friends';
+import { ServiceInvite } from './service-invite';
 import { CommunityWelcome } from './community-welcome';
 import { CommunityResidence } from './residence';
 function minutesSince(createdAt: string) {
@@ -295,6 +296,12 @@ export async function CommunityHub({
             </p>
           )}
         </>
+      )}
+      {!posts && (
+        <ServiceInvite
+          locale={locale}
+          url={`${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://podoong.com'}/${locale}/intro`}
+        />
       )}
     </section>
   );

@@ -8,11 +8,15 @@ export function PostShareSheet({
   title,
   locale,
   close,
+  heading,
+  text,
 }: {
   url: string;
   title: string;
   locale: Locale;
   close: () => void;
+  heading?: string;
+  text?: string;
 }) {
   const ko = locale === 'ko',
     dialog = useRef<HTMLDialogElement>(null),
@@ -29,8 +33,12 @@ export function PostShareSheet({
       : 'This browser does not support sharing to other apps. Use Copy link.';
   useEffect(() => {
     const trigger = document.activeElement as HTMLElement | null;
-    dialog.current?.showModal();
-    return () => trigger?.focus({ preventScroll: true });
+    const element = dialog.current;
+    element?.showModal();
+    return () => {
+      element?.close();
+      trigger?.focus({ preventScroll: true });
+    };
   }, []);
   async function copy() {
     setBusy(true);
@@ -58,7 +66,7 @@ export function PostShareSheet({
     setBusy(true);
     setMessage('');
     try {
-      await navigator.share({ url, title });
+      await navigator.share({ url, title, ...(text ? { text } : {}) });
     } catch (error) {
       if (!(error instanceof DOMException && error.name === 'AbortError'))
         setMessage(
@@ -74,14 +82,14 @@ export function PostShareSheet({
     <dialog
       ref={dialog}
       className="post-share-sheet"
-      aria-label={ko ? '게시글 공유' : 'Share post'}
+      aria-label={heading ?? (ko ? '게시글 공유' : 'Share post')}
       onCancel={(event) => {
         event.preventDefault();
         if (!busy) close();
       }}
     >
       <header>
-        <h2>{ko ? '게시글 공유' : 'Share post'}</h2>
+        <h2>{heading ?? (ko ? '게시글 공유' : 'Share post')}</h2>
         <button
           type="button"
           aria-label={ko ? '닫기' : 'Close'}
@@ -91,6 +99,7 @@ export function PostShareSheet({
           <X size={21} />
         </button>
       </header>
+      {text && <p className="service-share-preview">{text}</p>}
       <div>
         <button type="button" disabled={busy} onClick={() => void copy()}>
           <Copy size={24} />

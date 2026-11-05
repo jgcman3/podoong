@@ -16,10 +16,12 @@
 .parenting-playground .neighborhood-friends {
   flex: 1;
   min-height: 0;
-  display: block;
+  display: flex;
+  flex-direction: column;
 }
 .parenting-playground .friend-world-section {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   position: relative;
 }
 .parenting-playground .friend-world-heading {
@@ -62,7 +64,7 @@ body:has(.parenting-playground) .app-footer {
   }
   .parenting-playground .neighborhood-friends {
     margin-inline: -18px;
-    margin-bottom: -34px;
+    margin-bottom: 0;
   }
 }
 .parenting-playground .world-speech {

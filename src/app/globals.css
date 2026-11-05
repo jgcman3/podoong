@@ -10100,3 +10100,12 @@ html[data-standalone] :is(input, select, textarea) {
 .quick-date-time-row { display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:10px; }
 .quick-date-time-row > label { min-width:0; }
 .quick-date-time-row .quick-time-control { padding:0 10px;font-size:14px; }
+
+.playground-participation {
+  margin: 8px 12px;
+}
+.playground-participation > summary {
+  width: fit-content;
+  margin-left: auto;
+  cursor: pointer;
+}
