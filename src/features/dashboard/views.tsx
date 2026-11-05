@@ -1,3 +1,4 @@
+import { InviteShare } from '@/features/family/invite-share';
 import { ServiceInvite } from '@/features/community/service-invite';
 import { serviceContacts } from '@/lib/contacts';
 import { DeveloperRequestForm } from '@/features/developer-requests/form';
@@ -567,6 +568,11 @@ export async function Family({
                     value={`${origin}/${locale}/invite/${token}`}
                   />
                 </label>
+                <InviteShare
+                  key={token}
+                  locale={locale}
+                  url={`${origin}/${locale}/invite/${token}`}
+                />
                 <p>{t('inviteExpiry')}</p>
               </div>
             )}

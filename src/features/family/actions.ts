@@ -207,7 +207,7 @@ export async function createInvite(form: FormData) {
     path: `/${locale}/${form.get('returnPage') === 'account' ? 'account' : 'family'}`,
   });
   redirect(
-    `${familyReturn(form, locale)}&child=${parsed.data.childId}&notice=saved`,
+    `${familyReturn(form, locale)}&child=${parsed.data.childId}&notice=invite-created`,
   );
 }
 

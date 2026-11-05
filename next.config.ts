@@ -33,6 +33,14 @@ const config: NextConfig = {
         ],
       },
       {
+        source: '/:locale/invite/:token',
+        headers: [
+          { key: 'Cache-Control', value: 'private, no-store' },
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
+        ],
+      },
+      {
         source: '/:locale/share/diary/:token',
         headers: [
           { key: 'Cache-Control', value: 'private, no-store' },

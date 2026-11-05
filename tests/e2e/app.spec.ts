@@ -6023,6 +6023,7 @@ test('child bottom navigation opens a main page with child selection and setting
   await page.getByRole('button', { name: '초대 링크 만들기', exact: true }).click();
   await expect(page).toHaveURL(/\/ko\/account\?panel=family/);
   await expect(page.getByRole('textbox', { name: '초대 링크', exact: true })).toBeVisible();
+  await page.getByRole('dialog',{name:'가족 초대 공유',exact:true}).getByRole('button',{name:'닫기',exact:true}).click();
   await page.locator('summary').filter({hasText:'아이 설정'}).click();
   await page.locator('.account-child-list').getByRole('link', { name: /둘째 수정/ }).click();
   await expect(page).toHaveURL(new RegExp(`child=${second!.id}`));
@@ -7694,4 +7695,36 @@ test('playground push validates through the read-only REST RPC without writing r
  const valid=await admin.rpc('validate_playground_push',{p_id:delivery.data!.id,p_lease:lease});expect(valid.error).toBeNull();expect(valid.data).toBe(true);
  expect((await admin.from('notification_preferences').update({playground_enabled:false}).eq('user_id',receiver.owner)).error).toBeNull();
  const revoked=await admin.rpc('validate_playground_push',{p_id:delivery.data!.id,p_lease:lease});expect(revoked.error).toBeNull();expect(revoked.data).toBe(false);
+});
+
+test('family invitation creation opens sharing and anonymous chat previews keep family details private',async({page,context,browser})=>{
+ const own=await childCareFamily(context);
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/account?child=${own.child}&panel=family`);
+ await page.evaluate(()=>{
+  Object.defineProperty(window,'isSecureContext',{configurable:true,value:true});
+  Object.defineProperty(navigator,'share',{configurable:true,value:async(data:ShareData)=>sessionStorage.setItem('family-share',JSON.stringify(data))});
+  Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async(text:string)=>sessionStorage.setItem('family-copy',text)}});
+ });
+ await page.getByRole('button',{name:'초대 링크 만들기',exact:true}).click();
+ const sheet=page.getByRole('dialog',{name:'가족 초대 공유',exact:true});await expect(sheet).toBeVisible();
+ const link=await page.getByRole('textbox',{name:'초대 링크',exact:true}).inputValue();
+ await expect(page).not.toHaveURL(/notice=invite-created/);
+ const bounds=(await sheet.boundingBox())!;expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.x+bounds.width).toBeLessThanOrEqual(390);
+ await sheet.getByRole('button',{name:'링크 복사',exact:true}).click();await expect(sheet.getByRole('status')).toHaveText('링크를 복사했어요.');
+ expect(await page.evaluate(()=>sessionStorage.getItem('family-copy'))).toBe(link);
+ await sheet.getByRole('button',{name:'다른 앱에 공유',exact:true}).click();
+ const payload=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('family-share')!));expect(payload.url).toBe(link);expect(payload.title).toBe('가족을 초대합니다 · 포둥');
+ await sheet.getByRole('button',{name:'닫기',exact:true}).click();await expect(page.getByRole('button',{name:'초대 링크 공유',exact:true})).toBeFocused();
+ const guest=await browser.newContext({baseURL:'http://127.0.0.1:3188'});
+ try{
+  const response=await guest.request.get(link,{headers:{'user-agent':'kakaotalk-scrap/1.0'},maxRedirects:0});expect(response.status()).toBe(200);
+  expect(response.headers()['referrer-policy']).toBe('no-referrer');expect(response.headers()['x-robots-tag']).toContain('noindex');
+  const html=await response.text(),head=html.match(/<head>[\s\S]*?<\/head>/)?.[0]??'';
+  expect(head).toContain('property="og:title" content="가족을 초대합니다 · 포둥"');expect(head).toContain('/icons/podung-512.png');
+  expect(html).not.toContain(own.child);expect(html).not.toContain(own.family);expect(html).not.toContain('Care test family');
+  const recipient=await guest.newPage();await recipient.goto(link);await expect(recipient.getByRole('heading',{name:'가족을 초대합니다',exact:true})).toBeVisible();
+  await recipient.getByRole('link',{name:'로그인하고 초대 확인하기',exact:true}).click();await expect(recipient).toHaveURL(/\/ko\/login\?next=/);expect(new URL(recipient.url()).searchParams.get('next')).toBe(new URL(link).pathname);
+  const en=await guest.request.get(link.replace('/ko/','/en/'),{headers:{'user-agent':'kakaotalk-scrap/1.0'},maxRedirects:0});expect(en.status()).toBe(200);expect(await en.text()).toContain('You’re invited to join your family');
+ }finally{await guest.close();}
 });

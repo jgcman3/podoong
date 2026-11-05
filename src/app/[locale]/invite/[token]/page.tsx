@@ -1,3 +1,5 @@
+import type { Metadata } from 'next';
+import { configured, createClient } from '@/lib/supabase/server';
 import { RelationshipField } from '@/features/family/relationship-field';
 import { familyJoinPreview } from '@/features/family/join-model';
 import Link from 'next/link';
@@ -6,6 +8,43 @@ import { requireUser } from '@/lib/data';
 import { acceptInvite } from '@/features/family/actions';
 import { BrandImage } from '@/components/brand-image';
 import type { Locale } from '@/lib/domain';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: Locale; token: string }>;
+}): Promise<Metadata> {
+  const ko = (await params).locale === 'ko';
+  const title = ko
+    ? '가족을 초대합니다 · 포둥'
+    : 'You’re invited to join your family · podoong';
+  const description = ko
+    ? '포둥에서 우리 아이의 하루를 함께 기록하고 돌봐요.'
+    : 'Record and care for your little one together on podoong.';
+  return {
+    metadataBase: new URL(
+      process.env.NEXT_PUBLIC_SITE_URL ?? 'https://podoong.com',
+    ),
+    title,
+    description,
+    robots: { index: false, follow: false, nocache: true },
+    openGraph: {
+      title,
+      description,
+      siteName: 'podoong',
+      type: 'website',
+      images: [
+        {
+          url: '/icons/podung-512.png',
+          width: 512,
+          height: 512,
+          alt: 'podoong',
+        },
+      ],
+    },
+    twitter: { card: 'summary', title, description },
+  };
+}
 
 export default async function Invitation({
   params,
@@ -17,7 +56,33 @@ export default async function Invitation({
   const { locale, token } = await params;
   const { error } = await searchParams;
   const ko = locale === 'ko';
-  const path = `/${locale}/invite/${token}`;
+  const path = `/${locale}/invite/${encodeURIComponent(token)}`;
+  const session = configured()
+    ? await (await createClient()).auth.getClaims()
+    : null;
+  if (!session?.data?.claims) {
+    return (
+      <main className="onboarding-page">
+        <section className="onboard-card family-join-review">
+          <BrandImage />
+          <h1>
+            {ko ? '가족을 초대합니다' : 'You’re invited to join your family'}
+          </h1>
+          <p>
+            {ko
+              ? '포둥에서 우리 아이의 하루를 함께 기록하고 돌봐요. 로그인 후 참여할 가족과 초대 내용을 확인할 수 있어요.'
+              : 'Record and care for your little one together on podoong. Sign in to review your family invitation.'}
+          </p>
+          <Link
+            className="button primary"
+            href={`/${locale}/login?next=${encodeURIComponent(path)}`}
+          >
+            {ko ? '로그인하고 초대 확인하기' : 'Sign in to view invitation'}
+          </Link>
+        </section>
+      </main>
+    );
+  }
   const { db, user } = await requireUser(locale);
   const profile = await db
     .from('profiles')
