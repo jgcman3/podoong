@@ -5991,10 +5991,11 @@ test('community tab geometry stays identical when selecting the playground', asy
  }
 });
 
-test('diary likes persist across lists and details and share visitors see only counts', async ({page,context,browser})=>{
+test('diary likes persist across lists and details and share visitors see counts and caregiver attribution', async ({page,context,browser})=>{
  const home=await childCareFamily(context);
+ expect((await admin.from('family_members').update({relationship:'father'}).eq('family_id',home.family).eq('user_id',home.owner)).error).toBeNull();
  const record=crypto.randomUUID();
- expect((await admin.from('child_records').insert({id:record,child_id:home.child,service:'growth',kind:'observation',occurred_at:new Date(Date.now()-1000).toISOString(),record_timezone:'Asia/Seoul',note:'좋아요 공유 확인 일기\n'+('아기와 함께한 하루를 기록해요.\n'.repeat(8)),created_by:home.owner})).error).toBeNull();
+ expect((await admin.from('child_records').insert({id:record,child_id:home.child,service:'growth',kind:'observation',occurred_at:new Date(Date.now()-1000).toISOString(),record_timezone:'Asia/Seoul',note:'좋아요 공유 확인 일기\n'+('아기와 함께한 하루를 기록해요.\n'.repeat(8)),author_relationship:'father',created_by:home.owner})).error).toBeNull();
  expect((await admin.from('growth_diary_shares').insert({record_id:record,everyone:true,published_by:home.owner})).error).toBeNull();
  const reader=await browser.newContext({baseURL:'http://127.0.0.1:3188'}),guest=await browser.newContext({baseURL:'http://127.0.0.1:3188'});
  try {
@@ -6026,6 +6027,7 @@ test('diary likes persist across lists and details and share visitors see only c
   const link=await share.getByRole('textbox',{name:'공유 링크',exact:true}).inputValue();
   const guestPage=await guest.newPage();await guestPage.goto(link);
   const shared=guestPage.locator('.shared-diary-card').filter({hasText:'좋아요 공유 확인 일기'});
+  await expect(shared.locator('.shared-diary-author')).toHaveText('by 아빠');
   await expect(shared.getByLabel('좋아요 1개',{exact:true})).toBeVisible();
   await expect(shared.getByRole('button',{name:'좋아요',exact:true})).toHaveCount(0);
   await card.getByRole('button',{name:'일기 보기',exact:true}).click();
@@ -6037,6 +6039,8 @@ test('diary likes persist across lists and details and share visitors see only c
   await detail.getByRole('button',{name:'돌아가기',exact:true}).click();
   await expect(like).toHaveAttribute('aria-pressed','false');await expect(like).toContainText('0');
   await guestPage.reload();await expect(shared.getByLabel('좋아요 0개',{exact:true})).toBeVisible();
+  await guestPage.goto(link.replace('/ko/share/', '/en/share/'));
+  await expect(guestPage.locator('.shared-diary-author')).toHaveText('by Father');
  }finally{await reader.close();await guest.close();}
 });
 

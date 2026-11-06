@@ -2,6 +2,7 @@
 import { CalendarDays, Heart } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Database } from '@/lib/database.types';
+import { relationshipLabel } from '@/features/family/relationship';
 import { SharedDiaryPhotos } from './shared-diary-photos';
 import { loadSharedDiaries } from './shared-feed-action';
 type Entry =
@@ -91,13 +92,14 @@ export function SharedDiaryFeed({
               />
             )}
             {entry.note && <p className="shared-diary-note">{entry.note}</p>}
-            <footer
-              className="shared-diary-likes"
-              aria-label={
-                ko ? `좋아요 ${entry.likes}개` : `${entry.likes} likes`
-              }
-            >
-              <span className="shared-diary-like-count">
+            <footer className="shared-diary-likes">
+              <span className="shared-diary-author">
+                by {relationshipLabel(entry.author_relationship, locale)}
+              </span>
+              <span
+                className="shared-diary-like-count"
+                aria-label={ko ? `좋아요 ${entry.likes}개` : `${entry.likes} likes`}
+              >
                 <Heart
                   size={15}
                   strokeWidth={1.7}

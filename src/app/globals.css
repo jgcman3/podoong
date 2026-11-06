@@ -9398,6 +9398,10 @@ html[data-standalone] :is(input, select, textarea) {
   font-size: 12px;
 }
 
+.shared-diary-author {
+  margin-right: auto;
+}
+
 .shared-diary-like-count {
   display: inline-flex;
   align-items: center;
