@@ -22,7 +22,7 @@ export default async function Moderation({
   const q = await searchParams;
   const n = Number(q.page);
   const page = Number.isSafeInteger(n) && n >= 0 ? Math.min(n, 1000) : 0;
-  const [reports, history, restrictions, posts] = await Promise.all([
+  const [reports, history, restrictions] = await Promise.all([
     db
       .from('community_reports')
       .select('*')
@@ -39,13 +39,8 @@ export default async function Moderation({
       .select('*')
       .order('until_at', { ascending: false })
       .limit(50),
-    db
-      .from('neighborhood_posts')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(page * 30, page * 30 + 30),
   ]);
-  if ([reports, history, restrictions, posts].some((r) => r.error))
+  if ([reports, history, restrictions].some((r) => r.error))
     throw new Error('Moderation unavailable');
   return (
     <main className="main-content">
@@ -163,23 +158,6 @@ export default async function Moderation({
           />
         </article>
       ))}
-      <h2>{t.titleLabel}</h2>
-      {posts.data?.slice(0, 30).map((p) => (
-        <article className="panel" key={p.id}>
-          <Link href={`/${locale}/community/posts/${p.id}`}>{p.title}</Link>
-          <p>
-            <code>{p.author_id}</code>
-          </p>
-          <Action
-            locale={locale}
-            moderation
-            action={p.hidden ? 'unhide' : 'hide'}
-            id={p.id}
-            label={p.hidden ? t.unhide : t.hide}
-            fields={{ kind: 'post' }}
-          />
-        </article>
-      ))}
       <h2>{t.history}</h2>
       {history.data?.slice(0, 30).map((h) => (
         <p key={h.id}>
@@ -188,7 +166,7 @@ export default async function Moderation({
       ))}
       <nav>
         {page > 0 && <Link href={`?page=${page - 1}`}>{t.prev}</Link>}{' '}
-        {[reports, history, posts].some((r) => (r.data?.length ?? 0) > 30) && (
+        {[reports, history].some((r) => (r.data?.length ?? 0) > 30) && (
           <Link href={`?page=${page + 1}`}>{t.next}</Link>
         )}
       </nav>

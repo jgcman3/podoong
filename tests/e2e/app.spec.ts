@@ -1264,12 +1264,14 @@ test('daily polls, previews and inbox work in both languages', async ({
     page.getByRole('heading', { name: 'Daily question', exact: true }),
   ).toBeVisible();
   await page.goto('/ko/notifications');
+  await page.getByRole('button', { name: '끄기', exact: true }).click();
   await page.getByRole('button', { name: '설정 저장', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('저장했습니다.');
+  await expect.poll(async () => (await admin.from('notification_preferences').select('feeding_enabled').eq('user_id',author).single()).data?.feeding_enabled).toBe(false);
   await page.goto('/en/notifications');
   await expect(
     page.getByRole('heading', { name: 'Notifications', exact: true }),
   ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Off', exact: true })).toHaveAttribute('aria-pressed','true');
 });
 
 test('data export includes every record; ownership transfer and account deletion preserve shared history', async ({
