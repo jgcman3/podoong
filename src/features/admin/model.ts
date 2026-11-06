@@ -21,7 +21,6 @@ export const adminSections = [
 export type AdminSection = (typeof adminSections)[number];
 export const errorSections = [
   'today',
-  'calendar',
   'insights',
   'diary',
   'account',
@@ -172,14 +171,7 @@ export const pageViewsSchema = z.object({
   timezone: z.literal('Asia/Seoul'),
   screens: z.array(
     z.object({
-      screen: z.enum([
-        'today',
-        'calendar',
-        'insights',
-        'diary',
-        'community',
-        'account',
-      ]),
+      screen: z.enum(['today', 'insights', 'diary', 'community', 'account']),
       views: count,
     }),
   ),

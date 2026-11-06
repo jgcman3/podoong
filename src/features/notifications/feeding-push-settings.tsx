@@ -47,7 +47,6 @@ export function FeedingPushSettings({
   initialMode,
   initialPlayground,
   initialPlaygroundQuiet,
-  initialSchedule = false,
   compact = false,
   onSaved,
   onPendingChange,
@@ -60,7 +59,6 @@ export function FeedingPushSettings({
   initialMode: 'interval' | 'yesterday' | 'off';
   initialPlayground: boolean;
   initialPlaygroundQuiet: boolean;
-  initialSchedule?: boolean;
   compact?: boolean;
   onSaved?: () => void;
   onPendingChange?: (pending: boolean) => void;
@@ -73,7 +71,6 @@ export function FeedingPushSettings({
     [mode, setMode] = useState(initialMode),
     [playground, setPlayground] = useState(initialPlayground),
     [playgroundQuiet, setPlaygroundQuiet] = useState(initialPlaygroundQuiet),
-    [schedule, setSchedule] = useState(initialSchedule),
     [error, setError] = useState(false),
     [pending, start] = useTransition();
   useEffect(() => {
@@ -134,7 +131,6 @@ export function FeedingPushSettings({
           mode,
           playground,
           playgroundQuiet,
-          schedule,
           subscription: subscription.toJSON(),
         });
         if (!('id' in result)) {
@@ -154,7 +150,7 @@ export function FeedingPushSettings({
     start(async () => {
       setError(false);
       try {
-        if ((playground || schedule) && device) await registration();
+        if (playground && device) await registration();
         const result = await savePushSettings({
           locale,
           interval,
@@ -162,7 +158,6 @@ export function FeedingPushSettings({
           mode,
           playground,
           playgroundQuiet,
-          schedule,
         });
         setError(!!result.error);
         if (!result.error) onSaved?.();
@@ -304,58 +299,31 @@ export function FeedingPushSettings({
           </section>
         </>
       )}
-      <section
-        className="schedule-push-settings"
-        aria-label={
-          ko ? '아침 일정 알림 설정' : 'Morning schedule notifications'
-        }
-      >
-        {!compact && (
-          <h3>
-            <Bell size={18} />
-            {ko ? '아침 일정 알림' : 'Morning schedule'}
-          </h3>
-        )}
-        {compact && (
-          <div className="guide-alert-choices">
-            <label className="notification-setting-toggle">
-              <input
-                type="checkbox"
-                checked={mode !== 'off'}
-                disabled={pending}
-                onChange={(e) => setMode(e.target.checked ? 'interval' : 'off')}
-              />
-              {ko ? '식사 알림' : 'Feeding reminders'}
-            </label>
-            <label className="notification-setting-toggle">
-              <input
-                type="checkbox"
-                checked={playground}
-                disabled={pending}
-                onChange={(e) => setPlayground(e.target.checked)}
-              />
-              {ko
-                ? '놀이터 인사·하트·토닥토닥'
-                : 'Playground waves, hearts & comfort'}
-            </label>
-          </div>
-        )}
-        <label className="notification-setting-toggle">
-          <input
-            type="checkbox"
-            checked={schedule}
-            disabled={pending}
-            onChange={(e) => setSchedule(e.target.checked)}
-          />
-          {ko ? '오늘 일정 알림 받기' : 'Receive today’s schedule'}
-        </label>
-        <p className="small muted">
-          {ko
-            ? '계정에 설정한 시간대의 매일 오전 8시부터 10분 안에 순차적으로, 일정이 있는 날에만 알려드려요.'
-            : 'Between 8:00 and 8:10 am in your account’s time zone, only on days with plans.'}
-        </p>
-      </section>
-      {problem && (mode !== 'off' || playground || schedule) && (
+      {compact && (
+        <div className="guide-alert-choices">
+          <label className="notification-setting-toggle">
+            <input
+              type="checkbox"
+              checked={mode !== 'off'}
+              disabled={pending}
+              onChange={(e) => setMode(e.target.checked ? 'interval' : 'off')}
+            />
+            {ko ? '식사 알림' : 'Feeding reminders'}
+          </label>
+          <label className="notification-setting-toggle">
+            <input
+              type="checkbox"
+              checked={playground}
+              disabled={pending}
+              onChange={(e) => setPlayground(e.target.checked)}
+            />
+            {ko
+              ? '놀이터 인사·하트·토닥토닥'
+              : 'Playground waves, hearts & comfort'}
+          </label>
+        </div>
+      )}
+      {problem && (mode !== 'off' || playground) && (
         <p className="small feeding-push-availability">{problem}</p>
       )}
       {!compact && <DeviceGuide locale={locale} purpose="notifications" />}
@@ -372,7 +340,7 @@ export function FeedingPushSettings({
         </p>
       )}
       <div className="feeding-push-buttons">
-        {device || (mode === 'off' && !playground && !schedule) ? (
+        {device || (mode === 'off' && !playground) ? (
           <>
             <button className="button" disabled={pending} onClick={save}>
               {compact

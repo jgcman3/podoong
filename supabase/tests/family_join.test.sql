@@ -26,7 +26,6 @@ insert into child_record_photos(id,record_id,child_id,path,content_type,size_byt
  ('e6200000-0000-4000-8000-000000000001','d6200000-0000-4000-8000-000000000001','b6200000-0000-4000-8000-000000000002','f6200000-0000-4000-8000-000000000002/family-join-fixture/original.jpg','image/jpeg',100,'f6200000-0000-4000-8000-000000000002');
 insert into storage.objects(bucket_id,name) values('child-care-photos','f6200000-0000-4000-8000-000000000002/family-join-fixture/original.jpg'),('child-care-photos','f6200000-0000-4000-8000-000000000002/family-join-fixture/original.jpg.display-v1-1600.webp');
 select is(account_has_storage('f6200000-0000-4000-8000-000000000002'),true,'owned files must be cleaned before owner account removal');
-insert into events(child_id,title,date,created_by) values('b6200000-0000-4000-8000-000000000002','Preserved event',current_date,'f6200000-0000-4000-8000-000000000002');
 insert into invitations(family_id,child_id,role,token_hash,created_by,expires_at) values
  ('a6200000-0000-4000-8000-000000000001','b6200000-0000-4000-8000-000000000001','editor',encode(digest('join-editor','sha256'),'hex'),'f6200000-0000-4000-8000-000000000001',now()+interval '1 day'),
  ('a6200000-0000-4000-8000-000000000001','b6200000-0000-4000-8000-000000000001','viewer',encode(digest('join-viewer','sha256'),'hex'),'f6200000-0000-4000-8000-000000000001',now()+interval '1 day'),
@@ -88,7 +87,6 @@ select is((select count(*) from children where name='Same baby'),2::bigint,'matc
 select is((select amount_ml from care_records where id='c6200000-0000-4000-8000-000000000001'),120::numeric,'feeding amount preserved');
 select is((select note from child_records where id='d6200000-0000-4000-8000-000000000001'),'Preserved diary','diary contents preserved');
 select is((select path from child_record_photos where id='e6200000-0000-4000-8000-000000000001'),'f6200000-0000-4000-8000-000000000002/family-join-fixture/original.jpg','photo identity and original path preserved');
-select is((select count(*) from events where title='Preserved event'),1::bigint,'calendar preserved');
 select ok(can_write_child('b6200000-0000-4000-8000-000000000002'),'joining caregiver can still edit imported child');
 select is((select count(*) from family_members where user_id=auth.uid()),1::bigint,'old duplicate family membership is consolidated');
 select throws_ok($$select merge_family_from_invitation('join-editor','mother',(select revision from review),'MERGE FAMILY')$$,'P0001','invalid_invitation','consumed invitation cannot be replayed');

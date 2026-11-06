@@ -109,6 +109,37 @@ describe('feeding push delivery', () => {
 });
 
 describe('feeding notification service worker', () => {
+  it.each([
+    [{ tag: 'schedule:2026-11-06', url: '/ko/today' }, false],
+    [{ url: '/ko/calendar?agenda=2026-11-06' }, false],
+    [{ url: '/en/calendar?agenda=2026-11-06' }, false],
+    [{ tag: 'feeding:child', url: '/ko/today?child=child' }, true],
+    [{ tag: 'playground:child', url: '/ko/community/playground' }, true],
+  ])(
+    'handles active and retired queued pushes: %j',
+    async (payload, visible) => {
+      const handlers = new Map<string, (event: unknown) => void>();
+      const showNotification = vi.fn(async () => {});
+      runInNewContext(readFileSync('public/sw.js', 'utf8'), {
+        self: {
+          location: { origin: 'https://podoong.example' },
+          addEventListener: (name: string, handler: (event: unknown) => void) =>
+            handlers.set(name, handler),
+          registration: { showNotification },
+        },
+        URL,
+      });
+      let pending: Promise<unknown> | undefined;
+      handlers.get('push')!({
+        data: { json: () => payload },
+        waitUntil: (task: Promise<unknown>) => {
+          pending = task;
+        },
+      });
+      await pending;
+      expect(showNotification).toHaveBeenCalledTimes(visible ? 1 : 0);
+    },
+  );
   it('shows a visible alert without an open app and keeps navigation on the app origin', async () => {
     const handlers = new Map<string, (event: unknown) => void>(),
       showNotification = vi.fn(async () => {});
@@ -155,7 +186,7 @@ describe('feeding notification service worker', () => {
         handlers.set(name, handler),
       clients: {
         matchAll: async () => [
-          { url: 'https://podung.example/ko/calendar', navigate, focus },
+          { url: 'https://podung.example/ko/insights', navigate, focus },
         ],
         openWindow,
       },

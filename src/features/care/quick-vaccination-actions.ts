@@ -9,8 +9,7 @@ export async function saveQuickVaccination(
 ): Promise<QuickSaveState> {
   const locale = form.get('locale') === 'en' ? 'en' : 'ko';
   const parsed = vaccinationSchema.safeParse(Object.fromEntries(form));
-  if (!parsed.success || parsed.data.status !== 'completed')
-    return { status: 'error', error: 'invalid' };
+  if (!parsed.success) return { status: 'error', error: 'invalid' };
   const v = parsed.data;
   const { db } = await requireUser(locale);
   const result = await db.rpc('save_vaccination_record', {
@@ -22,8 +21,6 @@ export async function saveQuickVaccination(
       custom_name: v.custom,
       dose: v.dose,
       season: v.season,
-      status: 'completed',
-      scheduled_date: v.scheduled,
       completed_date: v.completed,
       clinic: v.clinic,
       note: v.note,
@@ -42,7 +39,7 @@ export async function saveQuickVaccination(
               ? 'conflict'
               : 'generic',
     };
-  for (const path of ['today', 'calendar', 'vaccinations'])
+  for (const path of ['today', 'vaccinations'])
     revalidatePath(`/${locale}/${path}`);
   return { status: 'saved', id: v.id };
 }

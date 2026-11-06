@@ -1,6 +1,5 @@
 import { privacyStateSchema } from '@/features/privacy/model';
 import { cache } from 'react';
-import { calendarEntry } from '@/features/care/calendar-model';
 import { redirect } from 'next/navigation';
 import { createClient, configured } from './supabase/server';
 import { dateInTimeZone, hasRecentAuthentication, type Locale } from './domain';
@@ -74,83 +73,4 @@ export const loadFamily = cache(async (locale: Locale, childId?: string) => {
   };
 });
 
-export async function loadCare(
-  locale: Locale,
-  childId?: string,
-  datasets: readonly ('records' | 'tasks' | 'events')[] = [
-    'records',
-    'tasks',
-    'events',
-  ],
-  options: { page?: string; todayOnly?: boolean; service?: string } = {},
-) {
-  const context = await loadFamily(locale, childId);
-  const { db, child } = context;
-  const rawPage = Number(options.page ?? 0);
-  const page = Number.isSafeInteger(rawPage) && rawPage >= 0 ? rawPage : 0;
-  const start = page * 100;
-  let taskQuery = db
-    .from('tasks')
-    .select('*')
-    .eq('child_id', child.id)
-    .order('due_date', { nullsFirst: false })
-    .order('id');
-  let eventQuery = db
-    .from('calendar_entries')
-    .select('*')
-    .eq('child_id', child.id)
-    .order('date')
-    .order('event_time', { nullsFirst: false })
-    .order('source')
-    .order('id');
-  if (options.service) taskQuery = taskQuery.eq('service', options.service);
-  if (options.todayOnly) {
-    taskQuery = taskQuery
-      .eq('due_date', context.today)
-      .neq('status', 'snoozed');
-    eventQuery = eventQuery.eq('date', context.today).eq('status', 'planned');
-  }
-  const [records, active, tasks, events] = await Promise.all([
-    datasets.includes('records')
-      ? db
-          .from('care_records')
-          .select('*')
-          .eq('child_id', child.id)
-          .order('started_at', { ascending: false })
-          .order('id')
-          .range(start, start + 100)
-      : Promise.resolve({ data: [] as Row<'care_records'>[], error: null }),
-    datasets.includes('records')
-      ? db
-          .from('care_records')
-          .select('*')
-          .eq('child_id', child.id)
-          .or('kind.eq.breast,timer_started.eq.true')
-          .is('ended_at', null)
-      : Promise.resolve({ data: [] as Row<'care_records'>[], error: null }),
-    datasets.includes('tasks')
-      ? taskQuery.range(start, start + 100)
-      : Promise.resolve({ data: [] as Row<'tasks'>[], error: null }),
-    datasets.includes('events')
-      ? eventQuery.range(start, start + 100)
-      : Promise.resolve({ data: [] as never[], error: null }),
-  ]);
-  if ([records, active, tasks, events].some((r) => r.error))
-    throw new Error('Care data unavailable');
-  const recordRows = [
-    ...new Map(
-      [...(records.data ?? []).slice(0, 100), ...(active.data ?? [])].map(
-        (r) => [r.id, r],
-      ),
-    ).values(),
-  ].sort((a, b) => b.started_at.localeCompare(a.started_at));
-  return {
-    ...context,
-    records: recordRows,
-    tasks: (tasks.data ?? []).slice(0, 100),
-    events: (events.data ?? []).slice(0, 100).map(calendarEntry),
-    page,
-    hasMore: [records, tasks, events].some((r) => (r.data?.length ?? 0) > 100),
-  };
-}
-export type CareContext = Awaited<ReturnType<typeof loadCare>>;
+export type CareContext = Awaited<ReturnType<typeof loadFamily>>;

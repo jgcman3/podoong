@@ -22,7 +22,7 @@ const authorSchema = z.object({
 export const postDetailSchema = z.object({
   id: z.uuid(),
   mine: z.boolean(),
-  audience: z.enum(['country', 'neighborhood']),
+  audience: z.literal('neighborhood'),
   title: z.string(),
   body: z.string(),
   category: z.string(),
@@ -33,7 +33,6 @@ export const postDetailSchema = z.object({
   views: z.number(),
   likes: z.number(),
   liked: z.boolean(),
-  announced: z.boolean(),
   comment_count: z.number(),
   poll: z
     .object({

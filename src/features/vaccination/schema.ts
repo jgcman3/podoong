@@ -1,9 +1,5 @@
 import { z } from 'zod';
 import { vaccines } from './copy';
-const date = z
-  .union([z.literal(''), z.iso.date()])
-  .default('')
-  .transform((v) => v || null);
 export const vaccinationSchema = z
   .object({
     id: z.uuid(),
@@ -15,9 +11,7 @@ export const vaccinationSchema = z
       .default('')
       .transform((v) => (v === '' ? null : v)),
     season: z.string().trim().default(''),
-    status: z.enum(['planned', 'completed']),
-    scheduled: date,
-    completed: date,
+    completed: z.iso.date(),
     clinic: z.string().trim().max(200).default(''),
     note: z.string().max(2000).default(''),
     timezone: z.string().min(1).max(100),
@@ -33,5 +27,4 @@ export const vaccinationSchema = z
       !v.season ||
       (/^\d{4}-\d{4}$/.test(v.season) &&
         Number(v.season.slice(5)) === Number(v.season.slice(0, 4)) + 1),
-  )
-  .refine((v) => (v.status === 'planned' ? !!v.scheduled : !!v.completed));
+  );

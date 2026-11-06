@@ -5,7 +5,6 @@ import { getTranslations } from 'next-intl/server';
 import {
   Home,
   BookOpen,
-  CalendarDays,
   ChartNoAxesColumn,
   MessagesSquare,
   Heart,
@@ -17,7 +16,6 @@ import { ageInDays, type Locale } from '@/lib/domain';
 import type { CareContext } from '@/lib/data';
 const navigation = [
   ['today', Home],
-  ['calendar', CalendarDays],
   ['insights', ChartNoAxesColumn],
   ['community', BookOpen],
   ['neighborhood', MessagesSquare],
@@ -51,7 +49,6 @@ export async function Shell({
   const age = ageFor(child);
   const childInTopbar = [
     'today',
-    'calendar',
     'insights',
     'community',
     'family',
@@ -192,17 +189,13 @@ export async function Shell({
             <NavigationStatus locale={locale} />
             <Icon size={21} />
             <span>
-              {key === 'calendar'
+              {key === 'neighborhood'
                 ? locale === 'ko'
-                  ? '일정'
-                  : 'Plan'
-                : key === 'neighborhood'
-                  ? locale === 'ko'
-                    ? '동네 소통'
-                    : 'Talk'
-                  : key === 'community' && locale === 'en'
-                    ? 'Diary'
-                    : t(key === 'community' ? 'growthDiary' : key)}
+                  ? '동네 소통'
+                  : 'Talk'
+                : key === 'community' && locale === 'en'
+                  ? 'Diary'
+                  : t(key === 'community' ? 'growthDiary' : key)}
             </span>
           </Link>
         ))}

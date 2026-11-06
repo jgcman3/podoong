@@ -168,13 +168,9 @@ export async function AdminView({
                           ? ko
                             ? '공개 성장일기'
                             : 'Public diary'
-                          : report.kind === 'neighborhood'
-                            ? ko
-                              ? '동네 이야기'
-                              : 'Neighborhood'
-                            : ko
-                              ? '커뮤니티'
-                              : 'Community'}
+                          : ko
+                            ? '동네 이야기'
+                            : 'Neighborhood'}
                       </span>
                       <span>
                         {report.status === 'resolved'
@@ -471,7 +467,6 @@ export async function AdminView({
           const screenLabels = ko
             ? {
                 today: '오늘',
-                calendar: '일정',
                 insights: '인사이트',
                 diary: '성장일기',
                 community: '육아 소통',
@@ -479,7 +474,6 @@ export async function AdminView({
               }
             : {
                 today: 'Today',
-                calendar: 'Calendar',
                 insights: 'Insights',
                 diary: 'Diary',
                 community: 'Community',

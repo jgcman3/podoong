@@ -1,6 +1,6 @@
 'use server';
 import { z } from 'zod';
-import { loadCare } from '@/lib/data';
+import { loadFamily } from '@/lib/data';
 import type { InsightKind } from '@/features/insights/config';
 import { loadInsights } from '@/features/insights/data';
 import { ageInDays } from '@/lib/domain';
@@ -22,7 +22,7 @@ async function diaryDayContext(input: DiaryDayInput) {
     .safeParse(input);
   if (!parsed.success) throw new Error('Invalid date');
   const { child, locale, day } = parsed.data;
-  const context = await loadCare(locale, child, []);
+  const context = await loadFamily(locale, child);
   if (
     context.child.id !== child ||
     !context.writable ||

@@ -51,8 +51,9 @@ export async function deleteQuickCare(input: {
         : 'delete_vaccination_record';
   const result = await db.rpc(rpc, { p_id: v.id });
   if (result.error) return { status: 'error', error: 'generic' };
-  for (const path of ['today', 'calendar', 'insights'])
+  for (const path of ['today', 'insights'])
     revalidatePath(`/${v.locale}/${path}`);
+  if (v.source === 'vaccination') revalidatePath(`/${v.locale}/vaccinations`);
   return { status: 'saved' };
 }
 const contextSchema = z.object({

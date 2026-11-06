@@ -93,25 +93,23 @@ export function quickTimeline(
           !r.attendance_status)) &&
       !r.ended_at,
   }));
-  const shots: QuickEntry[] = vaccinations
-    .filter((r) => r.status === 'completed' && r.completed_date !== null)
-    .map((r) => ({
-      id: r.id,
-      source: 'vaccination',
-      vaccinationRecord: r,
-      service: 'vaccination',
-      kind: r.vaccine,
-      startedAt: r.created_at,
-      endedAt: null,
-      version: r.version,
-      amount: null,
-      unit: null,
-      title: r.clinic,
-      running: false,
-      recordDate: r.completed_date!,
-      customName: r.custom_name,
-      dose: r.dose,
-    }));
+  const shots: QuickEntry[] = vaccinations.map((r) => ({
+    id: r.id,
+    source: 'vaccination',
+    vaccinationRecord: r,
+    service: 'vaccination',
+    kind: r.vaccine,
+    startedAt: r.created_at,
+    endedAt: null,
+    version: r.version,
+    amount: null,
+    unit: null,
+    title: r.clinic,
+    running: false,
+    recordDate: r.completed_date,
+    customName: r.custom_name,
+    dose: r.dose,
+  }));
   return [
     ...new Map(
       [...feeds, ...other, ...shots].map((r) => [`${r.source}:${r.id}`, r]),

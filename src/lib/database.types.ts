@@ -403,84 +403,6 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"community_boards": {
-                  Row: {
-                    "country_code": string,"id": string,"region_code": string | null,"region_label": string,"scope": string,"topic": string | null
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "country_code": string,"id"?: string,"region_code"?: string | null,"region_label": string,"scope": string,"topic"?: string | null
-                  }
-                  Update: {
-                    "country_code"?: string,"id"?: string,"region_code"?: string | null,"region_label"?: string,"scope"?: string,"topic"?: string | null
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "community_boards_country_code_fkey"
-      columns: ["country_code"]
-isOneToOne: false
-      referencedRelation: "residence_countries"
-      referencedColumns: ["code"]
-    },{
-      foreignKeyName: "community_boards_country_code_region_code_fkey"
-      columns: ["country_code","region_code"]
-isOneToOne: false
-      referencedRelation: "residence_regions"
-      referencedColumns: ["country_code","code"]
-    }
-                  ]
-                },"community_bookmarks": {
-                  Row: {
-                    "post_id": string,"user_id": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "post_id": string,"user_id": string
-                  }
-                  Update: {
-                    "post_id"?: string,"user_id"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "community_bookmarks_post_id_fkey"
-      columns: ["post_id"]
-isOneToOne: false
-      referencedRelation: "community_posts"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "community_bookmarks_user_id_fkey"
-      columns: ["user_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"community_comments": {
-                  Row: {
-                    "author_id": string,"body": string,"created_at": string,"hidden": boolean,"id": string,"post_id": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "author_id": string,"body": string,"created_at"?: string,"hidden"?: boolean,"id": string,"post_id": string
-                  }
-                  Update: {
-                    "author_id"?: string,"body"?: string,"created_at"?: string,"hidden"?: boolean,"id"?: string,"post_id"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "community_comments_author_id_fkey"
-      columns: ["author_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "community_comments_post_id_fkey"
-      columns: ["post_id"]
-isOneToOne: false
-      referencedRelation: "community_posts"
-      referencedColumns: ["id"]
-    }
-                  ]
                 },"community_moderators": {
                   Row: {
                     "user_id": string
@@ -515,103 +437,19 @@ isOneToOne: true
                   Relationships: [
 
                   ]
-                },"community_photos": {
-                  Row: {
-                    "content_type": string,"created_at": string,"id": string,"owner_id": string,"path": string,"post_id": string,"size_bytes": number
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "content_type": string,"created_at"?: string,"id": string,"owner_id": string,"path": string,"post_id": string,"size_bytes": number
-                  }
-                  Update: {
-                    "content_type"?: string,"created_at"?: string,"id"?: string,"owner_id"?: string,"path"?: string,"post_id"?: string,"size_bytes"?: number
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "community_photos_owner_id_fkey"
-      columns: ["owner_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "community_photos_post_id_fkey"
-      columns: ["post_id"]
-isOneToOne: false
-      referencedRelation: "community_posts"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"community_posts": {
-                  Row: {
-                    "author_id": string,"board_id": string,"body": string,"created_at": string,"hidden": boolean,"id": string,"notice": boolean,"region": string,"title": string,"topic": string,"updated_at": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "author_id": string,"board_id": string,"body": string,"created_at"?: string,"hidden"?: boolean,"id": string,"notice"?: boolean,"region": string,"title": string,"topic": string,"updated_at"?: string
-                  }
-                  Update: {
-                    "author_id"?: string,"board_id"?: string,"body"?: string,"created_at"?: string,"hidden"?: boolean,"id"?: string,"notice"?: boolean,"region"?: string,"title"?: string,"topic"?: string,"updated_at"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "community_posts_author_id_fkey"
-      columns: ["author_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "community_posts_board_id_fkey"
-      columns: ["board_id"]
-isOneToOne: false
-      referencedRelation: "community_boards"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"community_reactions": {
-                  Row: {
-                    "post_id": string,"user_id": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "post_id": string,"user_id": string
-                  }
-                  Update: {
-                    "post_id"?: string,"user_id"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "community_reactions_post_id_fkey"
-      columns: ["post_id"]
-isOneToOne: false
-      referencedRelation: "community_posts"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "community_reactions_user_id_fkey"
-      columns: ["user_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    }
-                  ]
                 },"community_reports": {
                   Row: {
-                    "comment_id": string | null,"created_at": string,"diary_nickname": string | null,"diary_note": string | null,"diary_record_id": string | null,"id": string,"parenting_post_id": string | null,"post_id": string | null,"post_snapshot": Json | null,"reason": string,"reporter_id": string,"resolution_note": string | null,"resolved_at": string | null,"resolved_by": string | null,"status": string,"version": number
+                    "created_at": string,"diary_nickname": string | null,"diary_note": string | null,"diary_record_id": string | null,"id": string,"parenting_post_id": string | null,"post_snapshot": Json | null,"reason": string,"reporter_id": string,"resolution_note": string | null,"resolved_at": string | null,"resolved_by": string | null,"status": string,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "comment_id"?: string | null,"created_at"?: string,"diary_nickname"?: string | null,"diary_note"?: string | null,"diary_record_id"?: string | null,"id"?: string,"parenting_post_id"?: string | null,"post_id"?: string | null,"post_snapshot"?: Json | null,"reason": string,"reporter_id": string,"resolution_note"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: string,"version"?: number
+                    "created_at"?: string,"diary_nickname"?: string | null,"diary_note"?: string | null,"diary_record_id"?: string | null,"id"?: string,"parenting_post_id"?: string | null,"post_snapshot"?: Json | null,"reason": string,"reporter_id": string,"resolution_note"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: string,"version"?: number
                   }
                   Update: {
-                    "comment_id"?: string | null,"created_at"?: string,"diary_nickname"?: string | null,"diary_note"?: string | null,"diary_record_id"?: string | null,"id"?: string,"parenting_post_id"?: string | null,"post_id"?: string | null,"post_snapshot"?: Json | null,"reason"?: string,"reporter_id"?: string,"resolution_note"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: string,"version"?: number
+                    "created_at"?: string,"diary_nickname"?: string | null,"diary_note"?: string | null,"diary_record_id"?: string | null,"id"?: string,"parenting_post_id"?: string | null,"post_snapshot"?: Json | null,"reason"?: string,"reporter_id"?: string,"resolution_note"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: string,"version"?: number
                   }
                   Relationships: [
                     {
-      foreignKeyName: "community_reports_comment_id_fkey"
-      columns: ["comment_id"]
-isOneToOne: false
-      referencedRelation: "community_comments"
-      referencedColumns: ["id"]
-    },{
       foreignKeyName: "community_reports_diary_record_id_fkey"
       columns: ["diary_record_id"]
 isOneToOne: false
@@ -622,12 +460,6 @@ isOneToOne: false
       columns: ["parenting_post_id"]
 isOneToOne: false
       referencedRelation: "neighborhood_posts"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "community_reports_post_id_fkey"
-      columns: ["post_id"]
-isOneToOne: false
-      referencedRelation: "community_posts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "community_reports_reporter_id_fkey"
@@ -800,32 +632,6 @@ isOneToOne: false
                     {
       foreignKeyName: "developer_requests_user_id_fkey"
       columns: ["user_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"events": {
-                  Row: {
-                    "child_id": string,"created_by": string | null,"date": string,"event_kind": string,"event_time": string | null,"id": string,"note": string,"record_timezone": string | null,"title": string,"updated_at": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "child_id": string,"created_by"?: string | null,"date": string,"event_kind"?: string,"event_time"?: string | null,"id"?: string,"note"?: string,"record_timezone"?: string | null,"title": string,"updated_at"?: string
-                  }
-                  Update: {
-                    "child_id"?: string,"created_by"?: string | null,"date"?: string,"event_kind"?: string,"event_time"?: string | null,"id"?: string,"note"?: string,"record_timezone"?: string | null,"title"?: string,"updated_at"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "events_child_id_fkey"
-      columns: ["child_id"]
-isOneToOne: false
-      referencedRelation: "children"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "events_created_by_fkey"
-      columns: ["created_by"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
@@ -1113,14 +919,14 @@ isOneToOne: false
                   ]
                 },"notification_preferences": {
                   Row: {
-                    "delivery_hour": number,"event_enabled": boolean,"feeding_enabled": boolean,"feeding_interval_minutes": number,"feeding_reference": string,"frequency_minutes": number,"playground_enabled": boolean,"playground_enabled_at": string | null,"playground_quiet": boolean,"quiet_end": string,"quiet_start": string,"schedule_enabled": boolean,"schedule_enabled_at": string | null,"snooze_until": string | null,"task_enabled": boolean,"user_id": string
+                    "feeding_enabled": boolean,"feeding_interval_minutes": number,"feeding_reference": string,"frequency_minutes": number,"playground_enabled": boolean,"playground_enabled_at": string | null,"playground_quiet": boolean,"quiet_end": string,"quiet_start": string,"snooze_until": string | null,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"playground_enabled"?: boolean,"playground_enabled_at"?: string | null,"playground_quiet"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"schedule_enabled"?: boolean,"schedule_enabled_at"?: string | null,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id": string
+                    "feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"playground_enabled"?: boolean,"playground_enabled_at"?: string | null,"playground_quiet"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"user_id": string
                   }
                   Update: {
-                    "delivery_hour"?: number,"event_enabled"?: boolean,"feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"playground_enabled"?: boolean,"playground_enabled_at"?: string | null,"playground_quiet"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"schedule_enabled"?: boolean,"schedule_enabled_at"?: string | null,"snooze_until"?: string | null,"task_enabled"?: boolean,"user_id"?: string
+                    "feeding_enabled"?: boolean,"feeding_interval_minutes"?: number,"feeding_reference"?: string,"frequency_minutes"?: number,"playground_enabled"?: boolean,"playground_enabled_at"?: string | null,"playground_quiet"?: boolean,"quiet_end"?: string,"quiet_start"?: string,"snooze_until"?: string | null,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1268,32 +1074,6 @@ isOneToOne: false
                   }
                   Relationships: [
 
-                  ]
-                },"parenting_post_announcements": {
-                  Row: {
-                    "city": string,"country": string,"district": string,"locality": string,"post_id": string,"user_id": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "city": string,"country": string,"district": string,"locality": string,"post_id": string,"user_id": string
-                  }
-                  Update: {
-                    "city"?: string,"country"?: string,"district"?: string,"locality"?: string,"post_id"?: string,"user_id"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "parenting_post_announcements_post_id_fkey"
-      columns: ["post_id"]
-isOneToOne: false
-      referencedRelation: "neighborhood_posts"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "parenting_post_announcements_user_id_fkey"
-      columns: ["user_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    }
                   ]
                 },"parenting_post_comments": {
                   Row: {
@@ -1501,14 +1281,14 @@ isOneToOne: false
                   ]
                 },"residence_regions": {
                   Row: {
-                    "active": boolean,"city_name": string,"code": string,"community_scope": string | null,"country_code": string,"kind": string,"level": number,"locality_name": string,"parent_code": string | null,"parent_level": number | null,"selectable": boolean
+                    "active": boolean,"city_name": string,"code": string,"country_code": string,"kind": string,"level": number,"locality_name": string,"parent_code": string | null,"parent_level": number | null,"selectable": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"city_name": string,"code": string,"community_scope"?: string | null,"country_code": string,"kind"?: string,"level"?: number,"locality_name": string,"parent_code"?: string | null,"parent_level"?: number | null,"selectable"?: boolean
+                    "active"?: boolean,"city_name": string,"code": string,"country_code": string,"kind"?: string,"level"?: number,"locality_name": string,"parent_code"?: string | null,"parent_level"?: number | null,"selectable"?: boolean
                   }
                   Update: {
-                    "active"?: boolean,"city_name"?: string,"code"?: string,"community_scope"?: string | null,"country_code"?: string,"kind"?: string,"level"?: number,"locality_name"?: string,"parent_code"?: string | null,"parent_level"?: number | null,"selectable"?: boolean
+                    "active"?: boolean,"city_name"?: string,"code"?: string,"country_code"?: string,"kind"?: string,"level"?: number,"locality_name"?: string,"parent_code"?: string | null,"parent_level"?: number | null,"selectable"?: boolean
                   }
                   Relationships: [
                     {
@@ -1523,26 +1303,6 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "residence_regions"
       referencedColumns: ["country_code","code","level"]
-    }
-                  ]
-                },"schedule_push_deliveries": {
-                  Row: {
-                    "attempts": number,"day": string,"id": string,"lease_token": string | null,"leased_until": string | null,"scheduled_at": string,"sent_at": string | null,"status": string,"subscription_id": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "attempts"?: number,"day": string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"scheduled_at": string,"sent_at"?: string | null,"status"?: string,"subscription_id": string
-                  }
-                  Update: {
-                    "attempts"?: number,"day"?: string,"id"?: string,"lease_token"?: string | null,"leased_until"?: string | null,"scheduled_at"?: string,"sent_at"?: string | null,"status"?: string,"subscription_id"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "schedule_push_deliveries_subscription_id_fkey"
-      columns: ["subscription_id"]
-isOneToOne: false
-      referencedRelation: "web_push_subscriptions"
-      referencedColumns: ["id"]
     }
                   ]
                 },"service_admins": {
@@ -1653,48 +1413,16 @@ isOneToOne: false
                   Relationships: [
 
                   ]
-                },"tasks": {
-                  Row: {
-                    "anchor": string | null,"assignee_id": string | null,"child_id": string,"created_by": string | null,"due_date": string | null,"id": string,"offset_days": number | null,"service": string,"source": string,"status": string,"template_key": string | null,"title": string,"updated_at": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "anchor"?: string | null,"assignee_id"?: string | null,"child_id": string,"created_by"?: string | null,"due_date"?: string | null,"id"?: string,"offset_days"?: number | null,"service": string,"source"?: string,"status"?: string,"template_key"?: string | null,"title": string,"updated_at"?: string
-                  }
-                  Update: {
-                    "anchor"?: string | null,"assignee_id"?: string | null,"child_id"?: string,"created_by"?: string | null,"due_date"?: string | null,"id"?: string,"offset_days"?: number | null,"service"?: string,"source"?: string,"status"?: string,"template_key"?: string | null,"title"?: string,"updated_at"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "tasks_assignee_id_fkey"
-      columns: ["assignee_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "tasks_child_id_fkey"
-      columns: ["child_id"]
-isOneToOne: false
-      referencedRelation: "children"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "tasks_created_by_fkey"
-      columns: ["created_by"]
-isOneToOne: false
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    }
-                  ]
                 },"vaccination_records": {
                   Row: {
-                    "child_id": string,"clinic": string,"completed_date": string | null,"created_at": string,"created_by": string | null,"custom_name": string,"dose": number | null,"id": string,"note": string,"record_timezone": string,"scheduled_date": string | null,"season": string | null,"status": string,"updated_at": string,"updated_by": string | null,"vaccine": string,"version": number
+                    "child_id": string,"clinic": string,"completed_date": string,"created_at": string,"created_by": string | null,"custom_name": string,"dose": number | null,"id": string,"note": string,"record_timezone": string,"season": string | null,"updated_at": string,"updated_by": string | null,"vaccine": string,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "child_id": string,"clinic"?: string,"completed_date"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_name"?: string,"dose"?: number | null,"id": string,"note"?: string,"record_timezone": string,"scheduled_date"?: string | null,"season"?: string | null,"status": string,"updated_at"?: string,"updated_by"?: string | null,"vaccine": string,"version"?: number
+                    "child_id": string,"clinic"?: string,"completed_date": string,"created_at"?: string,"created_by"?: string | null,"custom_name"?: string,"dose"?: number | null,"id": string,"note"?: string,"record_timezone": string,"season"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"vaccine": string,"version"?: number
                   }
                   Update: {
-                    "child_id"?: string,"clinic"?: string,"completed_date"?: string | null,"created_at"?: string,"created_by"?: string | null,"custom_name"?: string,"dose"?: number | null,"id"?: string,"note"?: string,"record_timezone"?: string,"scheduled_date"?: string | null,"season"?: string | null,"status"?: string,"updated_at"?: string,"updated_by"?: string | null,"vaccine"?: string,"version"?: number
+                    "child_id"?: string,"clinic"?: string,"completed_date"?: string,"created_at"?: string,"created_by"?: string | null,"custom_name"?: string,"dose"?: number | null,"id"?: string,"note"?: string,"record_timezone"?: string,"season"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"vaccine"?: string,"version"?: number
                   }
                   Relationships: [
                     {
@@ -1740,15 +1468,7 @@ isOneToOne: false
                 }
           }
           Views: {
-            "calendar_entries": {
-                  Row: {
-                    "child_id": string | null,"clinic": string | null,"custom_name": string | null,"date": string | null,"event_kind": string | null,"event_time": string | null,"id": string | null,"note": string | null,"record_timezone": string | null,"source": string | null,"status": string | null,"title": string | null,"vaccine": string | null
-                  }
-                  ComputedFields: never
-                  Relationships: [
-
-                  ]
-                }
+            [_ in never]: never
           }
           Functions: {
             "accept_invitation":
@@ -1885,11 +1605,6 @@ isOneToOne: false
               "auth_key": string,"child_id": string,"comfort_count": number,"endpoint": string,"heart_count": number,"id": string,"lease_token": string,"locale": string,"p256dh": string,"wave_count": number
             }[]
                            },
-"claim_schedule_push":
-{ Args: { "p_token": string }; Returns: {
-              "auth_key": string,"day": string,"endpoint": string,"id": string,"item_count": number,"lease_token": string,"locale": string,"p256dh": string
-            }[]
-                           },
 "cleanup_admin_logs":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
@@ -1899,34 +1614,17 @@ isOneToOne: false
 "community_author_visible":
 { Args: { "p_author": string }; Returns: boolean
                            },
-"community_board_locations":
-{ Args: Record<PropertyKey, never>; Returns: {
-              "country_code": string,"country_name": string,"family_id": string,"region_code": string,"region_name": string,"scope": string
-            }[]
-                           },
-"community_board_visible":
-{ Args: { "p_board": string }; Returns: boolean
-                           },
 "community_can_write":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "community_command":
 { Args: { "p_action": string,"p_data": Json,"p_id": string }; Returns: undefined
                            },
-"community_comment_visible":
-{ Args: { "p_id": string }; Returns: boolean
-                           },
 "community_home_area":
 { Args: { "p_family": string }; Returns: Json
                            },
 "community_participant":
 { Args: Record<PropertyKey, never>; Returns: boolean
-                           },
-"community_photo_upload_allowed":
-{ Args: { "p_path": string }; Returns: boolean
-                           },
-"community_post_visible":
-{ Args: { "p_id": string }; Returns: boolean
                            },
 "complete_child_photo_variants":
 { Args: { "p_photo": string }; Returns: undefined
@@ -1951,9 +1649,6 @@ isOneToOne: false
                            },
 "daily_poll_visible":
 { Args: { "p_id": string }; Returns: boolean
-                           },
-"delete_calendar_item":
-{ Args: { "p_id": string,"p_kind": string }; Returns: undefined
                            },
 "delete_care_record":
 { Args: { "p_id": string }; Returns: undefined
@@ -2016,9 +1711,6 @@ isOneToOne: false
 { Args: { "p_id": string,"p_lease": string,"p_result": string }; Returns: undefined
                            },
 "finish_playground_push":
-{ Args: { "p_id": string,"p_lease": string,"p_result": string }; Returns: undefined
-                           },
-"finish_schedule_push":
 { Args: { "p_id": string,"p_lease": string,"p_result": string }; Returns: undefined
                            },
 "get_feeding_push_config":
@@ -2096,19 +1788,6 @@ isOneToOne: false
 "moderate_growth_diary":
 { Args: { "p_hidden": boolean,"p_reason": string,"p_record": string }; Returns: undefined
                            },
-"morning_push_at":
-{ Args: { "p_day": string,"p_timezone": string,"p_user": string }; Returns: string
-                           },
-"morning_push_candidates":
-{ Args: { "p_now"?: string,"p_subscription"?: string }; Returns: {
-              "day": string,"item_count": number,"scheduled_at": string,"subscription_id": string
-            }[]
-                           },
-"my_schedule_items":
-{ Args: { "p_day": string }; Returns: {
-              "child_id": string,"event_time": string,"id": string,"kind": string,"title": string
-            }[]
-                           },
 "neighborhood_region":
 { Args: { "p_family": string }; Returns: string
                            },
@@ -2143,7 +1822,7 @@ isOneToOne: false
 { Args: { "p_after"?: string,"p_after_id"?: string,"p_comment": string }; Returns: Json
                            },
 "parenting_feed":
-{ Args: { "p_before"?: string,"p_before_id"?: string,"p_before_score"?: number,"p_category"?: string,"p_family": string,"p_neighborhood"?: boolean,"p_query"?: string,"p_sort"?: string }; Returns: {
+{ Args: { "p_before"?: string,"p_before_id"?: string,"p_before_score"?: number,"p_category"?: string,"p_family": string,"p_query"?: string,"p_sort"?: string }; Returns: {
               "area_label": string,"author_identity": Json,"body": string,"category": string,"comments": number,"created_at": string,"id": string,"likes": number,"mine": boolean,"photo_ids": (string)[],"rank_score": number,"title": string,"views": number
             }[]
                            },
@@ -2263,9 +1942,6 @@ isOneToOne: false
 "run_notification_jobs":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
-"save_calendar_event":
-{ Args: { "p_child_id": string,"p_date": string,"p_event_kind"?: string,"p_event_time"?: string,"p_event_timezone"?: string,"p_id": string,"p_note": string,"p_title": string }; Returns: string
-                           },
 "save_child_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_service": string,"p_version"?: number }; Returns: string
                            },
@@ -2293,31 +1969,20 @@ isOneToOne: false
 "save_growth_diary":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_private"?: boolean,"p_version"?: number }; Returns: string
                            },
-"save_notification_preferences":
-{ Args: { "p_event": boolean,"p_feeding": boolean,"p_frequency": number,"p_hour": number,"p_interval": number,"p_quiet_end": string,"p_quiet_start": string,"p_snooze_minutes"?: number,"p_task": boolean }; Returns: undefined
-                           },
 "save_parenting_friend":
 { Args: { "p_child": string,"p_status": string }; Returns: undefined
                            },
 "save_parenting_post":
-{ Args: { "p_audience"?: string,"p_body": string,"p_category": string,"p_child"?: string,"p_family": string,"p_id"?: string,"p_photo_ids"?: (string)[],"p_poll"?: Json,"p_title": string }; Returns: string
+{ Args: { "p_body": string,"p_category": string,"p_child"?: string,"p_family": string,"p_id"?: string,"p_photo_ids"?: (string)[],"p_poll"?: Json,"p_title": string }; Returns: string
                            },
 "save_push_settings":
-{ Args: { "p_interval": number,"p_locale"?: string,"p_mode": string,"p_playground": boolean,"p_playground_quiet": boolean,"p_quiet": boolean,"p_schedule"?: boolean,"p_subscription"?: Json }; Returns: string
+{ Args: { "p_interval": number,"p_locale"?: string,"p_mode": string,"p_playground": boolean,"p_playground_quiet": boolean,"p_quiet": boolean,"p_subscription"?: Json }; Returns: string
                            },
 "save_received_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_version"?: number }; Returns: string
                            },
-"save_task":
-{ Args: { "p_assignee_id": string,"p_child_id": string,"p_due_date": string,"p_id": string,"p_service": string,"p_status": string,"p_title": string }; Returns: string
-                           },
 "save_vaccination_record":
 { Args: { "p_child": string,"p_data": Json,"p_id": string,"p_version"?: number }; Returns: string
-                           },
-"schedule_items":
-{ Args: { "p_day": string,"p_user": string }; Returns: {
-              "child_id": string,"event_time": string,"id": string,"kind": string,"title": string
-            }[]
                            },
 "send_playground_reaction":
 { Args: { "p_child": string,"p_friend": string,"p_kind": string }; Returns: undefined
@@ -2370,9 +2035,6 @@ isOneToOne: false
 { Args: { "p_id": string,"p_lease": string }; Returns: boolean
                            },
 "validate_playground_push":
-{ Args: { "p_id": string,"p_lease": string }; Returns: boolean
-                           },
-"validate_schedule_push":
 { Args: { "p_id": string,"p_lease": string }; Returns: boolean
                            },
 "vote_daily_poll":

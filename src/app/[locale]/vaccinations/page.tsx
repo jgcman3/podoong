@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { isLocale } from '@/lib/domain';
-import { loadCare } from '@/lib/data';
+import { loadFamily } from '@/lib/data';
 import { Shell } from '@/components/shell';
 import { VaccinationList } from '@/features/vaccination/views';
 import { Flash } from '@/components/flash';
@@ -19,12 +19,12 @@ export default async function Vaccinations({
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const q = await searchParams;
-  const context = await loadCare(locale, q.child, []);
+  const context = await loadFamily(locale, q.child);
   return (
     <Shell
       context={context}
       locale={locale}
-      section="calendar"
+      section="today"
       childRoute="vaccinations"
     >
       <Flash error={q.error} />

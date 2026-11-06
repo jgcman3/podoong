@@ -45,9 +45,9 @@ export async function loadInsights(
     readPages((from, to) =>
       context.db
         .from('vaccination_records')
-        .select('id,status,completed_date')
+        .select('id,completed_date')
         .eq('child_id', context.child.id)
-        .eq('status', 'completed')
+
         .gte('completed_date', first)
         .lt('completed_date', end)
         .order('completed_date')

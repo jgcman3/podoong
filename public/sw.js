@@ -13,12 +13,18 @@ self.addEventListener('push', (event) => {
     /* Show a generic visible alert. */
   }
   const data = payload || {};
+  if (typeof data.tag === 'string' && data.tag.startsWith('schedule:')) return;
   let target = new URL('/ko/today', self.location.origin);
   try {
     const proposed = new URL(data.url, self.location.origin);
     if (
       proposed.origin === self.location.origin &&
-      /^\/(ko|en)\/(today|calendar|community\/playground)$/.test(proposed.pathname)
+      /^\/(ko|en)\/calendar$/.test(proposed.pathname)
+    )
+      return;
+    if (
+      proposed.origin === self.location.origin &&
+      /^\/(ko|en)\/(today|community\/playground)$/.test(proposed.pathname)
     )
       target = proposed;
   } catch {
@@ -44,7 +50,7 @@ self.addEventListener('notificationclick', (event) => {
       );
       if (
         target.origin !== self.location.origin ||
-        !/^\/(ko|en)\/(today|calendar|community\/playground)$/.test(target.pathname)
+        !/^\/(ko|en)\/(today|community\/playground)$/.test(target.pathname)
       )
         return;
       const windows = await self.clients.matchAll({

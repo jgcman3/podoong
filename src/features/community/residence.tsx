@@ -10,7 +10,7 @@ export function CommunityResidence({
 }: {
   context: CareContext;
   locale: Locale;
-  area: 'friends' | 'neighborhood' | 'boards';
+  area: 'friends' | 'neighborhood';
 }) {
   const ko = locale === 'ko';
   return (
@@ -32,9 +32,7 @@ export function CommunityResidence({
           returnPage={
             area === 'friends'
               ? 'community/playground'
-              : area === 'neighborhood'
-                ? 'community/neighborhood'
-                : 'community/boards'
+              : 'community/neighborhood'
           }
         />
       ) : (

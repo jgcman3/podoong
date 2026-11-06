@@ -13,8 +13,7 @@ insert into families(id,name) values('c2000000-0000-4000-8000-000000000001','Fix
 insert into family_members values('c2000000-0000-4000-8000-000000000001','c1000000-0000-4000-8000-000000000001','editor');
 insert into children(sex,id,family_id,name,birth_date) values('female','c3000000-0000-4000-8000-000000000001','c2000000-0000-4000-8000-000000000001','Fixture',current_date);
 insert into child_access values('c3000000-0000-4000-8000-000000000001','c2000000-0000-4000-8000-000000000001','c1000000-0000-4000-8000-000000000001','editor');
-insert into tasks(id,child_id,title,service,due_date,created_by) values('c4000000-0000-4000-8000-000000000001','c3000000-0000-4000-8000-000000000001','Private title','birth-preparation',(now() at time zone 'UTC')::date,'c1000000-0000-4000-8000-000000000001');
-insert into notification_preferences(user_id,quiet_start,quiet_end,delivery_hour,frequency_minutes) values('c1000000-0000-4000-8000-000000000001','00:00','00:00',0,1);
+insert into notification_preferences(user_id,quiet_start,quiet_end,frequency_minutes) values('c1000000-0000-4000-8000-000000000001','00:00','00:00',1);
 -- Test-only setup for fixtures whose caregivers already accepted signup notices.
 -- Consent-specific tests use the public acceptance RPC and do not include this file.
 insert into public.signup_agreements(user_id,kind,version,interface_locale)
@@ -32,29 +31,7 @@ set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"c1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select throws_ok($$select run_notification_jobs()$$,'42501',null,'ordinary user cannot run all jobs');
 select lives_ok($$select sync_notifications()$$,'own inbox sync allowed');
-select is((select count(*)::int from notifications),1,'due task delivered');
-select sync_notifications();
-select is((select count(*)::int from notifications),1,'duplicate sync is idempotent');
 select throws_ok($$select notification_quiet('23:00','07:00','00:30')$$,'42501',null,'private helper is not executable');
-reset role;
-update tasks set status='done' where id='c4000000-0000-4000-8000-000000000001';
-set local role authenticated;
-select is((select count(*)::int from notifications),0,'completed task hides already delivered reminder');
-reset role;
-update tasks set status='snoozed' where id='c4000000-0000-4000-8000-000000000001';
-set local role authenticated;
-select sync_notifications();
-select is((select count(*)::int from notifications),0,'snoozed task has no alert');
-reset role;
-update tasks set status='todo' where id='c4000000-0000-4000-8000-000000000001';
-delete from child_access where user_id='c1000000-0000-4000-8000-000000000001';
-set local role authenticated;
-select is((select count(*)::int from notifications),0,'revoked child access immediately hides delivered reminder');
-reset role;
-insert into child_access values('c3000000-0000-4000-8000-000000000001','c2000000-0000-4000-8000-000000000001','c1000000-0000-4000-8000-000000000001','editor');
-update notification_preferences set task_enabled=false;
-set local role authenticated;
-select is((select count(*)::int from notifications),0,'disabled type hides reminder');
 reset role;
 insert into care_records(id,child_id,kind,started_at,ended_at,created_by,updated_by) values('c6000000-0000-4000-8000-000000000001','c3000000-0000-4000-8000-000000000001','formula',clock_timestamp()-interval '32 minutes',clock_timestamp()-interval '31 minutes','c1000000-0000-4000-8000-000000000001','c1000000-0000-4000-8000-000000000001');
 update notification_preferences set feeding_enabled=true,feeding_interval_minutes=30,quiet_start=((clock_timestamp() at time zone 'UTC')-interval '1 hour')::time,quiet_end=((clock_timestamp() at time zone 'UTC')+interval '1 hour')::time;
@@ -71,7 +48,6 @@ select sync_notifications();
 select is((select count(*)::int from notifications),0,'global snooze holds reminder');
 reset role;
 update notification_preferences set snooze_until=null;
-update notifications set delivered_at=clock_timestamp()-interval '2 minutes' where kind='task';
 set local role authenticated;
 select sync_notifications();
 select is((select count(*)::int from notifications where kind='feeding'),1,'user chosen feeding interval delivers');
@@ -104,7 +80,7 @@ set local role authenticated;
 select throws_ok($$select vote_daily_poll('c5000000-0000-4000-8000-000000000002',0)$$,'P0001','poll_closed','closed poll rejects late vote');
 -- Induce a real write failure inside the job subtransaction; keep only SQLSTATE.
 reset role;
-insert into events(id,child_id,title,date,created_by) values('c7000000-0000-4000-8000-000000000001','c3000000-0000-4000-8000-000000000001','Private event',(clock_timestamp() at time zone 'UTC')::date,'c1000000-0000-4000-8000-000000000001');
+update care_records set started_at=clock_timestamp()-interval '32 minutes',ended_at=clock_timestamp()-interval '31 minutes' where id='c6000000-0000-4000-8000-000000000002';
 alter table notifications add constraint simulated_delivery_failure check(false) not valid;
 set local role authenticated;
 select sync_notifications();

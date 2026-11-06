@@ -7,7 +7,7 @@ const inputSchema = z.object({
   post: z.uuid(),
   child: z.uuid(),
   locale: z.enum(['ko', 'en']),
-  kind: z.enum(['like', 'announce', 'vote', 'comment']),
+  kind: z.enum(['like', 'vote', 'comment']),
   value: z.string().max(1000),
 });
 export async function interactWithPost(input: z.infer<typeof inputSchema>) {
@@ -24,7 +24,6 @@ export async function interactWithPost(input: z.infer<typeof inputSchema>) {
   });
   if (result.error) return { ok: false as const };
   if (v.kind !== 'vote') {
-    revalidatePath(`/${v.locale}/community/boards`, 'page');
     revalidatePath(`/${v.locale}/community/neighborhood`, 'page');
   }
   const detail = await context.db.rpc('parenting_post_detail', {
@@ -100,7 +99,6 @@ export async function respondToComment(input: {
     })
     .parse(result.data);
   if (v.kind === 'reply') {
-    revalidatePath(`/${v.locale}/community/boards`, 'page');
     revalidatePath(`/${v.locale}/community/neighborhood`, 'page');
   }
   return { ok: true as const, ...data };
@@ -144,7 +142,6 @@ export async function recordPostView(post: string, locale: 'ko' | 'en') {
     .safeParse(result.data);
   if (result.error || !parsed.success) return null;
   if (parsed.data.recorded) {
-    revalidatePath(`/${locale}/community/boards`, 'page');
     revalidatePath(`/${locale}/community/neighborhood`, 'page');
   }
   return parsed.data.views;

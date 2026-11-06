@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import {
   Baby,
-  CalendarDays,
   ChartNoAxesColumn,
   BookOpen,
   MessagesSquare,
@@ -25,14 +24,6 @@ const steps = [
     english:
       'Tap a care icon below to record feeds, sleep and more. Tap a saved record to edit it.',
     target: 'today',
-  },
-  {
-    icon: CalendarDays,
-    ko: '일정',
-    en: 'Plans',
-    body: '아이의 일정과 할 일을 등록하고, 날짜별로 모아 확인해요.',
-    english: 'Add plans and tasks, and see what is coming up each day.',
-    target: 'calendar',
   },
   {
     icon: ChartNoAxesColumn,
@@ -64,9 +55,9 @@ const steps = [
     icon: Bell,
     ko: '필요한 알림만 골라요',
     en: 'Choose your notifications',
-    body: '식사 알림은 기본 3시간 간격이에요. 놀이터 인사·하트·토닥토닥과 오전 8시부터 순차적으로 보내는 오늘 일정 알림도 따로 선택할 수 있어요.',
+    body: '식사 알림은 기본 3시간 간격이에요. 동네 친구가 보내는 인사·하트·토닥토닥 알림도 따로 선택할 수 있어요.',
     english:
-      'Feeding reminders default to three-hour intervals. You can also choose playground reactions and a daily schedule reminder delivered between 8:00 and 8:10 am.',
+      'Feeding reminders default to three-hour intervals. You can also choose notifications for playground waves, hearts and comforting pats.',
     target: 'account',
   },
 ] as const;
@@ -166,7 +157,8 @@ export function ServiceGuide({
       <div className={styles.content}>
         <header>
           <span>
-            {ko ? '포둥 처음 사용하기' : 'Getting started'} · {step + 1}/6
+            {ko ? '포둥 처음 사용하기' : 'Getting started'} · {step + 1}/
+            {steps.length}
           </span>
           <button
             type="button"
@@ -190,7 +182,7 @@ export function ServiceGuide({
             <span key={s.target} data-current={i === step} />
           ))}
         </div>
-        {step === 5 && (
+        {step === steps.length - 1 && (
           <FeedingPushSettings
             {...preferences}
             locale={locale}
@@ -213,7 +205,13 @@ export function ServiceGuide({
             disabled={busy || saving}
             onClick={() => void finish()}
           >
-            {step === 5 ? (ko ? '나중에' : 'Later') : ko ? '건너뛰기' : 'Skip'}
+            {step === steps.length - 1
+              ? ko
+                ? '나중에'
+                : 'Later'
+              : ko
+                ? '건너뛰기'
+                : 'Skip'}
           </button>
           <div>
             {step > 0 && (
@@ -227,7 +225,7 @@ export function ServiceGuide({
                 <ChevronLeft size={18} />
               </button>
             )}
-            {step < 5 && (
+            {step < steps.length - 1 && (
               <button
                 type="button"
                 className="button"

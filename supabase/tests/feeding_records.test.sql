@@ -48,7 +48,7 @@ select lives_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000
 select lives_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000001','breast',now()-interval '130 minutes',now()-interval '120 minutes',150,'','UTC','',null)$$,'current feeding API saves breast volume');
 select is((select record_timezone from public.care_records where kind='breast'),'UTC','current API stores the supplied timezone');
 select is((select count(*)::int from public.care_records where kind='formula'),1,'formula intake is a distinct record');
-select public.save_notification_preferences(false,false,true,'00:00','00:00',9,1,30,0);
+select public.save_feeding_push_preferences(true,30,false);
 select public.sync_notifications();
 select is((select count(*)::int from public.notifications where kind='feeding' and reference_id='30000000-0000-4000-8000-000000000002'),1,'formula participates in feeding reminder scheduling');
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);

@@ -30,7 +30,7 @@ export function PostCard({
   time: string;
   locale: Locale;
   child: string;
-  source: 'boards' | 'neighborhood';
+  source: 'neighborhood';
 }) {
   const ko = locale === 'ko';
   return (

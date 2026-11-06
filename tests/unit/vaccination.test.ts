@@ -4,31 +4,19 @@ const base = {
   id: '30000000-0000-4000-8000-000000000001',
   childId: '20000000-0000-4000-8000-000000000001',
   vaccine: 'influenza',
-  status: 'planned',
-  scheduled: '2026-10-21',
+  completed: '2026-10-21',
   timezone: 'Asia/Seoul',
 };
 describe('vaccination entry validation', () => {
-  it('requires the date belonging to the selected status', () => {
-    expect(
-      vaccinationSchema.safeParse({ ...base, scheduled: '' }).success,
-    ).toBe(false);
-    expect(
-      vaccinationSchema.safeParse({ ...base, status: 'completed' }).success,
-    ).toBe(false);
-    expect(
-      vaccinationSchema.safeParse({
-        ...base,
-        status: 'completed',
-        scheduled: '',
-        completed: '2026-10-14',
-      }).success,
-    ).toBe(true);
+  it('requires an actual vaccination date', () => {
+    for (const completed of ['', undefined, '2026-02-30'])
+      expect(vaccinationSchema.safeParse({ ...base, completed }).success).toBe(
+        false,
+      );
+    expect(vaccinationSchema.safeParse(base).success).toBe(true);
   });
-  it('keeps unknown dose and dates null', () => {
-    const r = vaccinationSchema.parse(base);
-    expect(r.dose).toBeNull();
-    expect(r.completed).toBeNull();
+  it('keeps an unknown dose null', () => {
+    expect(vaccinationSchema.parse(base).dose).toBeNull();
   });
   it('accepts only consecutive flu season years', () => {
     expect(

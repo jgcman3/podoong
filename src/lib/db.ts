@@ -1,13 +1,7 @@
 import type { Database as Generated } from './database.types';
 // PostgreSQL parameters are nullable; codegen does not infer nullability from RPC bodies.
 type NullableParameter =
-  | 'p_age'
-  | 'p_due_date'
-  | 'p_birth_date'
-  | 'p_ended_at'
-  | 'p_amount_ml'
-  | 'p_version'
-  | 'p_assignee_id';
+  'p_age' | 'p_birth_date' | 'p_ended_at' | 'p_amount_ml' | 'p_version';
 type Functions = {
   [F in keyof Generated['public']['Functions']]: Omit<
     Generated['public']['Functions'][F],

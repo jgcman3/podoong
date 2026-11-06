@@ -56,7 +56,6 @@ export async function loadQuickTimeline(
         .from('vaccination_records')
         .select('*')
         .eq('child_id', context.child.id)
-        .eq('status', 'completed')
         .eq('completed_date', day)
         .order('created_at', { ascending: false })
         .order('id')

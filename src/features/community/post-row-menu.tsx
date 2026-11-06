@@ -18,7 +18,7 @@ export function PostRowMenu({
   row?: boolean;
   id: string;
   child: string;
-  source: 'boards' | 'neighborhood';
+  source: 'neighborhood';
   locale: Locale;
 }) {
   const ko = locale === 'ko',

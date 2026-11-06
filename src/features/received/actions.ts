@@ -1,6 +1,6 @@
 'use server';
 import { z } from 'zod';
-import { loadCare } from '@/lib/data';
+import { loadFamily } from '@/lib/data';
 import { loadReceivedRecords } from './data';
 const inputSchema = z.object({
   locale: z.enum(['ko', 'en']),
@@ -13,7 +13,7 @@ const inputSchema = z.object({
 });
 export async function moreReceivedRecords(input: z.input<typeof inputSchema>) {
   const v = inputSchema.parse(input);
-  const context = await loadCare(v.locale, v.childId, []);
+  const context = await loadFamily(v.locale, v.childId);
   if (context.child.id !== v.childId) throw new Error('Forbidden');
   return loadReceivedRecords(context, v.kind, v.cursor, v.sender);
 }

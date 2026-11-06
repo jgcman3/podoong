@@ -1,6 +1,6 @@
 'use server';
 import { z } from 'zod';
-import { loadCare } from '@/lib/data';
+import { loadFamily } from '@/lib/data';
 import { loadQuickTimeline } from './quick-data';
 
 export async function loadQuickDay(input: {
@@ -17,7 +17,7 @@ export async function loadQuickDay(input: {
     .safeParse(input);
   if (!parsed.success) return { ok: false as const };
   const { locale, childId, day } = parsed.data;
-  const context = await loadCare(locale, childId, []);
+  const context = await loadFamily(locale, childId);
   if (context.child.id !== childId || day > context.today)
     return { ok: false as const };
   const entries = await loadQuickTimeline(context, day);

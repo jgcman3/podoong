@@ -16,8 +16,6 @@ import { NotificationSettings } from '@/features/notifications/settings';
 import { ChildIcon } from '@/components/child-icon';
 import { ChildSexField } from '@/features/family/sex-field';
 import residenceCountries from '@/features/family/countries.json';
-import { TaskCheckbox } from '@/features/care/task-checkbox';
-import { CalendarWorkspace } from '@/features/care/calendar-workspace';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import {
@@ -25,8 +23,6 @@ import {
   Settings as SettingsIcon,
   MapPin,
   Languages,
-  Plus,
-  Heart,
   Users,
   ChevronRight,
   Bell,
@@ -43,14 +39,7 @@ import {
   loadRecentFeedingAmounts,
 } from '@/features/care/quick-data';
 import { ResidenceForm } from '@/features/family/residence-form';
-import { calendarTitle, calendarKind } from '@/features/care/calendar-entry';
 import { LastCare } from '@/features/care/last-care';
-import {
-  TaskForm,
-  EventForm,
-  Hidden,
-  DeleteCalendar,
-} from '@/features/care/calendar-forms';
 import {
   createInvite,
   revoke,
@@ -61,7 +50,14 @@ import {
 import { SocialButtons } from '@/components/social-buttons';
 import { logout, unlinkIdentity } from '@/features/auth/actions';
 import { cookies } from 'next/headers';
-import type { Row } from '@/lib/db';
+function Hidden({ locale, childId }: { locale: Locale; childId: string }) {
+  return (
+    <>
+      <input type="hidden" name="locale" value={locale} />
+      <input type="hidden" name="childId" value={childId} />
+    </>
+  );
+}
 type Props = { context: CareContext; locale: Locale };
 export function formatTime(iso: string, locale: Locale, timezone: string) {
   return new Intl.DateTimeFormat(locale === 'ko' ? 'ko-KR' : 'en-US', {
@@ -83,121 +79,6 @@ function PageHeading({
     <div className="page-heading">
       <h1>{title}</h1>
       {subtitle && <p>{subtitle}</p>}
-    </div>
-  );
-}
-function Empty({ title, subtitle }: { title: string; subtitle?: string }) {
-  return (
-    <div className="empty-state">
-      <span className="empty-icon">
-        <Heart size={22} />
-      </span>
-      <strong>{title}</strong>
-      {subtitle && <p>{subtitle}</p>}
-    </div>
-  );
-}
-async function Pagination({
-  context,
-  locale,
-  path,
-}: {
-  context: CareContext;
-  locale: Locale;
-  path: string;
-}) {
-  const t = await getTranslations();
-  return (
-    <nav className="pagination" aria-label={t('pages')}>
-      {context.page > 0 && (
-        <Link
-          className="button secondary"
-          href={`/${locale}/${path}?child=${context.child.id}&page=${context.page - 1}`}
-        >
-          {t('previous')}
-        </Link>
-      )}
-      {context.hasMore && (
-        <Link
-          className="button secondary"
-          href={`/${locale}/${path}?child=${context.child.id}&page=${context.page + 1}`}
-        >
-          {t('nextPage')}
-        </Link>
-      )}
-    </nav>
-  );
-}
-export async function TaskList({
-  context,
-  locale,
-  tasks,
-  compact = false,
-}: {
-  context: CareContext;
-  locale: Locale;
-  tasks: Row<'tasks'>[];
-  compact?: boolean;
-}) {
-  const t = await getTranslations();
-  return (
-    <div className="task-list">
-      {tasks.map((task) => (
-        <article
-          className={`task-row ${task.status === 'done' ? 'completed' : ''}`}
-          key={task.id}
-        >
-          <TaskCheckbox
-            task={task}
-            locale={locale}
-            childId={context.child.id}
-            writable={context.writable}
-            returnTo={compact ? 'today' : 'calendar'}
-          />
-          <div className="task-main">
-            <strong>{task.title}</strong>
-            {!compact && (
-              <div className="task-meta">
-                <span>{t(`serviceNames.${task.service}`)}</span>
-                <span
-                  className={
-                    task.due_date &&
-                    task.due_date < context.today &&
-                    task.status === 'todo'
-                      ? 'overdue'
-                      : ''
-                  }
-                >
-                  {task.due_date ?? '—'}
-                </span>
-                <span>{t(task.source)}</span>
-                {task.assignee_id && (
-                  <span>
-                    {t('assignee')}:{' '}
-                    {task.assignee_id === context.user.id
-                      ? t('me')
-                      : (context.caregivers.find(
-                          (m) => m.user_id === task.assignee_id,
-                        )?.display_name ?? t('formerMember'))}
-                  </span>
-                )}
-              </div>
-            )}
-            {!compact && context.writable && (
-              <details className="edit-details">
-                <summary>{t('edit')}</summary>
-                <TaskForm context={context} locale={locale} task={task} />
-                <DeleteCalendar
-                  locale={locale}
-                  childId={context.child.id}
-                  id={task.id}
-                  kind="task"
-                />
-              </details>
-            )}
-          </div>
-        </article>
-      ))}
     </div>
   );
 }
@@ -287,129 +168,6 @@ export async function Today({
         timezone={timezone}
         today={today}
       />
-    </>
-  );
-}
-export async function Calendar({
-  context,
-  locale,
-  service,
-  create,
-  edit,
-  month,
-  day,
-}: {
-  context: CareContext;
-  locale: Locale;
-  service?: string;
-  create?: string;
-  edit?: string;
-  month?: string;
-  day?: string;
-}) {
-  if (!service)
-    return (
-      <CalendarWorkspace
-        context={context}
-        locale={locale}
-        create={create}
-        edit={edit}
-        month={month}
-        day={day}
-      />
-    );
-  const t = await getTranslations();
-  const tasks = service
-    ? context.tasks.filter((v) => v.service === service)
-    : context.tasks;
-  return (
-    <>
-      <PageHeading
-        title={t(`serviceNames.${service}`)}
-        subtitle={t('prepSub')}
-      />
-      {!context.writable && <div className="flash">{t('readonly')}</div>}
-      <div className="two-column">
-        <section className="panel">
-          <div className="panel-heading">
-            <h2>{t('requiredTasks')}</h2>
-          </div>
-          {context.writable && service && (
-            <details className="add-details">
-              <summary>
-                <Plus size={17} />
-                {t('addTask')}
-              </summary>
-              <TaskForm context={context} locale={locale} service={service} />
-            </details>
-          )}
-          {tasks.length ? (
-            <TaskList context={context} locale={locale} tasks={tasks} />
-          ) : (
-            <Empty title={t('noTasks')} subtitle={t('noTasksSub')} />
-          )}
-        </section>
-        <section className="panel">
-          <div className="panel-heading">
-            <h2>{t('weekEvents')}</h2>
-          </div>
-          {context.writable && service && (
-            <details className="add-details">
-              <summary>
-                <Plus size={17} />
-                {t('addEvent')}
-              </summary>
-              <EventForm context={context} locale={locale} />
-            </details>
-          )}
-          {context.events.length ? (
-            context.events.map((e) => (
-              <article
-                className={`calendar-event calendar-kind-${e.event_kind}`}
-                key={`${e.source}:${e.id}`}
-              >
-                <strong>
-                  {e.source === 'vaccination' ? (
-                    <Link
-                      href={`/${locale}/vaccination/${e.id}?child=${context.child.id}`}
-                    >
-                      {calendarTitle(e, locale)}
-                    </Link>
-                  ) : (
-                    calendarTitle(e, locale)
-                  )}
-                </strong>
-                <span className="badge">
-                  {e.date}
-                  {e.event_time ? ` · ${e.event_time.slice(0, 5)}` : ''}
-                </span>
-                <span className="badge">
-                  {calendarKind(e.event_kind, locale)}
-                  {e.status === 'completed'
-                    ? ` · ${locale === 'ko' ? '완료' : 'Done'}`
-                    : ''}
-                </span>
-                <p>{[e.clinic, e.note].filter(Boolean).join(' · ')}</p>
-                {context.writable && e.source === 'event' && (
-                  <details className="edit-details">
-                    <summary>{t('edit')}</summary>
-                    <EventForm context={context} locale={locale} event={e} />
-                    <DeleteCalendar
-                      locale={locale}
-                      childId={context.child.id}
-                      id={e.id}
-                      kind="event"
-                    />
-                  </details>
-                )}
-              </article>
-            ))
-          ) : (
-            <Empty title={t('noEvents')} subtitle={t('noEventsSub')} />
-          )}
-        </section>
-      </div>
-      <Pagination context={context} locale={locale} path="calendar" />
     </>
   );
 }

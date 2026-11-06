@@ -22,7 +22,7 @@ select is((select views from service_usage_daily where screen='today' and day=(n
 insert into service_admins(user_id) values('a8900000-0000-4000-8000-000000000001');
 set local role authenticated;
 select is((admin_service_page_views(7)->'screens'->0->>'views')::bigint,2::bigint,'operator receives aggregate totals');
-select is(jsonb_array_length(admin_service_page_views(7)->'screens'),6,'zero-view screens remain represented');
+select is(jsonb_array_length(admin_service_page_views(7)->'screens'),5,'zero-view screens remain represented');
 select throws_ok($$select admin_service_page_views(365)$$,'22023','invalid period','unbounded periods denied');
 select lives_ok($$select operation_metrics()$$,'operations works after removal of raw events');
 reset role;

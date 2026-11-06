@@ -15,9 +15,8 @@ insert into neighborhood_posts(region,feature,family_id,author_id,title,body,cat
 insert into children(id,family_id,name,birth_date,sex) values('c9670000-0000-4000-8000-000000000001','b9670000-0000-4000-8000-000000000001','Fixture child',current_date,'female');
 select set_config('request.jwt.claims','{"sub":"a9670000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 set local role authenticated;
-select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000001')),4::bigint,'All includes all topics from the home country only');
-select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000001',true)),0::bigint,'country posts are not automatically listed in a dong');
-select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000001',false,'gear')),1::bigint,'country topic filter works');
+select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000001')),2::bigint,'feed includes only the current neighborhood');
+select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000001','gear')),1::bigint,'neighborhood topic filter works');
 select is((select area_label from parenting_feed('b9670000-0000-4000-8000-000000000001') where title='Fixture 2'),'서울특별시 강남구 역삼동','cards expose coarse author residence');
 select ok(to_regprocedure('public.parenting_feed(uuid,text,text,timestamptz,text,text,uuid)') is null,'old region-filter API is removed');
 select ok(to_regprocedure('public.save_parenting_post(uuid,text,text,text,text,text)') is null,'old browse/market write API is removed');
@@ -26,19 +25,19 @@ select ok(to_regprocedure('public.parenting_friends(uuid,text,text,timestamptz,u
 select save_parenting_post('b9670000-0000-4000-8000-000000000001','health','Snapshot post','Fixture',p_child=>'c9670000-0000-4000-8000-000000000001') as saved \gset
 select throws_ok($$select parenting_feed('b9670000-0000-4000-8000-000000000002')$$,'42501','forbidden','cannot query as another family');
 select lives_ok($$select save_parenting_post('b9670000-0000-4000-8000-000000000001','daily','Daily fixture','Fixture',p_child=>'c9670000-0000-4000-8000-000000000001')$$,'daily category can be saved');
-select lives_ok($$select save_parenting_post('b9670000-0000-4000-8000-000000000001','other','Other fixture','Fixture',p_child=>'c9670000-0000-4000-8000-000000000001')$$,'other country category can be saved');
-select lives_ok($$select save_parenting_post('b9670000-0000-4000-8000-000000000001','local-other','Local other fixture','Fixture',p_child=>'c9670000-0000-4000-8000-000000000001',p_audience=>'neighborhood')$$,'other neighborhood category can be saved');
-select lives_ok($$select save_parenting_post('b9670000-0000-4000-8000-000000000001','local-outings','Neighborhood outing fixture','Fixture',p_child=>'c9670000-0000-4000-8000-000000000001',p_audience=>'neighborhood')$$,'local outings category can be saved');
-select lives_ok($$select save_parenting_post('b9670000-0000-4000-8000-000000000001','local-market','Neighborhood sharing fixture','Fixture',p_child=>'c9670000-0000-4000-8000-000000000001',p_audience=>'neighborhood')$$,'sharing and resale category can be saved');
+select lives_ok($$select save_parenting_post('b9670000-0000-4000-8000-000000000001','other','Other fixture','Fixture',p_child=>'c9670000-0000-4000-8000-000000000001')$$,'other category can be saved');
+select lives_ok($$select save_parenting_post('b9670000-0000-4000-8000-000000000001','local-other','Local other fixture','Fixture',p_child=>'c9670000-0000-4000-8000-000000000001')$$,'other neighborhood category can be saved');
+select lives_ok($$select save_parenting_post('b9670000-0000-4000-8000-000000000001','local-outings','Neighborhood outing fixture','Fixture',p_child=>'c9670000-0000-4000-8000-000000000001')$$,'local outings category can be saved');
+select lives_ok($$select save_parenting_post('b9670000-0000-4000-8000-000000000001','local-market','Neighborhood sharing fixture','Fixture',p_child=>'c9670000-0000-4000-8000-000000000001')$$,'sharing and resale category can be saved');
 reset role;
 update families set residence_locality='새동네' where id='b9670000-0000-4000-8000-000000000001';
 insert into neighborhood_posts(region,feature,family_id,author_id,title,body,category) select neighborhood_region('b9670000-0000-4000-8000-000000000004'),'boards','b9670000-0000-4000-8000-000000000004','a9670000-0000-4000-8000-000000000004','US gear','Fixture','gear' from generate_series(1,50);
 set local role authenticated;
-select is((select area_label from parenting_feed('b9670000-0000-4000-8000-000000000001') where id=:'saved'),'서울특별시 강남구 역삼동','moving residence does not rewrite an existing post');
+select is((parenting_post_detail(:'saved')->>'area'),'서울특별시 강남구 역삼동','moving residence does not rewrite an existing post');
 reset role;
 select set_config('request.jwt.claims','{"sub":"a9670000-0000-4000-8000-000000000004","role":"authenticated"}',true);
 set local role authenticated;
-select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000004')),50::bigint,'foreign country feed stays paginated');
+select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000004')),50::bigint,'foreign neighborhood feed stays paginated');
 select ok((select bool_and(title in ('US gear','Fixture 4')) from parenting_feed('b9670000-0000-4000-8000-000000000004')),'foreign feed never includes Korean posts');
 reset role;
 set local role anon;

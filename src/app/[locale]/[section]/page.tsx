@@ -1,13 +1,10 @@
-import { z } from 'zod';
-import { ScheduleAgenda } from '@/features/notifications/schedule-agenda';
 import { Insights } from '@/features/insights/view';
 import { notFound, redirect } from 'next/navigation';
-import { loadCare } from '@/lib/data';
+import { loadFamily } from '@/lib/data';
 import { Shell } from '@/components/shell';
 import { Flash } from '@/components/flash';
 import {
   Today,
-  Calendar,
   Family,
   Settings,
   ChildAccount,
@@ -22,7 +19,6 @@ export async function generateMetadata(props: {
     error?: string;
     ready?: string;
     guide?: string;
-    agenda?: string;
     install?: string;
   }>;
 }) {
@@ -40,11 +36,8 @@ export default async function AppPage({
     child?: string;
     error?: string;
     notice?: string;
-    edit?: string;
     kind?: string;
     page?: string;
-    create?: string;
-    month?: string;
     day?: string;
     week?: string;
     interval?: string;
@@ -53,7 +46,6 @@ export default async function AppPage({
     install?: string;
     ready?: string;
     guide?: string;
-    agenda?: string;
   }>;
 }) {
   const { locale, section } = await params;
@@ -69,21 +61,9 @@ export default async function AppPage({
     redirect(
       `/${locale}/today${q.child ? `?child=${encodeURIComponent(q.child)}` : ''}`,
     );
-  if (
-    ![
-      'today',
-      'calendar',
-      'insights',
-      'family',
-      'account',
-      'settings',
-    ].includes(section)
-  )
+  if (!['today', 'insights', 'family', 'account', 'settings'].includes(section))
     notFound();
-  const context = await loadCare(locale, q.child, [], {
-    page: q.page,
-    todayOnly: section === 'today',
-  });
+  const context = await loadFamily(locale, q.child);
   if (section === 'insights' && q.child && context.child.id !== q.child)
     notFound();
   const props = { context, locale };
@@ -91,23 +71,6 @@ export default async function AppPage({
   switch (section) {
     case 'today':
       view = <Today {...props} guide={q.guide === '1'} />;
-      break;
-    case 'calendar':
-      if (q.agenda && z.iso.date().safeParse(q.agenda).success) {
-        view = (
-          <ScheduleAgenda context={context} locale={locale} day={q.agenda} />
-        );
-        break;
-      }
-      view = (
-        <Calendar
-          {...props}
-          create={q.create}
-          edit={q.edit}
-          month={q.month}
-          day={q.day}
-        />
-      );
       break;
     case 'insights':
       view = (
@@ -135,28 +98,20 @@ export default async function AppPage({
       {...props}
       section={section}
       routeQuery={
-        section === 'calendar'
+        section === 'insights'
           ? {
-              ...(q.page ? { page: q.page } : {}),
-              ...(q.month ? { month: q.month } : {}),
+              ...(q.kind !== undefined ? { kind: q.kind } : {}),
+              ...(q.week ? { week: q.week } : {}),
+              ...(q.interval ? { interval: q.interval } : {}),
+              ...(q.pattern ? { pattern: q.pattern } : {}),
               ...(q.day ? { day: q.day } : {}),
             }
-          : section === 'insights'
-            ? {
-                ...(q.kind !== undefined ? { kind: q.kind } : {}),
-                ...(q.week ? { week: q.week } : {}),
-                ...(q.interval ? { interval: q.interval } : {}),
-                ...(q.pattern ? { pattern: q.pattern } : {}),
-                ...(q.day ? { day: q.day } : {}),
-              }
-            : undefined
+          : undefined
       }
     >
       <Flash
         error={q.error}
-        notice={
-          ['calendar', 'account'].includes(section) ? undefined : q.notice
-        }
+        notice={section === 'account' ? undefined : q.notice}
       />
       {view}
     </Shell>

@@ -20,7 +20,7 @@ export type ChildInput = Pick<
 >;
 export type ShotInput = Pick<
   Row<'vaccination_records'>,
-  'id' | 'status' | 'completed_date'
+  'id' | 'completed_date'
 >;
 export type InsightInput = {
   feeds: FeedInput[];
@@ -325,7 +325,6 @@ export function aggregateWeek(
   }
   for (const r of new Map(input.shots.map((r) => [r.id, r])).values()) {
     if (
-      r.status !== 'completed' ||
       !r.completed_date ||
       r.completed_date > dateFmt.format(new Date(nowMs))
     )

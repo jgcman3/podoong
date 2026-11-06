@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { z } from 'zod';
 import { isLocale } from '@/lib/domain';
-import { loadCare } from '@/lib/data';
+import { loadFamily } from '@/lib/data';
 import { Shell } from '@/components/shell';
 import { createClient } from '@/lib/supabase/server';
 import { ParentingPostDetail } from '@/features/community/post-detail';
@@ -14,7 +14,7 @@ export default async function PostPage({
   searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
-  searchParams: Promise<{ child?: string; source?: string; edit?: string }>;
+  searchParams: Promise<{ child?: string; edit?: string }>;
 }) {
   const { locale, id } = await params;
   if (!isLocale(locale) || !z.uuid().safeParse(id).success) notFound();
@@ -25,7 +25,7 @@ export default async function PostPage({
       `/${locale}/login?next=${encodeURIComponent(`/${locale}/community/posts/${id}`)}`,
     );
   const query = await searchParams,
-    context = await loadCare(locale, query.child, []);
+    context = await loadFamily(locale, query.child);
   const [post, comments] = await Promise.all([
     context.db.rpc('parenting_post_detail', { p_post: id }),
     context.db.rpc('parenting_post_comments_page', { p_post: id }),
@@ -47,11 +47,7 @@ export default async function PostPage({
         child={context.child.id}
         locale={locale}
         timezone={context.timezone}
-        source={
-          detail.audience === 'neighborhood' || query.source === 'neighborhood'
-            ? 'neighborhood'
-            : 'boards'
-        }
+        source="neighborhood"
       />
     </Shell>
   );

@@ -9,7 +9,6 @@ const inputSchema = z.object({
   mode: z.enum(['interval', 'yesterday', 'off']),
   playground: z.boolean(),
   playgroundQuiet: z.boolean(),
-  schedule: z.boolean(),
   subscription: z
     .object({
       endpoint: z.url().max(2048),
@@ -33,7 +32,6 @@ export async function savePushSettings(input: unknown) {
     p_locale: value.locale,
     p_playground: value.playground,
     p_playground_quiet: value.playgroundQuiet,
-    p_schedule: value.schedule,
   });
   if (result.error) return { error: true } as const;
   if (value.subscription && result.data) {

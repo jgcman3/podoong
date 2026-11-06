@@ -112,12 +112,8 @@ const copy = {
         '동네 이야기',
         '같은 동네 부모들과 어린이집, 나들이, 일상의 이야기를 나눠요.',
       ],
-      [
-        '커뮤니티',
-        '우리나라 부모들과 주제별로 질문하고, 사진·투표·댓글로 생각을 모아요.',
-      ],
     ],
-    parentingTabs: ['동네 놀이터', '동네 이야기', '커뮤니티'],
+    parentingTabs: ['동네 놀이터', '동네 이야기'],
     parentingStatuses: [
       '오늘 뒤집기 성공!',
       '낮잠 충전 완료',
@@ -228,12 +224,8 @@ const copy = {
         'Neighborhood stories',
         'Swap local tips on childcare, family outings, and everyday life with nearby parents.',
       ],
-      [
-        'Parenting community',
-        'Ask parents across your country. Share photos, add a poll, and keep the conversation going in comments.',
-      ],
     ],
-    parentingTabs: ['Playground', 'Local stories', 'Community'],
+    parentingTabs: ['Playground', 'Local stories'],
     parentingStatuses: [
       'I rolled over today!',
       'All charged up!',

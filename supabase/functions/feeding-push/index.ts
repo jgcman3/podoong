@@ -2,7 +2,6 @@ import { createClient } from 'npm:@supabase/supabase-js@2.100.0';
 import webpush from 'npm:web-push@3.6.7';
 import { deliverFeedingPush } from '../_shared/feeding-push.mjs';
 import { deliverPlaygroundPush } from '../_shared/playground-push.mjs';
-import { deliverSchedulePush } from '../_shared/schedule-push.mjs';
 
 Deno.serve(async (request: Request) => {
   if (request.method !== 'POST') return new Response(null, { status: 405 });
@@ -79,8 +78,7 @@ Deno.serve(async (request: Request) => {
     };
     const feeding = await deliverFeedingPush(db, token, send, report);
     const playground = await deliverPlaygroundPush(db, token, send, report);
-    const schedule = await deliverSchedulePush(db, token, send, report);
-    return Response.json({ feeding, playground, schedule, diagnostics });
+    return Response.json({ feeding, playground, diagnostics });
   } catch (error) {
     return new Response(null, {
       status:

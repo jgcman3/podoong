@@ -13,12 +13,9 @@ select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000
 select lives_ok($$select public.save_family_residence_region('10000000-0000-4000-8000-000000000001','1168010100',0,'KR')$$,'save Korean locality');
 select lives_ok($$select public.save_family_residence_country('10000000-0000-4000-8000-000000000001','US',1)$$,'switch to country only');
 select ok((select residence_country_code='US' and residence_region_code is null and residence_city is null and residence_locality is null from public.families),'switch clears previous Korean region');
-select is((select count(*)::int from public.community_board_locations() where country_code='US' and scope='topic'),1,'country-only residence gets national topics');
-select is((select count(*)::int from public.community_board_locations() where scope<>'topic'),0,'country-only residence does not get local boards');
 select throws_ok($$select public.save_family_residence_country('10000000-0000-4000-8000-000000000001','JP',1)$$,'P0001','conflict','stale save rejected');
 select throws_ok($$select public.save_family_residence_country('10000000-0000-4000-8000-000000000001','ZZ',2)$$,'22023','invalid country','invalid country rejected');
 select throws_ok($$select public.save_family_residence_country('10000000-0000-4000-8000-000000000002','US',0)$$,'42501','forbidden','other family denied');
 select lives_ok($$select public.save_family_residence_region('10000000-0000-4000-8000-000000000001','',2,'KR')$$,'clear country-only residence');
-select is((select count(*)::int from public.community_board_locations()),0,'cleared residence loses country board scope');
 select * from finish();
 rollback;

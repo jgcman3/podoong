@@ -36,7 +36,7 @@ export function PostComposer({
   locale: Locale;
   tags: readonly (readonly [string, string, string])[];
   initialTag: string;
-  source: 'boards' | 'neighborhood';
+  source: 'neighborhood';
   edit?: PostDetail;
   onSaved?: (post: PostDetail) => void;
   autoOpen?: boolean;
@@ -315,14 +315,6 @@ export function PostComposer({
         <form id={formId} onSubmit={submit} className="community-editor-form">
           <input type="hidden" name="child" value={child} />
           <input type="hidden" name="locale" value={locale} />
-          <input
-            type="hidden"
-            name="audience"
-            value={
-              edit?.audience ??
-              (source === 'neighborhood' ? 'neighborhood' : 'country')
-            }
-          />
           {edit && <input type="hidden" name="post" value={edit.id} />}
           <div className="community-editor-content">
             <label className="community-editor-tag">

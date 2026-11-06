@@ -14,10 +14,8 @@ insert into family_members(family_id,user_id,role,relationship) select ('b967000
 insert into children(id,family_id,name,birth_date,sex) select ('c9670000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,('b9670000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,'Fixture child',current_date,'female' from generate_series(1,5)i;
 select set_config('request.jwt.claims','{"sub":"a9670000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 set local role authenticated;
-select save_parenting_post('b9670000-0000-4000-8000-000000000001','play','Local only','Local body',p_child=>'c9670000-0000-4000-8000-000000000001',p_audience=>'neighborhood') as local_post \gset
-select save_parenting_post('b9670000-0000-4000-8000-000000000001','play','Country only','Country body',p_child=>'c9670000-0000-4000-8000-000000000001') as country_post \gset
-select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000001',true)),1::bigint,'neighborhood list includes only local posts by default');
-select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000001',false)),1::bigint,'country list excludes neighborhood posts');
+select save_parenting_post('b9670000-0000-4000-8000-000000000001','play','Local only','Local body',p_child=>'c9670000-0000-4000-8000-000000000001') as local_post \gset
+select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000001')),1::bigint,'neighborhood list includes only local posts by default');
 select edit_parenting_post(:'local_post','health','Edited local','Edited body','{}','{}');
 select is(parenting_post_detail(:'local_post')->>'title','Edited local','author can edit');
 select is(parenting_post_detail(:'local_post')->>'audience','neighborhood','edit preserves audience');
@@ -26,9 +24,6 @@ insert into parenting_post_photos(id,post_id,path,sort_order) values('d9800000-0
 select set_config('request.jwt.claims','{"sub":"a9670000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 set local role authenticated;
 select throws_ok(format('select parenting_post_detail(%L)',:'local_post'),'42501','forbidden','another dong cannot open local link');
-select throws_ok(format('select edit_parenting_post(%L,%L,%L,%L,%L,%L)',:'country_post','play','Hijack','Body','{}','{}'),'42501','forbidden','another author cannot edit country post');
-select throws_ok(format('select delete_parenting_post(%L)',:'country_post'),'42501','forbidden','another author cannot delete');
-select is(parenting_post_detail(:'country_post')->>'title','Country only','country link readable across neighborhoods');
 select is((select count(*) from parenting_post_photos where post_id=:'local_post'),0::bigint,'another dong cannot read local photo metadata');
 reset role;
 select set_config('request.jwt.claims','{"sub":"a9670000-0000-4000-8000-000000000002","role":"authenticated"}',true);

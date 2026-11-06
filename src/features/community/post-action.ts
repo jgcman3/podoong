@@ -6,7 +6,7 @@ import { loadFamily, requireUser } from '@/lib/data';
 import { imageType } from '@/features/child-care/schema';
 import { renderPhotoVariant } from '@/features/growth-community/photo-variants.mjs';
 import { communityStorage } from './storage';
-import { communityTags } from './options';
+import { neighborhoodTags } from './options';
 import {
   MAX_POST_PHOTOS,
   pollInputSchema,
@@ -23,16 +23,11 @@ export async function publishParentingPost(form: FormData): Promise<{
     .object({
       child: z.uuid(),
       post: z.uuid().optional(),
-      audience: z.enum(['country', 'neighborhood']),
       category: z.string(),
       title: z.string().trim().min(1).max(100),
       body: z.string().trim().min(1).max(3000),
     })
-    .refine((value) =>
-      communityTags(value.audience === 'neighborhood').some(
-        ([id]) => id === value.category,
-      ),
-    )
+    .refine((value) => neighborhoodTags.some(([id]) => id === value.category))
     .safeParse(Object.fromEntries(form));
   const photos = form
     .getAll('photo')
@@ -77,12 +72,7 @@ export async function publishParentingPost(form: FormData): Promise<{
       p_post: value.post,
     });
     const detail = postDetailSchema.safeParse(current.data);
-    if (
-      current.error ||
-      !detail.success ||
-      !detail.data.mine ||
-      detail.data.audience !== value.audience
-    )
+    if (current.error || !detail.success || !detail.data.mine)
       return { saved: false, error: 'generic' };
   } else if (keep.length) return { saved: false, error: 'invalid' };
   const postId = value.post || randomUUID(),
@@ -154,14 +144,12 @@ export async function publishParentingPost(form: FormData): Promise<{
           p_family: context.family.id,
           p_photo_ids: photoIds,
           p_child: value.child,
-          p_audience: value.audience,
         });
     if (result.error) throw Error('Post unavailable');
   } catch {
     if (uploaded.length) await storage!.remove(uploaded);
     return { saved: false, error: photos.length ? 'photos' : 'generic' };
   }
-  revalidatePath(`/${locale}/community/boards`, 'page');
   revalidatePath(`/${locale}/community/neighborhood`, 'page');
   if (value.post) {
     const result = await context.db.rpc('parenting_post_detail', {
@@ -184,7 +172,6 @@ export async function deleteParentingPost(input: {
   const { db } = await requireUser(v.data.locale);
   const result = await db.rpc('delete_parenting_post', { p_post: v.data.post });
   if (result.error) return false;
-  revalidatePath(`/${v.data.locale}/community/boards`, 'page');
   revalidatePath(`/${v.data.locale}/community/neighborhood`, 'page');
   return true;
 }

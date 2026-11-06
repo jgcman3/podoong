@@ -1,4 +1,5 @@
-import { NotificationPreferencesForm } from '@/features/notifications/settings';
+import { loadPushPreferences } from '@/features/notifications/settings';
+import { FeedingPushSettings } from '@/features/notifications/feeding-push-settings';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { requireUser } from '@/lib/data';
@@ -17,22 +18,16 @@ export default async function Notifications({
   const { db, user } = await requireUser(locale);
   const t = notificationCopy(locale);
   const q = await searchParams;
-  const [
-    { data: profile, error: profileError },
-    { data: prefs, error: prefsError },
-  ] = await Promise.all([
-    db
-      .from('profiles')
-      .select('timezone,consented_at')
-      .eq('id', user.id)
-      .single(),
-    db
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle(),
-  ]);
-  if (profileError || prefsError) throw new Error('Notifications unavailable');
+  const [{ data: profile, error: profileError }, pushPreferences] =
+    await Promise.all([
+      db
+        .from('profiles')
+        .select('timezone,consented_at')
+        .eq('id', user.id)
+        .single(),
+      loadPushPreferences({ db, user }),
+    ]);
+  if (profileError) throw new Error('Notifications unavailable');
   if (!profile?.consented_at) redirect(`/${locale}/onboarding`);
   const sync = await db.rpc('sync_notifications');
   if (sync.error) throw new Error('Notifications unavailable');
@@ -59,13 +54,7 @@ export default async function Notifications({
       {q.notice && <p role="status">{t.saved}</p>}
       {(items ?? []).slice(0, 30).map((item) => (
         <article key={item.id} className="panel">
-          <p>
-            {item.kind === 'task'
-              ? t.taskMessage
-              : item.kind === 'event'
-                ? t.eventMessage
-                : t.feedingMessage}
-          </p>
+          <p>{t.feedingMessage}</p>
           <p>
             <time dateTime={item.delivered_at ?? ''}>
               {new Intl.DateTimeFormat(locale, {
@@ -75,9 +64,7 @@ export default async function Notifications({
               }).format(new Date(item.delivered_at!))}
             </time>
           </p>
-          <Link
-            href={`/${locale}/${item.kind === 'feeding' ? 'records' : item.kind === 'event' ? 'calendar' : 'today'}?child=${item.child_id}`}
-          >
+          <Link href={`/${locale}/records?child=${item.child_id}`}>
             {t.open}
           </Link>
           {!item.read_at && (
@@ -108,7 +95,7 @@ export default async function Notifications({
         <p>
           {t.timezone}: {profile?.timezone ?? 'Asia/Seoul'}
         </p>
-        <NotificationPreferencesForm locale={locale} prefs={prefs} />
+        <FeedingPushSettings locale={locale} {...pushPreferences} />
         <p>{t.privacy}</p>
       </section>
     </main>

@@ -277,9 +277,8 @@ describe('weekly insights from recorded data', () => {
   it('uses actual vaccination dates and never fabricates a time of day', () => {
     const input = empty();
     input.shots = [
-      { id: 'a', status: 'completed', completed_date: '2026-10-27' },
-      { id: 'b', status: 'planned', completed_date: null },
-      { id: 'c', status: 'completed', completed_date: '2026-12-01' },
+      { id: 'a', completed_date: '2026-10-27' },
+      { id: 'c', completed_date: '2026-12-01' },
     ];
     const c = aggregateWeek(input, start, 'Asia/Seoul', now).categories
       .vaccination;

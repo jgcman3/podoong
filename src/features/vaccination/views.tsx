@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { z } from 'zod';
-import { loadCare, type CareContext } from '@/lib/data';
+import { loadFamily, type CareContext } from '@/lib/data';
 import { isLocale, type Locale } from '@/lib/domain';
 import type { Row } from '@/lib/db';
 import { Shell } from '@/components/shell';
@@ -22,8 +22,7 @@ function Summary({
   return (
     <>
       <p>
-        {r.status === 'completed' ? t.completed : t.planned} ·{' '}
-        {r.status === 'completed' ? r.completed_date : r.scheduled_date}
+        {t.completed} · {r.completed_date}
       </p>
       {r.dose !== null && (
         <p>
@@ -97,7 +96,7 @@ export async function VaccinationList({
   page?: string;
 }) {
   const t = vaccinationCopy(locale);
-  const tab = rawTab === 'completed' || rawTab === 'guide' ? rawTab : 'planned';
+  const tab = rawTab === 'guide' ? 'guide' : 'completed';
   const n = Number(rawPage ?? 0);
   const page = Number.isSafeInteger(n) && n >= 0 ? Math.min(n, 10000) : 0;
   const base = `/${locale}/vaccinations?child=${context.child.id}`;
@@ -108,10 +107,7 @@ export async function VaccinationList({
           .from('vaccination_records')
           .select('*')
           .eq('child_id', context.child.id)
-          .eq('status', tab)
-          .order(tab === 'completed' ? 'completed_date' : 'scheduled_date', {
-            ascending: tab === 'planned',
-          })
+          .order('completed_date', { ascending: false })
           .order('id')
           .range(page * 30, page * 30 + 30);
   if (result?.error) throw new Error('Vaccinations unavailable');
@@ -122,7 +118,7 @@ export async function VaccinationList({
         <p>{t.history}</p>
       </div>
       <nav className="section-heading" aria-label={t.title}>
-        {(['planned', 'completed', 'guide'] as const).map((key) => (
+        {(['completed', 'guide'] as const).map((key) => (
           <Link
             className={tab === key ? 'button primary' : 'button secondary'}
             aria-current={tab === key ? 'page' : undefined}
@@ -160,9 +156,6 @@ export async function VaccinationList({
                     <h3>{vaccineName(r.vaccine, r.custom_name, locale)}</h3>
                   </Link>
                   <Summary record={r} locale={locale} />
-                  {tab === 'planned' && r.scheduled_date! < context.today && (
-                    <span className="badge planned">{t.overdue}</span>
-                  )}
                 </article>
               ))}
             </div>
@@ -204,7 +197,7 @@ async function pageContext(props: PageProps) {
   if (!isLocale(p.locale) || (p.id && !z.uuid().safeParse(p.id).success))
     notFound();
   const locale = p.locale;
-  const context = await loadCare(locale, q.child, []);
+  const context = await loadFamily(locale, q.child);
   const result = p.id
     ? await context.db
         .from('vaccination_records')
@@ -225,7 +218,7 @@ export async function VaccinationEditor(props: PageProps) {
     <Shell
       context={context}
       locale={locale}
-      section="calendar"
+      section="today"
       languageRoute={`vaccination/${record ? `${record.id}/edit` : 'new'}`}
       childRoute="vaccinations"
     >
@@ -259,14 +252,14 @@ export async function VaccinationDetail(props: PageProps) {
     <Shell
       context={context}
       locale={locale}
-      section="calendar"
+      section="today"
       languageRoute={`vaccination/${record.id}`}
       childRoute="vaccinations"
     >
       <Flash error={q.error} notice={q.notice} />
       <Link
         className="text-link"
-        href={`/${locale}/vaccinations?child=${context.child.id}&tab=${record.status}`}
+        href={`/${locale}/vaccinations?child=${context.child.id}`}
       >
         {t.back}
       </Link>

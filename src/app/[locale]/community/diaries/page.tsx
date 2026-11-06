@@ -19,7 +19,7 @@ import { DiaryCardMenu } from '@/features/growth-community/card-menu';
 import { loadOwnDiaries } from '@/features/growth-community/own-diaries';
 import { DiaryAgeNavigation } from '@/features/growth-community/age-navigation';
 import { isLocale, ageInDays } from '@/lib/domain';
-import { loadCare } from '@/lib/data';
+import { loadFamily } from '@/lib/data';
 import { Shell } from '@/components/shell';
 import { Flash } from '@/components/flash';
 export default async function Diaries({
@@ -38,7 +38,7 @@ export default async function Diaries({
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const q = await searchParams,
-    context = await loadCare(locale, q.child, []);
+    context = await loadFamily(locale, q.child);
   if (q.child && q.child !== context.child.id) notFound();
   const ko = locale === 'ko',
     scope = q.scope === 'all' ? 'all' : q.scope === 'birth' ? 'birth' : 'mine';

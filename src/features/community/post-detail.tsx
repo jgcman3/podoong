@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Share2,
   ThumbsUp,
-  Repeat2,
   MessageCircle,
   Send,
   Eye,
@@ -17,7 +16,7 @@ import type { Locale } from '@/lib/domain';
 import { PostRowMenu } from './post-row-menu';
 import { PostComposer } from './post-composer';
 import { PostShareSheet } from './post-share-sheet';
-import { communityTags } from './options';
+import { neighborhoodTags } from './options';
 import {
   postAuthor,
   postHashtags,
@@ -43,7 +42,7 @@ export function ParentingPostDetail({
   initialComments: PostComment[];
   child: string;
   locale: Locale;
-  source: 'boards' | 'neighborhood';
+  source: 'neighborhood';
   timezone: string | null;
   editing?: boolean;
 }) {
@@ -92,10 +91,7 @@ export function ParentingPostDetail({
       timeStyle: 'short',
       timeZone: timezone || 'UTC',
     }).format(new Date(value));
-  async function act(
-    kind: 'like' | 'announce' | 'vote' | 'comment',
-    value: string,
-  ) {
+  async function act(kind: 'like' | 'vote' | 'comment', value: string) {
     if (lock.current) return;
     lock.current = true;
     setPending(true);
@@ -110,13 +106,7 @@ export function ParentingPostDetail({
       });
       if (!result.ok) {
         setError(
-          kind === 'announce'
-            ? ko
-              ? '거주 동네 설정을 확인한 뒤 다시 시도해 주세요.'
-              : 'Check your neighborhood settings and try again.'
-            : ko
-              ? '반영하지 못했어요. 다시 시도해 주세요.'
-              : 'Please try again.',
+          ko ? '반영하지 못했어요. 다시 시도해 주세요.' : 'Please try again.',
         );
         return;
       }
@@ -226,11 +216,9 @@ export function ParentingPostDetail({
               ])}
               child={child}
               locale={locale}
-              tags={communityTags(post.audience === 'neighborhood')}
+              tags={neighborhoodTags}
               initialTag={post.category}
-              source={
-                post.audience === 'neighborhood' ? 'neighborhood' : 'boards'
-              }
+              source="neighborhood"
               edit={post}
               autoOpen={startEditing}
               onSaved={(value) => {
@@ -244,11 +232,7 @@ export function ParentingPostDetail({
       </header>
       <div className="parenting-post-content">
         <span className="community-post-tag">
-          {
-            communityTags(post.audience === 'neighborhood').find(
-              ([id]) => id === post.category,
-            )?.[ko ? 1 : 2]
-          }
+          {neighborhoodTags.find(([id]) => id === post.category)?.[ko ? 1 : 2]}
         </span>
         <div className="parenting-post-author">
           <span className="parenting-author-avatar">
@@ -345,25 +329,6 @@ export function ParentingPostDetail({
             <ThumbsUp size={17} />
             {ko ? '공감하기' : 'Like'} {post.likes > 0 && post.likes}
           </button>
-          {post.audience === 'country' && (
-            <button
-              type="button"
-              aria-pressed={post.announced}
-              disabled={pending}
-              onClick={() =>
-                void act('announce', post.announced ? 'off' : 'on')
-              }
-            >
-              <Repeat2 size={17} />
-              {post.announced
-                ? ko
-                  ? '동네에 알림'
-                  : 'Shared locally'
-                : ko
-                  ? '동네에 알리기'
-                  : 'Tell neighbors'}
-            </button>
-          )}
           <button
             type="button"
             onClick={() =>

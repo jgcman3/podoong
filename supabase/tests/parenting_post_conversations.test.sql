@@ -37,11 +37,7 @@ select throws_ok($$select save_parenting_post('b9670000-0000-4000-8000-000000000
 reset role;
 select set_config('request.jwt.claims','{"sub":"a9670000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 set local role authenticated;
-select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000003',true)),0::bigint,'other dong initially has no post');
-select parenting_post_interact(:'post','c9670000-0000-4000-8000-000000000003','announce','on');
-select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000003',true)),1::bigint,'announcement surfaces story in the sharers actual dong');
-select parenting_post_interact(:'post','c9670000-0000-4000-8000-000000000003','announce','off');
-select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000003',true)),0::bigint,'removing announcement withdraws local entry');
+select is((select count(*) from parenting_feed('b9670000-0000-4000-8000-000000000003')),0::bigint,'other dong initially has no post');
 reset role;
 select set_config('request.jwt.claims','{"sub":"a9670000-0000-4000-8000-000000000004","role":"authenticated"}',true);
 set local role authenticated;

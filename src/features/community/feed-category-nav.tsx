@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { communityTags } from './options';
+import { neighborhoodTags } from './options';
 import {
   feedPreference,
   feedPreferenceCookie,
@@ -20,7 +20,7 @@ export function FeedCategoryNav({
   const remember = (category: string | null, sort: string | null) => {
     const preference = feedPreference(
       `${category ?? 'all'}:${sort ?? 'all'}`,
-      communityTags(area === 'neighborhood'),
+      neighborhoodTags,
     );
     document.cookie = `${feedPreferenceCookie(area)}=${preference.category}:${preference.sort}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
   };
@@ -33,7 +33,7 @@ export function FeedCategoryNav({
     if (query.has('category')) {
       const preference = feedPreference(
         `${query.get('category')}:${query.get('sort') ?? 'all'}`,
-        communityTags(area === 'neighborhood'),
+        neighborhoodTags,
       );
       document.cookie = `${name}=${preference.category}:${preference.sort}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
       return;
@@ -43,10 +43,7 @@ export function FeedCategoryNav({
       .find((value) => value.startsWith(`${name}=`))
       ?.slice(name.length + 1);
     if (!saved) return;
-    const preference = feedPreference(
-      saved,
-      communityTags(area === 'neighborhood'),
-    );
+    const preference = feedPreference(saved, neighborhoodTags);
     const params = new URLSearchParams(query.toString());
     params.set('category', preference.category);
     params.set('sort', preference.sort);

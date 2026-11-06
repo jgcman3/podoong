@@ -35,8 +35,7 @@ export function ResidenceForm({
     | 'family'
     | 'account'
     | 'community/playground'
-    | 'community/neighborhood'
-    | 'community/boards';
+    | 'community/neighborhood';
 }) {
   const t = useTranslations();
   const initial = residenceRegions.find(

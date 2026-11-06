@@ -1,4 +1,4 @@
-export type FeedArea = 'neighborhood' | 'boards';
+export type FeedArea = 'neighborhood';
 export function feedPreferenceCookie(area: FeedArea) {
   return `podoong-feed-${area}`;
 }

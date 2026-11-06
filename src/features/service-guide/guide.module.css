@@ -99,10 +99,7 @@
   width: 100%;
   justify-content: center;
 }
-.content :global(.schedule-push-settings p) {
-  font-size: 12px;
-  margin: 8px 0;
-}
+
 @media (max-width: 400px) {
   .content {
     padding: 18px;

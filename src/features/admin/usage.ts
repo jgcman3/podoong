@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 export const usageScreens = [
   'today',
-  'calendar',
   'insights',
   'diary',
   'community',
@@ -13,17 +12,15 @@ export function usageScreen(path: string) {
   const parts = path.split(/[?#]/, 1)[0].split('/').filter(Boolean);
   if (!['ko', 'en'].includes(parts[0])) return null;
   const section = parts[1];
-  if (['today', 'calendar', 'insights'].includes(section) && parts.length === 2)
-    return section as 'today' | 'calendar' | 'insights';
+  if (['today', 'insights'].includes(section) && parts.length === 2)
+    return section as 'today' | 'insights';
   if (['account', 'settings', 'family'].includes(section) && parts.length === 2)
     return 'account';
   if (section === 'community')
     return parts[2] === 'diaries' ||
       parts[2] === 'new' ||
       (parts[2] &&
-        !['playground', 'boards', 'neighborhood', 'posts', 'settings'].includes(
-          parts[2],
-        ))
+        !['playground', 'neighborhood', 'posts', 'settings'].includes(parts[2]))
       ? 'diary'
       : 'community';
   return null;

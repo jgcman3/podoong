@@ -21,11 +21,7 @@ export default async function CommunitySettings({
       .order('created_at', { ascending: false })
       .limit(30),
   ]);
-  if (
-    [blocks, reports].some(
-      (result) => result.error,
-    )
-  )
+  if ([blocks, reports].some((result) => result.error))
     throw new Error('Community settings unavailable');
   return (
     <main className="main-content">

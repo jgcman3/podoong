@@ -22,7 +22,7 @@ export default function ApplicationError({
       section =
         part === 'community' || part === 'share'
           ? 'diary'
-          : ['today', 'calendar', 'insights', 'account', 'admin'].includes(part)
+          : ['today', 'insights', 'account', 'admin'].includes(part)
             ? part
             : 'other';
     void reportServiceError({

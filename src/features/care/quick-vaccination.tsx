@@ -73,18 +73,12 @@ export function QuickVaccination({
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="version" value={record?.version ?? ''} />
       <input type="hidden" name="season" value={record?.season ?? ''} />
-      <input
-        type="hidden"
-        name="scheduled"
-        value={record?.scheduled_date ?? ''}
-      />
       <input type="hidden" name="childId" value={childId} />
       <input
         type="hidden"
         name="timezone"
         value={record?.record_timezone ?? timezone}
       />
-      <input type="hidden" name="status" value="completed" />
       <input type="hidden" name="vaccine" value={vaccine} />
       {state.status === 'error' && (
         <p className="flash error" role="alert">

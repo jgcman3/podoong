@@ -16,7 +16,7 @@ insert into public.signup_agreements(user_id,kind,version,interface_locale) sele
 insert into public.signup_privacy_choices(user_id,version,locale,child_information,authority,health,public_sharing,neighborhood) select id,public.current_signup_privacy_version(),'ko',true,true,true,true,true from profiles where id::text like 'a9970000-%';
 insert into child_privacy_consents(child_id,accepted_by,version,child_information,authority,health,public_sharing,neighborhood) select k.id,m.user_id,public.current_signup_privacy_version(),true,true,true,true,true from children k join family_members m on m.family_id=k.family_id where k.id::text like 'c9970000-%';
 insert into neighborhood_posts(id,region,feature,family_id,author_id,title,body,category,audience) values
-('d9970000-0000-4000-8000-000000000001','fixture','boards','b9970000-0000-4000-8000-000000000001','a9970000-0000-4000-8000-000000000001','Country fixture','Original public content','daily','country'),
+('d9970000-0000-4000-8000-000000000001','fixture','boards','b9970000-0000-4000-8000-000000000001','a9970000-0000-4000-8000-000000000001','Neighborhood fixture','Original public content','daily','neighborhood'),
 ('d9970000-0000-4000-8000-000000000002','fixture','boards','b9970000-0000-4000-8000-000000000001','a9970000-0000-4000-8000-000000000001','Local fixture','Local content','local-daily','neighborhood');
 insert into parenting_post_photos(id,post_id,path,sort_order) values('f9970000-0000-4000-8000-000000000001','d9970000-0000-4000-8000-000000000001','fixture/report.webp',0);
 insert into child_records(id,child_id,service,kind,note,occurred_at,record_timezone,created_by,updated_by) values
@@ -52,9 +52,9 @@ select is((select count(*) from community_reports),0::bigint,'author cannot read
 reset role;
 select set_config('request.jwt.claims','{"sub":"a9970000-0000-4000-8000-000000000004","role":"authenticated"}',true);
 set local role authenticated;
-select is((select count(*) from admin_reports()),3::bigint,'service admin sees neighborhood, country and diary together');
+select is((select count(*) from admin_reports()),3::bigint,'service admin sees neighborhood posts and diary together');
 select is((select body from admin_reports() where id=:'report'),'Original public content','report captures content before later edits');
-select is((select count(distinct kind) from admin_reports()),3::bigint,'source labels distinguish all three types');
+select is((select count(distinct kind) from admin_reports()),2::bigint,'source labels distinguish neighborhood and diary');
 select admin_review_report(:'report','hide','Policy violation',0,false);
 select is((select hidden from admin_reports() where id=:'report'),true,'admin can hide a reported post');
 select throws_ok(format('select admin_review_report(%L,%L,%L,0,false)',:'report','resolve','Stale review'),'40001','conflict','stale report versions are rejected');
@@ -63,7 +63,7 @@ reset role;
 select set_config('request.jwt.claims','{"sub":"a9970000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 set local role authenticated;
 select ok(not parenting_post_visible('d9970000-0000-4000-8000-000000000001'),'hidden content is unreadable');
-select is((select count(*) from parenting_feed('b9970000-0000-4000-8000-000000000002')),0::bigint,'hidden country post is absent from feed');
+select is((select count(*) from parenting_feed('b9970000-0000-4000-8000-000000000002') where id='d9970000-0000-4000-8000-000000000001'),0::bigint,'hidden neighborhood post is absent from feed');
 select throws_ok($$select parenting_post_detail('d9970000-0000-4000-8000-000000000001')$$,'42501','forbidden','hidden detail is blocked');
 select throws_ok($$select parenting_post_interact('d9970000-0000-4000-8000-000000000001','c9970000-0000-4000-8000-000000000002','like','true')$$,'42501','forbidden','hidden post cannot be liked or commented on');
 select is((select count(*) from parenting_post_photos where post_id='d9970000-0000-4000-8000-000000000001'),0::bigint,'hidden photo paths are blocked by RLS');

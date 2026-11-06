@@ -51,7 +51,6 @@ export const names = {
 };
 const ko = {
   title: '예방접종·독감',
-  planned: '접종 예정',
   completed: '접종 완료',
   guide: '공식 안내',
   add: '접종 기록하기',
@@ -62,8 +61,6 @@ const ko = {
   unknown: '미입력',
   season: '독감 절기',
   seasonHint: '예: 2026-2027. 확인한 절기를 입력하세요.',
-  status: '상태',
-  scheduled: '예정일',
   done: '실제 접종일',
   clinic: '병원·접종 기관',
   note: '메모',
@@ -78,9 +75,7 @@ const ko = {
   readonly: '조회 전용 보호자는 기록을 볼 수만 있어요.',
   history:
     '가족이 직접 입력한 기록입니다. 공식 접종 이력은 예방접종도우미에서 확인하세요.',
-  next: '예정된 예방접종',
   all: '전체 기록',
-  overdue: '예정일 지남',
   nextPage: '다음',
   previous: '이전',
   guideTitle: '한국 예방접종 공식 안내',
@@ -98,7 +93,6 @@ const ko = {
 };
 const en: typeof ko = {
   title: 'Vaccinations & flu',
-  planned: 'Planned',
   completed: 'Completed',
   guide: 'Official guidance',
   add: 'Add vaccination',
@@ -109,8 +103,6 @@ const en: typeof ko = {
   unknown: 'Not entered',
   season: 'Flu season',
   seasonHint: 'Example: 2026-2027. Enter the confirmed season.',
-  status: 'Status',
-  scheduled: 'Planned date',
   done: 'Actual vaccination date',
   clinic: 'Clinic / provider',
   note: 'Note',
@@ -125,9 +117,7 @@ const en: typeof ko = {
   readonly: 'Read-only caregivers can view records only.',
   history:
     'These records are entered by your family. Check official records on the KDCA portal.',
-  next: 'Planned vaccinations',
   all: 'All records',
-  overdue: 'Planned date passed',
   nextPage: 'Next',
   previous: 'Previous',
   guideTitle: 'Official guidance for South Korea',

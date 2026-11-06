@@ -40,7 +40,7 @@ export default async function Moderation({
       .order('until_at', { ascending: false })
       .limit(50),
     db
-      .from('community_posts')
+      .from('neighborhood_posts')
       .select('*')
       .order('created_at', { ascending: false })
       .range(page * 30, page * 30 + 30),
@@ -57,11 +57,10 @@ export default async function Moderation({
       {reports.data?.slice(0, 30).map((r) => (
         <article className="panel" key={r.id}>
           <p>
-            {r.reason} ·{' '}
-            <code>{r.post_id ?? r.comment_id ?? r.diary_record_id}</code>
+            {r.reason} · <code>{r.parenting_post_id ?? r.diary_record_id}</code>
           </p>
-          {r.post_id && (
-            <Link href={`/${locale}/community/${r.post_id}`}>
+          {r.parenting_post_id && (
+            <Link href={`/${locale}/community/posts/${r.parenting_post_id}`}>
               {t.titleLabel}
             </Link>
           )}
@@ -101,17 +100,17 @@ export default async function Moderation({
                 locale={locale}
                 moderation
                 action="hide"
-                id={(r.post_id ?? r.comment_id)!}
+                id={r.parenting_post_id!}
                 label={t.hide}
-                fields={{ kind: r.comment_id ? 'comment' : 'post' }}
+                fields={{ kind: 'post' }}
               />
               <Action
                 locale={locale}
                 moderation
                 action="unhide"
-                id={(r.post_id ?? r.comment_id)!}
+                id={r.parenting_post_id!}
                 label={t.unhide}
-                fields={{ kind: r.comment_id ? 'comment' : 'post' }}
+                fields={{ kind: 'post' }}
               />
             </>
           )}
@@ -167,7 +166,7 @@ export default async function Moderation({
       <h2>{t.titleLabel}</h2>
       {posts.data?.slice(0, 30).map((p) => (
         <article className="panel" key={p.id}>
-          <Link href={`/${locale}/community/${p.id}`}>{p.title}</Link>
+          <Link href={`/${locale}/community/posts/${p.id}`}>{p.title}</Link>
           <p>
             <code>{p.author_id}</code>
           </p>
@@ -178,14 +177,6 @@ export default async function Moderation({
             id={p.id}
             label={p.hidden ? t.unhide : t.hide}
             fields={{ kind: 'post' }}
-          />
-          <Action
-            locale={locale}
-            moderation
-            action="notice"
-            id={p.id}
-            label={`${t.notice} ${p.notice ? '−' : '+'}`}
-            fields={{ enabled: String(!p.notice) }}
           />
         </article>
       ))}

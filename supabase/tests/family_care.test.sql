@@ -34,7 +34,6 @@ select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000
 select is((select count(*)::int from public.children),0,'another family cannot read children');
 select throws_ok($$select public.update_child_details('20000000-0000-4000-8000-000000000001','No','male','2026-10-20')$$,'42501','forbidden','outsider cannot update child details');
 select is((select count(*)::int from public.family_members),0,'another family cannot read membership');
-select throws_ok($$select public.save_calendar_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','x','2026-10-12','','general','','')$$,'42501','forbidden','another family cannot write events');
 select throws_ok($$select * from public.list_caregivers('20000000-0000-4000-8000-000000000001')$$,'42501','forbidden','caregiver names cannot cross family boundaries');
 
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
@@ -56,12 +55,8 @@ select throws_ok($$select public.save_feeding_record('30000000-0000-4000-8000-00
 select throws_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','formula','2026-10-12T10:00Z','2026-10-12T09:00Z',100,'','UTC','',null)$$,'23514',null,'backwards time rejected');
 select lives_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000001','breast',now(),null,null,'','UTC','',null)$$,'timer persisted');
 select throws_ok($$select public.save_feeding_record('30000000-0000-4000-8000-000000000004','20000000-0000-4000-8000-000000000001','breast',now(),null,null,'','UTC','',null)$$,'23505',null,'second active timer rejected');
-select public.save_task('40000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Manual','health','2026-10-25','todo',null);
-select public.save_calendar_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Visit','2026-10-25','Note','general','','');
 select lives_ok($$select public.update_child_birth_date('20000000-0000-4000-8000-000000000001','2026-10-12')$$,'birth transition succeeds');
 select is((select id::text from public.children where name='Shared'),'20000000-0000-4000-8000-000000000001','child identity preserved');
-select is((select due_date::text from public.tasks where title='Manual'),'2026-10-25','manual task preserved');
-select is((select date::text from public.events where title='Visit'),'2026-10-25','manual event preserved');
 select throws_ok($$insert into public.care_records(id,child_id,kind,started_at,created_by,updated_by) values(gen_random_uuid(),'20000000-0000-4000-8000-000000000001','breast',now(),auth.uid(),auth.uid())$$,'42501',null,'direct unaudited insert denied');
 
 reset role;
@@ -83,13 +78,9 @@ select is((select name from public.children where id='20000000-0000-4000-8000-00
 select throws_ok($$select public.update_child_details('20000000-0000-4000-8000-000000000001','','male','2026-10-20')$$,'22023','invalid_child_details','empty name rejected');
 select throws_ok($$select public.update_child_details('20000000-0000-4000-8000-000000000001','Updated',null,'2026-10-20')$$,'22023','invalid_child_details','missing sex rejected');
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-select public.save_task('40000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','Assigned','general','2026-10-25','todo','00000000-0000-4000-8000-000000000003');
 select lives_ok($$select public.revoke_member('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003')$$,'owner revokes editor');
-select is((select assignee_id from public.tasks where title='Assigned'),null::uuid,'revoked caregiver assignment cleared');
-select lives_ok($$select public.save_task('40000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','Assigned','general','2026-10-25','done',null)$$,'unassigned task can be completed after revoke');
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 select is((select count(*)::int from public.children),0,'revoked editor immediately loses read access');
-select throws_ok($$select public.save_calendar_event('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','x','2026-10-12','','general','','')$$,'42501','forbidden','revoked editor loses write access');
 set local role anon;
 select is((select count(*)::int from public.content_items),0,'draft content hidden from signed-out users');
 select is((select count(*)::int from public.content_translations),0,'draft translations hidden');

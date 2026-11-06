@@ -11,7 +11,7 @@ import { FeedSortPicker } from './feed-sort-picker';
 import { PostComposer } from './post-composer';
 import { PostCard } from './post-card';
 import { postDetailSchema } from './post-model';
-import { communityTags } from './options';
+import { neighborhoodTags } from './options';
 import { NeighborhoodFriends } from './friends';
 import { CommunityWelcome } from './community-welcome';
 import { CommunityResidence } from './residence';
@@ -37,21 +37,16 @@ export async function CommunityHub({
 }: {
   context: CareContext;
   locale: Locale;
-  area?: 'friends' | 'neighborhood' | 'boards';
+  area?: 'friends' | 'neighborhood';
   error?: string;
   query?: CommunityQuery;
 }) {
   const ko = locale === 'ko',
-    neighborhood = area === 'neighborhood',
     posts = area !== 'friends';
-  const tags = communityTags(neighborhood);
+  const tags = neighborhoodTags;
   const preference = posts
     ? feedPreference(
-        (await cookies()).get(
-          feedPreferenceCookie(
-            area === 'neighborhood' ? 'neighborhood' : 'boards',
-          ),
-        )?.value,
+        (await cookies()).get(feedPreferenceCookie('neighborhood'))?.value,
         tags,
       )
     : { category: 'all', sort: 'all' };
@@ -61,8 +56,8 @@ export async function CommunityHub({
       : (tags.find(([id]) => id === query.category)?.[0] ?? 'all');
   const hasResidence =
     !!context.family.residence_country_code &&
-    (area === 'boards' ||
-      (!!context.family.residence_city && !!context.family.residence_locality));
+    !!context.family.residence_city &&
+    !!context.family.residence_locality;
   const search = typeof query.q === 'string' ? query.q.trim().slice(0, 80) : '';
   const showWelcome = posts && !search && !query.before;
   const sort =
@@ -70,14 +65,13 @@ export async function CommunityHub({
     'popular'
       ? 'popular'
       : 'all';
-  const path = `/${locale}/community${neighborhood ? '/neighborhood' : '/boards'}`;
+  const path = `/${locale}/community/neighborhood`;
   const href = (values: Record<string, string>) =>
     `${path}?${new URLSearchParams({ child: context.child.id, category, sort, ...(search ? { q: search } : {}), ...values })}`;
   const feed =
     posts && hasResidence
       ? await context.db.rpc('parenting_feed', {
           p_family: context.family.id,
-          p_neighborhood: neighborhood,
           p_category: category,
           p_sort: sort,
           p_query: search,
@@ -112,7 +106,6 @@ export async function CommunityHub({
           [
             ['friends', '동네 놀이터', 'Playground'],
             ['neighborhood', '동네 이야기', 'Neighborhood'],
-            ['boards', '커뮤니티', 'Community'],
           ] as const
         ).map(([id, k, e]) => (
           <Link
@@ -133,7 +126,7 @@ export async function CommunityHub({
         <>
           {posts && (
             <FeedCategoryNav
-              area={neighborhood ? 'neighborhood' : 'boards'}
+              area="neighborhood"
               label={ko ? '게시판 주제' : 'Post topics'}
             >
               <FeedSortPicker
@@ -203,18 +196,14 @@ export async function CommunityHub({
           )}
           <PostComposer
             child={context.child.id}
-            source={neighborhood ? 'neighborhood' : 'boards'}
+            source="neighborhood"
             locale={locale}
             tags={tags}
             initialTag={category}
           />
           {showWelcome && (
             <CommunityWelcome
-              neighborhood={
-                neighborhood
-                  ? (context.family.residence_locality ?? '')
-                  : undefined
-              }
+              neighborhood={context.family.residence_locality!}
               locale={locale}
               expanded={!feed?.data?.length}
             />
@@ -222,11 +211,6 @@ export async function CommunityHub({
           {feed?.data?.length ? (
             <div className="parenting-posts">
               {feed.data.map((post) => {
-                const areaLabel = /^[A-Z]{2}$/.test(post.area_label)
-                  ? (new Intl.DisplayNames([locale], { type: 'region' }).of(
-                      post.area_label,
-                    ) ?? post.area_label)
-                  : post.area_label;
                 const elapsed = minutesSince(post.created_at);
                 const time =
                   elapsed < 1
@@ -252,13 +236,12 @@ export async function CommunityHub({
                     key={post.id}
                     post={{
                       ...post,
-                      area_label: areaLabel,
                       author_identity: postDetailSchema.shape.author.parse(
                         post.author_identity,
                       ),
                     }}
                     child={context.child.id}
-                    source={neighborhood ? 'neighborhood' : 'boards'}
+                    source="neighborhood"
                     tag={
                       tags.find(([id]) => id === post.category)?.[ko ? 1 : 2] ??
                       ''

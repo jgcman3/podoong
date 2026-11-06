@@ -213,23 +213,18 @@ describe('care date navigation', () => {
 });
 
 describe('date-only vaccinations in care history', () => {
-  it('uses the actual vaccination date instead of the creation timestamp and excludes plans', () => {
+  it('uses the actual vaccination date instead of the creation timestamp', () => {
     const record = {
       id: 'v',
       vaccine: 'bcg',
       custom_name: '',
-      status: 'completed',
       completed_date: '2026-10-20',
       created_at: '2026-10-26T01:00:00Z',
       version: 1,
       clinic: 'Clinic',
       dose: 1,
     } as Row<'vaccination_records'>;
-    const entries = quickTimeline(
-      [],
-      [],
-      [record, { ...record, id: 'p', status: 'planned', completed_date: null }],
-    );
+    const entries = quickTimeline([], [], [record]);
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({
       source: 'vaccination',

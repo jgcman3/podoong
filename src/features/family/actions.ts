@@ -34,8 +34,7 @@ export async function saveFamilyResidence(form: FormData) {
     const community = [
       'community/playground',
       'community/neighborhood',
-      'community/boards',
-    ].includes(String(page));
+      ].includes(String(page));
     const params = new URLSearchParams({
       ...(child ? { child } : {}),
       ...(error ? { error } : {}),

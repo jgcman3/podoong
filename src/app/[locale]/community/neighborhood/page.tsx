@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { isLocale } from '@/lib/domain';
-import { loadCare } from '@/lib/data';
+import { loadFamily } from '@/lib/data';
 import { Shell } from '@/components/shell';
 import { CommunityHub, type CommunityQuery } from '@/features/community/hub';
 export default async function Community({
@@ -14,7 +14,7 @@ export default async function Community({
   if (!isLocale(locale)) notFound();
   const query = await searchParams;
   const { child, error } = query;
-  const context = await loadCare(locale, child, []);
+  const context = await loadFamily(locale, child);
   return (
     <Shell
       context={context}
