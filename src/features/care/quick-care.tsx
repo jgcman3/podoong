@@ -1,7 +1,7 @@
 'use client';
 import { formatCareDuration } from '@/lib/duration';
 import { QuickFieldTitle } from './quick-field-title';
-import amountStyles from './amount-ruler.module.css';
+import amountStyles from './amount-picker.module.css';
 import { QuickTimeField } from './quick-time-field';
 import { ActivityRail } from './activity-rail';
 import {
@@ -27,8 +27,6 @@ import {
   Play,
   Square,
   ChevronRight,
-  Minus,
-  Plus,
   Ruler,
 } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
@@ -795,7 +793,7 @@ function QuickEditor({
               />
             )}
             {feed && kind !== 'breast' && mode === 'record' && (
-              <AmountRuler
+              <FeedingAmountField
                 unit="ml"
                 locale={locale}
                 kind={kind}
@@ -963,7 +961,7 @@ function QuickEditor({
           </>
         )}
         {feed && kind !== 'breast' && mode === 'stop' && (
-          <AmountRuler
+          <FeedingAmountField
             locale={locale}
             kind={kind}
             value={amount}
@@ -1028,7 +1026,7 @@ function QuickEditor({
     </form>
   );
 }
-function AmountRuler({
+function FeedingAmountField({
   unit = 'ml',
   locale,
   kind,
@@ -1041,37 +1039,11 @@ function AmountRuler({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const c = quickCopy(locale),
-    max = Math.max(
-      kind === 'solids' ? 500 : 600,
-      Math.ceil(Number(value) / 100) * 100,
-    ),
-    step = kind === 'solids' ? 5 : 10,
-    divisions = max / 100;
+  const c = quickCopy(locale);
   const presets =
     kind === 'solids'
       ? [30, 50, 80, 100, 150, 200]
       : [60, 80, 120, 160, 200, 240];
-  const ratio = Number(value || 0) / max;
-  const changeAtPointer = (event: React.PointerEvent<HTMLDivElement>) => {
-    const track = event.currentTarget.querySelector<HTMLElement>(
-      '[data-amount-track]',
-    )!;
-    const bounds = track.getBoundingClientRect();
-    const position = Math.min(
-      1,
-      Math.max(0, (bounds.bottom - event.clientY) / bounds.height),
-    );
-    const raw = position * max;
-    const tick = Math.round(raw / 100) * 100;
-    // Mobile pointer coordinates may round fractional CSS pixels. Snap near a
-    // labelled tick so touching its line selects that exact amount.
-    const amount =
-      Math.abs(raw - tick) <= (max * 1.5) / bounds.height
-        ? tick
-        : Math.round(raw / step) * step;
-    onChange(String(amount));
-  };
   return (
     <div className={`quick-amount-picker ${amountStyles.picker}`}>
       <div className="quick-amount-heading">
@@ -1099,72 +1071,6 @@ function AmountRuler({
           />
           <small>{unit}</small>
         </label>
-      </div>
-      <div
-        className={`quick-ruler ${amountStyles.ruler}`}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          event.currentTarget
-            .querySelector('input')
-            ?.focus({ preventScroll: true });
-          event.currentTarget.setPointerCapture(event.pointerId);
-          changeAtPointer(event);
-        }}
-        onPointerMove={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId))
-            changeAtPointer(event);
-        }}
-        onPointerUp={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            changeAtPointer(event);
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-        }}
-        style={
-          {
-            '--quick-level': `calc(42px + (100% - 84px) * ${ratio})`,
-          } as React.CSSProperties
-        }
-      >
-        <div
-          className={amountStyles.track}
-          data-amount-track
-          aria-hidden="true"
-        >
-          {Array.from({ length: divisions + 1 }, (_, i) => (
-            <span
-              className={amountStyles.tick}
-              key={i}
-              style={{ top: `${(i / divisions) * 100}%` }}
-            >
-              <i />
-              {max - i * 100}
-            </span>
-          ))}
-          <span
-            className={amountStyles.thumb}
-            style={{ top: `${(1 - ratio) * 100}%` }}
-          />
-        </div>
-        <input
-          type="range"
-          aria-label={`${c.amount} (${unit})`}
-          aria-valuetext={value === '' ? c.unknown : `${value} ${unit}`}
-          min={0}
-          max={max}
-          step="any"
-          value={value || 0}
-          disabled={value === ''}
-          onChange={(event) =>
-            onChange(
-              String(Math.round(Number(event.target.value) / step) * step),
-            )
-          }
-        />
-        <div className="quick-ruler-cue" aria-hidden="true">
-          <Plus size={14} />
-          <Minus size={14} />
-        </div>
       </div>
       <h4 className="quick-amount-label">
         <QuickFieldTitle>{c.amount}</QuickFieldTitle>

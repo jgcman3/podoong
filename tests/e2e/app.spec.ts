@@ -1445,20 +1445,11 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
     .click();
   await expect(dialog).toBeVisible();
   expect(await dialog.evaluate((d) => d.matches(':modal'))).toBe(false);
-  const slider = dialog.getByRole('slider', {
-    name: '먹인 양 (ml)',
-    exact: true,
-  });
-  await expect(slider).toHaveValue('80');
-  await slider.scrollIntoViewIfNeeded();
-  const box = await slider.boundingBox();
-  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height * 0.75);
-  await page.mouse.down();
-  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height * 0.3, {
-    steps: 8,
-  });
-  await page.mouse.up();
-  await expect(slider).not.toHaveValue('80');
+  await expect(dialog.getByRole('slider', {name:'먹인 양 (ml)',exact:true})).toHaveCount(0);
+  const feedingAmount = dialog.getByRole('spinbutton', {name:'먹인 양 직접 입력',exact:true});
+  await expect(feedingAmount).toHaveValue('80');
+  await feedingAmount.fill('100');
+  await expect(feedingAmount).toHaveValue('100');
   await dialog.getByRole('button', { name: '120 ml', exact: true }).click();
   await dialog
     .getByRole('group', { name: '먹인 시간', exact: true })
@@ -1472,7 +1463,7 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
     .poll(() => dialog.evaluate((d) => d.matches(':modal')))
     .toBe(true);
   await expect(quick.locator('.quick-grid')).toBeHidden();
-  await expect(slider).toHaveValue('120');
+  await expect(feedingAmount).toHaveValue('120');
   await expect(
     dialog.getByRole('button', { name: '15분', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
@@ -1489,7 +1480,7 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
   await expect
     .poll(() => dialog.evaluate((d) => d.matches(':modal')))
     .toBe(false);
-  await expect(slider).toHaveValue('120');
+  await expect(feedingAmount).toHaveValue('120');
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -3593,15 +3584,15 @@ test('quick feeding remembers each kind across days and allows direct start-time
       .locator('.quick-grid')
       .getByRole('button', { name, exact: true })
       .click();
-    await expect(dialog.getByRole('slider')).toHaveValue(amount);
+    await expect(dialog.getByRole('spinbutton',{name:'먹인 양 직접 입력'})).toHaveValue(amount);
     await expect(
       dialog.getByRole('link', { name: '자세히 기록', exact: true }),
     ).toHaveCount(0);
     await expect(dialog.locator('.quick-time-edit input[type="time"]')).toBeVisible();
     const timeBox = await dialog.locator('.quick-date-time-row').boundingBox();
-    const rulerBox = await dialog.locator('.quick-ruler').boundingBox();
-    expect(Math.abs(timeBox!.x - rulerBox!.x)).toBeLessThan(2);
-    expect(Math.abs(timeBox!.width - rulerBox!.width)).toBeLessThan(2);
+    const amountBox = await dialog.locator('.quick-amount-picker').boundingBox();
+    expect(Math.abs(timeBox!.x - amountBox!.x)).toBeLessThan(2);
+    expect(Math.abs(timeBox!.width - amountBox!.width)).toBeLessThan(2);
     const cancelBox = await dialog
       .getByRole('button', { name: '취소', exact: true })
       .boundingBox();
@@ -3657,7 +3648,7 @@ test('quick feeding remembers each kind across days and allows direct start-time
     .filter({ hasText: '170 ml' })
     .click();
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('slider')).toHaveValue('170');
+  await expect(dialog.getByRole('spinbutton',{name:'먹인 양 직접 입력'})).toHaveValue('170');
   await expect(
     dialog.getByRole('button', { name: '15분', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
@@ -4776,15 +4767,10 @@ test('formula and solids can save without duration', async ({ page, context }) =
     await expect(dialog.getByRole('button',{name:'지금 시작',exact:true})).toHaveCount(0);
     const amount=dialog.getByRole('spinbutton',{name:'먹인 양 직접 입력'});
     await expect(amount).toHaveCSS('font-size','40px');
+    await expect(dialog.getByRole('slider',{name:'먹인 양 (ml)',exact:true})).toHaveCount(0);
     for(const value of [0,100,125]) {
       await amount.fill(String(value));
-      await expect(dialog.getByRole('slider',{name:'먹인 양 (ml)',exact:true})).toHaveValue(String(value));
-      const alignment=await dialog.locator('[data-amount-track]').evaluate((track,value)=>{
-        const r=track.getBoundingClientRect(),thumb=track.querySelector('[class*=thumb]')!.getBoundingClientRect();
-        const max=Number(track.parentElement!.querySelector('input')!.max);
-        return Math.abs(thumb.y+thumb.height/2-(r.bottom-r.height*value/max));
-      },value);
-      expect(alignment).toBeLessThan(1);
+      await expect(amount).toHaveValue(String(value));
     }
     await expect(dialog.getByRole('button', { name: '저장하기', exact: true })).toBeEnabled();
     await dialog.getByRole('button', { name: '저장하기', exact: true }).click();
