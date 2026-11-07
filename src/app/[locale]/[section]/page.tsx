@@ -67,9 +67,11 @@ export default async function AppPage({
     );
   if (!['today', 'insights', 'family', 'account', 'settings'].includes(section))
     notFound();
+  const view = <AppSection locale={locale} section={section} query={q} />;
+  if (section === 'insights') return view;
   return (
     <Suspense fallback={<RouteLoading locale={locale} />}>
-      <AppSection locale={locale} section={section} query={q} />
+      {view}
     </Suspense>
   );
 }
