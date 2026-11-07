@@ -1253,14 +1253,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "consented_at": string | null,"created_at": string,"display_name": string,"id": string,"locale": string,"service_tour_completed_at": string | null,"timezone": string
+                    "consented_at": string | null,"created_at": string,"display_name": string,"id": string,"install_guide_seen_at": string | null,"locale": string,"service_tour_completed_at": string | null,"timezone": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "consented_at"?: string | null,"created_at"?: string,"display_name"?: string,"id": string,"locale"?: string,"service_tour_completed_at"?: string | null,"timezone"?: string
+                    "consented_at"?: string | null,"created_at"?: string,"display_name"?: string,"id": string,"install_guide_seen_at"?: string | null,"locale"?: string,"service_tour_completed_at"?: string | null,"timezone"?: string
                   }
                   Update: {
-                    "consented_at"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string,"locale"?: string,"service_tour_completed_at"?: string | null,"timezone"?: string
+                    "consented_at"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string,"install_guide_seen_at"?: string | null,"locale"?: string,"service_tour_completed_at"?: string | null,"timezone"?: string
                   }
                   Relationships: [
 

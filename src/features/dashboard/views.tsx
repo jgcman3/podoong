@@ -11,7 +11,7 @@ import {
   DataSettings,
   AccountWithdrawal,
 } from '@/features/data-operations/settings';
-import { FirstUseGuide } from '@/features/service-guide/view';
+import { AccountInstallGuide } from '@/features/install/account-guide';
 import { NotificationSettings } from '@/features/notifications/settings';
 import { ChildIcon } from '@/components/child-icon';
 import { ChildSexField } from '@/features/family/sex-field';
@@ -82,11 +82,7 @@ function PageHeading({
     </div>
   );
 }
-export async function Today({
-  context,
-  locale,
-  guide = false,
-}: Props & { guide?: boolean }) {
+export async function Today({ context, locale }: Props) {
   const t = await getTranslations();
   const { child, timezone, today } = context;
   const now = new Date().toISOString();
@@ -147,7 +143,6 @@ export async function Today({
   return (
     <>
       <h1 className="visually-hidden">{t('today')}</h1>
-      <FirstUseGuide context={context} locale={locale} replay={guide} />
       <LastCare
         locale={locale}
         timezone={timezone}
@@ -467,6 +462,13 @@ export async function ChildAccount({
 
   return (
     <div className="child-account-page">
+      {!context.profile.install_guide_seen_at && (
+        <AccountInstallGuide
+          key={context.user.id}
+          locale={locale}
+          child={child.id}
+        />
+      )}
       <div className="account-inline-settings" key={child.id}>
         <ServiceInvite
           locale={locale}
@@ -587,15 +589,6 @@ export async function ChildAccount({
             <ChevronRight size={16} />
           </summary>
           <div className="account-service-links">
-            <Link
-              href={`/${locale}/today?child=${context.child.id}&guide=1`}
-              prefetch={false}
-            >
-              <span>
-                {ko ? '사용 방법 다시 보기' : 'View the getting-started guide'}
-              </span>
-              <ChevronRight size={16} />
-            </Link>
             <Link href={`/${locale}/intro`} prefetch={false}>
               <span>{ko ? '서비스 소개' : 'About podoong'}</span>
               <ChevronRight size={16} />

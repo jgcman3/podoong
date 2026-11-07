@@ -176,12 +176,12 @@ async function grantFixtureChildren() {
   }
 }
 
-async function childCareFamily(context: BrowserContext) {
+async function childCareFamily(context: BrowserContext, firstAccountVisit = false) {
   const owner = await signIn(context);
   await admin.from('profiles').insert({
     id: owner,
     display_name: 'Care test',
-    consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
+    consented_at: new Date().toISOString(), install_guide_seen_at: firstAccountVisit ? null : new Date().toISOString(),
   });
   const { data: family, error } = await admin
     .from('families')
@@ -321,7 +321,7 @@ test('family residence persists across children and sessions, respects family ro
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'Location viewer',
-      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), install_guide_seen_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -519,7 +519,7 @@ test('family owner can add another child and read both children after saving', a
   await admin.from('profiles').insert({
     id: userId,
     display_name: '아이 추가 테스트',
-    consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
+    consented_at: new Date().toISOString(), install_guide_seen_at: new Date().toISOString(),
   });
   const { data: family, error } = await admin
     .from('families')
@@ -828,7 +828,6 @@ test('onboarding and birth-date confirmation work with a real local DB', async (
   await page.getByLabel('아이와 나의 관계').selectOption('father');
   await page.getByRole('button', { name: '우리 가족 시작하기' }).click();
   await expect(page).toHaveURL(/\/ko\/today\?child=[^&]+$/);
-  await page.getByRole('link', { name: '포둥 시작하기' }).click();
   await expect(page).toHaveURL(/\/ko\/today/);
   await expect(page.locator('.topbar-child-info strong')).toHaveText('포근이');
   const registeredChild = new URL(page.url()).searchParams.get('child')!;
@@ -956,7 +955,6 @@ test('mobile onboarding advances one field at a time and preserves input across 
     for (let index = 0; index < 6; index++) await next.click();
     await page.getByRole('button', { name: '우리 가족 시작하기', exact: true }).click();
     await expect(page).toHaveURL(/\/ko\/today\?child=[^&]+$/);
-    await page.getByRole('link', { name: '포둥 시작하기' }).click();
     await expect(page).toHaveURL(/\/ko\/today\?child=/);
     const child = new URL(page.url()).searchParams.get('child')!;
     expect((await admin.from('children').select('name,birth_date,sex').eq('id', child).single()).data).toEqual({ name: '포근이', birth_date: '2026-10-01', sex: 'female' });
@@ -1018,7 +1016,6 @@ test('signup agreements support refusal and preserve the English invitation flow
     await invited.locator('input[name=confirm]').check();
     await invited.getByRole('button',{name:'Join family',exact:true}).click();
     await expect(invited).toHaveURL(new RegExp(`/en/today\\?child=${own.child}$`));
-    await invited.getByRole('link',{name:'Start using podoong',exact:true}).click();
     await expect(invited).toHaveURL(new RegExp(`/en/today\\?child=${own.child}`));
     expect((await admin.from('signup_agreements').select('interface_locale').eq('user_id',invitedUser)).data?.every(row=>row.interface_locale==='en')).toBe(true);
     expect((await admin.from('children').select('id').eq('family_id',own.family)).data).toHaveLength(1);
@@ -1075,7 +1072,7 @@ test('responsive dashboard and current navigation remain within the viewport', a
   await admin.from('profiles').insert({
     id,
     display_name: 'Preview',
-    consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
+    consented_at: new Date().toISOString(), install_guide_seen_at: new Date().toISOString(),
   });
   const { data: family } = await admin
     .from('families')
@@ -1175,7 +1172,7 @@ test('daily polls, previews and inbox work in both languages', async ({
   await admin.from('profiles').insert({
     id: author,
     display_name: 'Poll fixture',
-    consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
+    consented_at: new Date().toISOString(), install_guide_seen_at: new Date().toISOString(),
   });
   await admin.from('community_moderators').insert({ user_id: author });
   const day = new Intl.DateTimeFormat('en-CA', {
@@ -1288,7 +1285,7 @@ test('data export includes every record; ownership transfer and account deletion
       await admin.from('profiles').insert({
         id,
         display_name: 'Data fixture',
-        consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
+        consented_at: new Date().toISOString(), install_guide_seen_at: new Date().toISOString(),
       });
     const familyId = crypto.randomUUID(),
       childId = crypto.randomUUID();
@@ -1673,7 +1670,7 @@ test('quick care saves typed feeding, timers and diapers in place and preserves 
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'Quick reader',
-      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), install_guide_seen_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -1847,7 +1844,7 @@ test('today care shows all local-day records and overnight sleep without a last 
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'History reader',
-      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), install_guide_seen_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -2684,7 +2681,7 @@ test('insights supports rolling seven days, multiple activity patterns and child
     await admin.from('profiles').insert({
       id: reader,
       display_name: 'Stats reader',
-      consented_at: new Date().toISOString(), service_tour_completed_at: new Date().toISOString(),
+      consented_at: new Date().toISOString(), install_guide_seen_at: new Date().toISOString(),
     });
     await admin
       .from('family_members')
@@ -5147,7 +5144,7 @@ test('caregivers can switch children without administrator settings or service s
   const memberContext = await browser.newContext({baseURL:'http://127.0.0.1:3188'});
   try {
     const member = await signIn(memberContext);
-    expect((await admin.from('profiles').insert({id:member,display_name:'Caregiver',consented_at:new Date().toISOString(),service_tour_completed_at:new Date().toISOString()})).error).toBeNull();
+    expect((await admin.from('profiles').insert({id:member,display_name:'Caregiver',consented_at:new Date().toISOString(),install_guide_seen_at:new Date().toISOString()})).error).toBeNull();
     expect((await admin.from('family_members').insert({family_id:own.family,user_id:member,role:'editor'})).error).toBeNull();
     expect((await admin.from('child_access').insert([own.child,second].map(child_id=>({child_id,family_id:own.family,user_id:member,role:'editor'})))).error).toBeNull();
     const memberPage = await memberContext.newPage();
@@ -5206,7 +5203,7 @@ test('invited caregiver must select relationship and diaries retain author relat
   const invited = await browser.newContext({baseURL:'http://127.0.0.1:3188',viewport:{width:390,height:844}});
   try {
     const member = await signIn(invited);
-    await admin.from('profiles').insert({id:member,display_name:'이모 보호자',consented_at:new Date().toISOString(),service_tour_completed_at:new Date().toISOString()});
+    await admin.from('profiles').insert({id:member,display_name:'이모 보호자',consented_at:new Date().toISOString(),install_guide_seen_at:new Date().toISOString()});
     const memberPage = await invited.newPage();
     await memberPage.goto(new URL(link).pathname);
     await expect(memberPage.getByLabel('아이와의 관계')).toHaveAttribute('required','');
@@ -5214,7 +5211,6 @@ test('invited caregiver must select relationship and diaries retain author relat
     await memberPage.getByRole('checkbox').check();
     await memberPage.locator('form button[type=submit], form button.button.primary').click();
     await expect(memberPage).toHaveURL(/\/today\?child=[^&]+$/);
-    await memberPage.getByRole('link',{name:'포둥 시작하기',exact:true}).click();
     await expect(memberPage).toHaveURL(/today/);
     expect((await admin.from('family_members').select('relationship').eq('family_id',own.family).eq('user_id',member).single()).data?.relationship).toBe('maternal_aunt');
     await memberPage.goto(`/ko/community/diaries?child=${own.child}`);
@@ -6268,62 +6264,56 @@ test('neighborhood list and detail reports reach admin review without revealing 
  }finally {await authorContext.close();}
 });
 
-test('first-use guide saves notification choices only after permission and stays completed', async ({page,context})=>{
- const {child,owner}=await childCareFamily(context);
- await admin.from('profiles').update({service_tour_completed_at:null}).eq('id',owner);
- const config=await admin.from('feeding_push_config').select('singleton').maybeSingle();
- const fixtureId=crypto.randomUUID();
- if(!config.data) expect((await admin.from('feeding_push_config').insert({public_key:'B'.repeat(87),worker_url:'https://example.invalid',token_secret_id:fixtureId})).error).toBeNull();
- try {
- await page.addInitScript(()=>{
-  (window as unknown as {permissionRequests:number}).permissionRequests=0;
-  Object.defineProperty(Notification,'permission',{get:()=> 'granted'});
-  Notification.requestPermission=async()=>{(window as unknown as {permissionRequests:number}).permissionRequests++;return await new Promise<NotificationPermission>(resolve=>{(window as unknown as {allowNotifications:()=>void}).allowNotifications=()=>resolve('granted');});};
-  PushManager.prototype.getSubscription=async()=>null;
-  PushManager.prototype.subscribe=async()=>({toJSON:()=>({endpoint:'https://fcm.googleapis.com/fcm/send/tour-'+location.pathname,keys:{p256dh:'B'.repeat(87),auth:'A'.repeat(22)}}),unsubscribe:async()=>true}) as unknown as PushSubscription;
- });
+test('installation is offered only on the first child account visit and always starts Today', async ({page,context}) => {
+ const home=await childCareFamily(context,true);
  await page.setViewportSize({width:390,height:844});
- await page.goto(`/ko/today?child=${child}`);
- const guide=page.getByRole('dialog',{name:'빠른 기록'});
- await expect(guide).toBeVisible();
- for(let i=0;i<4;i++) await page.getByRole('dialog').getByRole('button',{name:'다음',exact:true}).click();
- const last=page.getByRole('dialog',{name:'필요한 알림만 골라요'});
- await expect(last.getByRole('checkbox',{name:'식사 알림',exact:true})).toBeChecked();
- await expect(last.getByRole('checkbox',{name:'놀이터 인사·하트·토닥토닥',exact:true})).not.toBeChecked();
- expect(await page.evaluate(()=>(window as unknown as {permissionRequests:number}).permissionRequests)).toBe(0);
- await last.getByRole('checkbox',{name:'식사 알림',exact:true}).uncheck();
- await last.getByRole('checkbox',{name:'놀이터 인사·하트·토닥토닥',exact:true}).check();
- await page.screenshot({path:'/tmp/podoong-first-use-notifications.png'});
- await last.getByRole('button',{name:'선택한 알림 켜기',exact:true}).click();
- await expect(last.getByRole('button',{name:'이전 안내'})).toBeDisabled();
- await expect(last.getByRole('button',{name:'안내 건너뛰기'})).toBeDisabled();
- await page.evaluate(()=>(window as unknown as {allowNotifications:()=>void}).allowNotifications());
- await expect(last).not.toBeVisible({timeout:15000});
- expect(await page.evaluate(()=>(window as unknown as {permissionRequests:number}).permissionRequests)).toBe(1);
- await expect.poll(async()=>(await admin.from('notification_preferences').select('feeding_enabled,playground_enabled').eq('user_id',owner).single()).data).toEqual({feeding_enabled:false,playground_enabled:true});
- await page.reload();await expect(page.getByRole('dialog')).not.toBeVisible();
- await page.goto(`/ko/today?child=${child}&guide=1`);
- await expect(page.getByRole('dialog',{name:'빠른 기록'})).toBeVisible();
- await page.getByRole('button',{name:'안내 건너뛰기'}).click();
+ await page.goto(`/ko/today?child=${home.child}`);
+ await expect(page.locator('.quick-care')).toBeVisible();
  await expect(page.getByRole('dialog')).not.toBeVisible();
- await expect(page).not.toHaveURL(/guide=/);
- await page.reload();await expect(page.getByRole('dialog')).not.toBeVisible();
- } finally {if(!config.data) await admin.from('feeding_push_config').delete().eq('token_secret_id',fixtureId);}
+ // Account prefetch must not consume the first-visit guide.
+ await page.request.get(`/ko/account?child=${home.child}`);
+ await page.locator('.mobile-nav').getByRole('link',{name:'돌봄 아이',exact:true}).click();
+ const guide=page.getByRole('dialog',{name:'홈 화면에 포둥 추가하기',exact:true});
+ await expect(guide).toBeVisible();
+ await expect.poll(async()=>(await admin.from('profiles').select('install_guide_seen_at').eq('id',home.owner).single()).data?.install_guide_seen_at).toBeTruthy();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:test.info().outputPath('account-install-first-mobile.png')});
+ await guide.getByRole('button',{name:'나중에',exact:true}).click();
+ await expect(guide).not.toBeVisible();
+ await page.reload();
+ await expect(guide).not.toBeVisible();
+ await page.getByText('서비스 정보',{exact:true}).click();
+ await expect(page.getByText('사용 방법 다시 보기',{exact:true})).toHaveCount(0);
+ const other=await context.newPage();
+ await other.goto(`/en/account?child=${home.child}`);
+ await expect(other.getByRole('dialog')).not.toBeVisible();
+ await other.close();
+ const another=await childCareFamily(context,true);
+ await page.setViewportSize({width:1280,height:900});
+ await page.goto(`/en/account?child=${another.child}`);
+ const english=page.getByRole('dialog',{name:'Add podoong to your Home Screen',exact:true});
+ await expect(english).toBeVisible();
+ await page.screenshot({path:test.info().outputPath('account-install-first-desktop.png')});
+ await english.getByRole('link',{name:'Installation guide',exact:true}).click();
+ await expect(page).toHaveURL(/\/en\/today\?child=[^&]+$/);
+ await expect(page.getByRole('heading',{name:'Your little one, on your Home Screen',exact:true})).toBeVisible();
+ const manifest=await page.locator('link[rel="manifest"]').getAttribute('href');
+ expect((await (await page.request.get(manifest!)).json()).start_url).toBe('/en/today');
+ await page.getByRole('link',{name:'Start using podoong',exact:true}).click();
+ await expect(page.locator('.quick-care')).toBeVisible();
+ await page.setViewportSize({width:1280,height:900});
+ await page.goto(`/en/account?child=${another.child}`);
+ await expect(english).not.toBeVisible();
 });
 
-test('first-use guide can wait without requesting permission', async ({page,context})=>{
- const {child,owner}=await childCareFamily(context);
- await admin.from('profiles').update({service_tour_completed_at:null}).eq('id',owner);
- await page.setViewportSize({width:320,height:740});
- await page.goto(`/ko/today?child=${child}`);
- await expect(page.getByRole('dialog',{name:'빠른 기록'})).toBeVisible();
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- for(let i=0;i<4;i++) await page.getByRole('dialog').getByRole('button',{name:'다음',exact:true}).click();
- await page.getByRole('dialog').getByRole('button',{name:'나중에',exact:true}).click();
- await expect(page.getByRole('dialog')).not.toBeVisible();
- expect((await admin.from('web_push_subscriptions').select('id').eq('user_id',owner)).data).toHaveLength(0);
- await page.reload();await expect(page.getByRole('dialog')).not.toBeVisible();
-
+test('installed apps skip the first account installation offer', async ({page,context}) => {
+ const home=await childCareFamily(context,true);
+ await context.addInitScript(()=>Object.defineProperty(navigator,'standalone',{value:true}));
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/ko/account?child=${home.child}`);
+ await expect.poll(async()=>(await admin.from('profiles').select('install_guide_seen_at').eq('id',home.owner).single()).data?.install_guide_seen_at).toBeTruthy();
+ await expect(page.getByRole('dialog',{name:'홈 화면에 포둥 추가하기',exact:true})).not.toBeVisible();
+ await expect(page.getByRole('link',{name:'아이 사진으로 홈 화면에 추가',exact:true})).toBeVisible();
 });
 
 test('quick records allow a previous date with the clock time after midnight', async ({browser})=>{

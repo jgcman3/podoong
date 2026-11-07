@@ -27,7 +27,6 @@ type AppQuery = {
   panel?: string;
   install?: string;
   ready?: string;
-  guide?: string;
 };
 
 export async function generateMetadata(props: {
@@ -36,7 +35,6 @@ export async function generateMetadata(props: {
     child?: string;
     error?: string;
     ready?: string;
-    guide?: string;
     install?: string;
   }>;
 }) {
@@ -70,9 +68,7 @@ export default async function AppPage({
   const view = <AppSection locale={locale} section={section} query={q} />;
   if (section === 'insights') return view;
   return (
-    <Suspense fallback={<RouteLoading locale={locale} />}>
-      {view}
-    </Suspense>
+    <Suspense fallback={<RouteLoading locale={locale} />}>{view}</Suspense>
   );
 }
 
@@ -92,7 +88,7 @@ async function AppSection({
   let view;
   switch (section) {
     case 'today':
-      view = <Today {...props} guide={q.guide === '1'} />;
+      view = <Today {...props} />;
       break;
     case 'insights':
       view = (

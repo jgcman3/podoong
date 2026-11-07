@@ -1,0 +1,64 @@
+.dialog {
+  width: min(430px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 20px 80px #27334d30;
+  overflow: auto;
+}
+.dialog::backdrop {
+  background: #26334a70;
+  backdrop-filter: blur(2px);
+}
+.content {
+  padding: 24px;
+}
+.content header,
+.content footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.content header {
+  color: var(--brown);
+}
+.content header button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  min-height: 44px;
+  min-width: 44px;
+}
+.content h2 {
+  font-size: 22px;
+  line-height: 1.4;
+  margin: 14px 0;
+}
+.content p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.content footer {
+  margin-top: 24px;
+}
+.content footer > * {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 13px;
+  justify-content: center;
+}
+@media (max-width: 360px) {
+  .content {
+    padding: 18px;
+  }
+  .content h2 {
+    font-size: 20px;
+  }
+}
