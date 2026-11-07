@@ -27,7 +27,7 @@ export function DiaryComposer({
   triggerClassName?: string;
   triggerLabel?: string;
   disabled?: boolean;
-  onSaved?: () => void;
+  onSaved?: (occurredAt?: string) => void;
   record?: {
     id: string;
     version: number;
@@ -37,6 +37,7 @@ export function DiaryComposer({
     head_cm: number | null;
     photo_ids: string[];
     is_private: boolean;
+    occurred_at?: string;
   };
 }) {
   const ko = locale === 'ko';
@@ -107,7 +108,8 @@ export function DiaryComposer({
     data.set('childId', child);
     data.set('locale', locale);
     if (record) data.set('version', String(record.version));
-    data.set('occurredAt', new Date().toISOString());
+    const occurredAt = record?.occurred_at ?? new Date().toISOString();
+    data.set('occurredAt', occurredAt);
     data.set('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
     try {
       data.delete('photo');
@@ -134,8 +136,8 @@ export function DiaryComposer({
       const result = await createDiary(data);
       if (result.saved) {
         dialog.current?.close();
-        router.refresh();
-        onSaved?.();
+        if (onSaved) onSaved(occurredAt);
+        else router.refresh();
       } else
         setError(
           result.error === 'photo-limit'
@@ -180,8 +182,8 @@ export function DiaryComposer({
       if (!(await removeDiary(data))) throw new Error('delete');
       setMenuOpen(false);
       dialog.current?.close();
-      router.refresh();
-      onSaved?.();
+      if (onSaved) onSaved(record.occurred_at);
+      else router.refresh();
     } catch {
       setError(
         ko

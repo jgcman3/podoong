@@ -11,6 +11,24 @@ import {
 } from '@/features/dashboard/views';
 import type { Locale } from '@/lib/domain';
 import { Installation, installationMetadata } from '@/features/install/page';
+import { Suspense } from 'react';
+import { RouteLoading } from '@/components/route-loading';
+
+type AppQuery = {
+  child?: string;
+  error?: string;
+  notice?: string;
+  kind?: string;
+  page?: string;
+  day?: string;
+  week?: string;
+  interval?: string;
+  pattern?: string;
+  panel?: string;
+  install?: string;
+  ready?: string;
+  guide?: string;
+};
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: Locale; section: string }>;
@@ -32,21 +50,7 @@ export default async function AppPage({
   searchParams,
 }: {
   params: Promise<{ locale: Locale; section: string }>;
-  searchParams: Promise<{
-    child?: string;
-    error?: string;
-    notice?: string;
-    kind?: string;
-    page?: string;
-    day?: string;
-    week?: string;
-    interval?: string;
-    pattern?: string;
-    panel?: string;
-    install?: string;
-    ready?: string;
-    guide?: string;
-  }>;
+  searchParams: Promise<AppQuery>;
 }) {
   const { locale, section } = await params;
   const q = await searchParams;
@@ -63,6 +67,22 @@ export default async function AppPage({
     );
   if (!['today', 'insights', 'family', 'account', 'settings'].includes(section))
     notFound();
+  return (
+    <Suspense fallback={<RouteLoading locale={locale} />}>
+      <AppSection locale={locale} section={section} query={q} />
+    </Suspense>
+  );
+}
+
+async function AppSection({
+  locale,
+  section,
+  query: q,
+}: {
+  locale: Locale;
+  section: string;
+  query: AppQuery;
+}) {
   const context = await loadFamily(locale, q.child);
   if (section === 'insights' && q.child && context.child.id !== q.child)
     notFound();

@@ -78,6 +78,15 @@ export async function Installation({ params, searchParams }: InstallProps) {
   const ko = locale === 'ko';
   return (
     <main className={styles.page}>
+      {appleStartupImages().map((image) => (
+        <link
+          key={image.media}
+          rel="preload"
+          as="image"
+          href={image.url}
+          media={image.media}
+        />
+      ))}
       <section className={styles.card}>
         <span className={styles.brand}>podoong</span>
         <h1>

@@ -28,3 +28,11 @@ npx supabase test db supabase/tests/family_access_context.test.sql
 오늘 페이지는 QuickTimeline에서 이미 읽는 care_records를 loadCare에서 중복 조회하지 않습니다. 과거 날짜 조회는 인증·아이 접근권한 확인을 유지한 GET /api/care/history로 분리하고 응답은 private, no-store로 제공합니다.
 
 배포 빌드에서 메뉴 재방문, 기록 저장, 과거 날짜 조회 3개 동선을 검증했습니다. 반복 재방문 측정은 페이지 RSC 요청 0회, 화면 표시 약 59ms였습니다. 개발 서버는 별도의 컴파일/HMR 비용과 재요청이 있어 동일한 속도를 보장하지 않습니다. 회귀 검증: PODUNG_TEST_PRODUCTION=1 npm run test:local -- --grep 'returning to today reuses'.
+
+## 첫 실행과 저장 후 조회 — 2026-11-07
+
+- `app_family_snapshot`은 프로필·접근 가능한 아이·가족 권한·동의 상태를 한 RPC로 읽는다. `loadFamily`의 원격 조회는 4회에서 1회로 줄었으며, 로그인 확인과 기존 RLS·권한·동의 검사는 유지한다. 마이그레이션은 `202611070103_app_family_snapshot.sql`이다.
+- 오늘·인사이트·아이 메뉴의 데이터 조회를 Suspense 안에서 진행해 공통 브랜드 화면을 먼저 전달한다. 설치 안내는 이 경계 밖에 두어 JavaScript 초기화 전에도 사용할 수 있다. OS 시작 이미지와 앱 내 1초 시작 화면은 [설치 문서](home-screen-install.md)를 참고한다.
+- 기록 저장 후 오늘 요약은 서버에서 갱신하고, 이미 펼친 과거 날짜는 수정 전·후 기록이 걸치는 날짜만 재조회한다. 날짜 이동·자정을 넘는 기록·예방접종의 고정 날짜를 구분하며 실패한 날짜는 재시도할 수 있다. 일기 저장 시 부모 화면과 작성 창의 중복 갱신도 제거했다.
+
+로컬 검증에서 과거 3일을 펼친 뒤 하루의 기록을 수정하면 과거 조회가 3회에서 1회로 줄었다. DB 조회를 잠근 실험에서도 공통 시작 화면이 먼저 표시됐다. 이 수치는 실제 iPhone의 OS 시작 시간이나 운영 서버 응답 시간 측정이 아니다. 개인 데이터·인증 응답의 공용 캐시는 추가하지 않았다.

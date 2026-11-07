@@ -51,6 +51,11 @@ import { ActivityFields } from './activity-fields';
 import { activityKinds } from '@/features/child-care/schema';
 import { quickCopy } from './quick-copy';
 import { receivedMoney } from '@/features/received/model';
+import {
+  historyRangeForEntry,
+  type HistoryChange,
+  type HistoryRange,
+} from './history-change';
 const mobileQuery = '(max-width: 900px)';
 function subscribeMobile(change: () => void) {
   const query = window.matchMedia(mobileQuery);
@@ -84,7 +89,10 @@ export function QuickCare({
     kind: QuickKind;
     active?: QuickEntry;
   } | null>(null);
-  const [historyRevision, setHistoryRevision] = useState(0);
+  const [historyChange, setHistoryChange] = useState<HistoryChange>({
+    revision: 0,
+    ranges: [],
+  });
   const [busy, setBusy] = useState(false);
   const savedEntries = useRef(new Map<string, QuickEntry>());
   const dialog = useRef<HTMLDialogElement>(null);
@@ -153,10 +161,18 @@ export function QuickCare({
       active: candidate ? currentEntry(candidate) : undefined,
     });
   };
-  const completed = (entry?: QuickEntry) => {
+  const completed = (
+    entry?: QuickEntry,
+    affected?: HistoryRange,
+    previous: QuickEntry | null = selection?.active ?? null,
+  ) => {
     if (entry) savedEntries.current.set(`${entry.source}:${entry.id}`, entry);
     setBusy(false);
-    setHistoryRevision((value) => value + 1);
+    const ranges = [
+      ...(previous ? [historyRangeForEntry(previous)] : []),
+      ...(affected ? [affected] : entry ? [historyRangeForEntry(entry)] : []),
+    ];
+    setHistoryChange(({ revision }) => ({ revision: revision + 1, ranges }));
     setSelection(null);
     router.refresh();
   };
@@ -191,7 +207,13 @@ export function QuickCare({
               </>
             }
             disabled={!writable || busy}
-            onSaved={completed}
+            onSaved={(occurredAt) =>
+              completed(
+                undefined,
+                occurredAt ? { start: occurredAt, end: null } : undefined,
+                null,
+              )
+            }
           />
         }
         selected={selection ? [selection.kind] : []}
@@ -251,9 +273,9 @@ export function QuickCare({
             </div>
           )}
           <DayBrowser
-            key={`${childId}:${today}`}
+            key={`${childId}:${today}:${privacy.health}:${privacy.publicSharing}`}
             birthDate={birthDate}
-            revision={historyRevision}
+            change={historyChange}
             locale={locale}
             childId={childId}
             today={today}
@@ -369,7 +391,15 @@ export function QuickCare({
                               }
                               triggerClassName={`quick-timeline-entry quick-entry-${e.service} quick-color-${iconKey}`}
                               disabled={!writable}
-                              onSaved={completed}
+                              onSaved={(occurredAt) =>
+                                completed(
+                                  undefined,
+                                  occurredAt
+                                    ? { start: occurredAt, end: null }
+                                    : undefined,
+                                  e,
+                                )
+                              }
                             />
                           ) : (
                             <button
@@ -440,7 +470,7 @@ export function QuickCare({
                   today={today}
                   timezone={timezone}
                   close={close}
-                  completed={completed}
+                  completed={(affected) => completed(undefined, affected)}
                   onPending={setBusy}
                 />
               ) : (
@@ -477,7 +507,7 @@ type QuickEditorProps = {
   active?: QuickEntry;
   initialAmount: number | null;
   close: () => void;
-  completed: (entry?: QuickEntry) => void;
+  completed: (entry?: QuickEntry, affected?: HistoryRange) => void;
   onPending: (pending: boolean) => void;
 };
 function QuickEditor({
@@ -553,7 +583,7 @@ function QuickEditor({
   useEffect(() => {
     if (state.status === 'saved' && !notified.current) {
       notified.current = true;
-      completed(state.entry);
+      completed(state.entry, state.affected);
     }
   }, [state, completed]);
   const timezone =

@@ -10,7 +10,7 @@
   color: #5267a8;
   font-family: 'Podung Round', sans-serif;
   opacity: 1;
-  animation: splash-exit 2000ms ease-out forwards;
+  animation: splash-exit 1000ms ease-out forwards;
 }
 .content {
   display: flex;

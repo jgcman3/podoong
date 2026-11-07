@@ -14,6 +14,7 @@ import {
   type QuickEntry,
 } from './quick-model';
 import type { loadQuickDay as readQuickDay } from './quick-history-actions';
+import { historyDaysToReload, type HistoryChange } from './history-change';
 async function loadQuickDay(input: {
   locale: string;
   childId: string;
@@ -39,7 +40,7 @@ export function DayBrowser({
   entries,
   disabled,
   children,
-  revision = 0,
+  change,
 }: {
   locale: Locale;
   childId: string;
@@ -48,18 +49,24 @@ export function DayBrowser({
   timezone: string;
   entries: QuickEntry[];
   disabled: boolean;
-  revision?: number;
+  change: HistoryChange;
   children: (entries: QuickEntry[], day: string) => ReactNode;
 }) {
   const [past, setPast] = useState<HistoryDay[]>([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [refreshAttempt, setRefreshAttempt] = useState(0);
   const sentinel = useRef<HTMLDivElement>(null);
   const pending = useRef(false);
+  const revision = useRef(change.revision);
+  const dirtyDays = useRef(new Map<string, number>());
   const pastRef = useRef(past);
   useEffect(() => {
     pastRef.current = past;
   }, [past]);
+  useEffect(() => {
+    revision.current = change.revision;
+  }, [change]);
   const ko = locale === 'ko';
   const oldest = past.at(-1)?.day ?? today;
   const hasMore = oldest > birthDate;
@@ -70,8 +77,13 @@ export function DayBrowser({
     setFailed(false);
     const day = shiftCareDay(oldest, -1);
     try {
-      const result = await loadQuickDay({ locale, childId, day });
-      if (!result.ok) throw new Error('History unavailable');
+      let version: number;
+      let result: Awaited<ReturnType<typeof loadQuickDay>>;
+      do {
+        version = revision.current;
+        result = await loadQuickDay({ locale, childId, day });
+        if (!result.ok) throw new Error('History unavailable');
+      } while (version !== revision.current);
       setPast((current) =>
         current.some((item) => item.day === day)
           ? current
@@ -104,22 +116,33 @@ export function DayBrowser({
   }, [disabled, failed, loading, hasMore, loadMore]);
   useEffect(() => {
     let cancelled = false;
-    const days = pastRef.current;
+    for (const day of historyDaysToReload(
+      pastRef.current.map((item) => item.day),
+      change.ranges,
+      timezone,
+    ))
+      dirtyDays.current.set(day, change.revision);
+    const days = [...dirtyDays.current.entries()];
     if (!days.length) return;
     void Promise.all(
-      days.map(async ({ day }) => {
+      days.map(async ([day, version]) => {
         const result = await loadQuickDay({ locale, childId, day });
         if (!result.ok) throw new Error('History unavailable');
-        return { day, ...result };
+        return { day, version, ...result };
       }),
     )
       .then((updated) => {
-        if (!cancelled)
-          setPast((current) =>
-            current.map(
-              (item) => updated.find((day) => day.day === item.day) ?? item,
-            ),
-          );
+        if (cancelled) return;
+        const fresh = updated.filter(
+          (item) => dirtyDays.current.get(item.day) === item.version,
+        );
+        for (const item of fresh) dirtyDays.current.delete(item.day);
+        setPast((current) =>
+          current.map(
+            (item) => fresh.find((day) => day.day === item.day) ?? item,
+          ),
+        );
+        setFailed(false);
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
@@ -127,7 +150,7 @@ export function DayBrowser({
     return () => {
       cancelled = true;
     };
-  }, [revision, locale, childId]);
+  }, [change, locale, childId, timezone, refreshAttempt]);
   const days = [{ day: today, entries }, ...past];
   return (
     <div className="quick-history-feed">
@@ -208,12 +231,16 @@ export function DayBrowser({
             aria-label={ko ? '불러오는 중' : 'Loading'}
           />
         ) : (
-          hasMore && (
+          (hasMore || failed) && (
             <button
               type="button"
               className="button secondary"
               disabled={disabled}
-              onClick={() => void loadMore()}
+              onClick={() => {
+                if (dirtyDays.current.size)
+                  setRefreshAttempt((value) => value + 1);
+                else void loadMore();
+              }}
             >
               {failed
                 ? ko

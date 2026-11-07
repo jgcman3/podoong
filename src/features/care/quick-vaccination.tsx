@@ -9,6 +9,7 @@ import { VaccinePicker } from '@/features/vaccination/picker';
 import { quickCopy } from './quick-copy';
 import type { QuickSaveState } from './quick-actions';
 import { saveQuickVaccination } from './quick-vaccination-actions';
+import type { HistoryRange } from './history-change';
 export function QuickVaccination({
   locale,
   childId,
@@ -25,7 +26,7 @@ export function QuickVaccination({
   today: string;
   timezone: string;
   close: () => void;
-  completed: () => void;
+  completed: (affected?: HistoryRange) => void;
   onPending: (value: boolean) => void;
 }) {
   const ko = locale === 'ko',
@@ -45,7 +46,7 @@ export function QuickVaccination({
   useEffect(() => {
     if (state.status === 'saved' && !notified.current) {
       notified.current = true;
-      completed();
+      completed(state.affected);
     }
   }, [state, completed]);
   return (

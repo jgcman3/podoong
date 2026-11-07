@@ -6,11 +6,13 @@ import { feedingRecordSchema } from './feeding-schema';
 import { childRecordSchema } from '@/features/child-care/schema';
 import { stageGiftPhoto } from '@/features/received/gift-photo';
 import { quickTimeline, type QuickEntry } from './quick-model';
+import type { HistoryRange } from './history-change';
 export type QuickSaveState = {
   status: 'idle' | 'saved' | 'error';
   error?: string;
   id?: string;
   entry?: QuickEntry;
+  affected?: HistoryRange;
 };
 export async function deleteQuickCare(input: {
   locale: string;
@@ -86,6 +88,7 @@ export async function saveQuickCare(
   }
   const { db, user } = await requireUser(v.locale);
   let error: { code?: string; message: string } | null = null;
+  let affected: HistoryRange;
   if (v.mode === 'stop') {
     if (!v.version || !['sleep', 'feeding', 'activity'].includes(v.source))
       return { status: 'error', error: 'invalid' };
@@ -101,12 +104,14 @@ export async function saveQuickCare(
         return { status: 'error', error: 'conflict' };
       const amount = feedingRecordSchema.shape.amount.safeParse(input.amount);
       if (!amount.success) return { status: 'error', error: 'invalid' };
+      const stoppedAt = new Date().toISOString();
+      affected = { start: r.started_at, end: stoppedAt };
       const result = await db.rpc('save_feeding_record', {
         p_id: r.id,
         p_child_id: v.childId,
         p_kind: r.kind,
         p_started_at: r.started_at,
-        p_ended_at: new Date().toISOString(),
+        p_ended_at: stoppedAt,
         p_amount_ml: r.kind === 'breast' ? null : amount.data,
         p_food_name: r.food_name,
         p_timezone: r.record_timezone ?? v.timezone,
@@ -135,6 +140,8 @@ export async function saveQuickCare(
           ))
       )
         return { status: 'error', error: 'conflict' };
+      const stoppedAt = new Date().toISOString();
+      affected = { start: r.occurred_at, end: stoppedAt };
       const result = await db.rpc('save_child_record', {
         p_id: r.id,
         p_child: v.childId,
@@ -143,7 +150,7 @@ export async function saveQuickCare(
         p_data: {
           kind: r.kind,
           occurred_at: r.occurred_at,
-          ended_at: new Date().toISOString(),
+          ended_at: stoppedAt,
           timer_started: r.timer_started,
           note: r.note,
           timezone: r.record_timezone,
@@ -165,6 +172,7 @@ export async function saveQuickCare(
     )
       return { status: 'error', error: 'invalid' };
     const r = parsed.data;
+    affected = { start: r.startedAt, end: r.endedAt };
     const result = await db.rpc('save_feeding_record', {
       p_id: r.id,
       p_child_id: r.childId,
@@ -196,6 +204,7 @@ export async function saveQuickCare(
     )
       return { status: 'error', error: 'invalid' };
     const r = parsed.data;
+    affected = { start: r.occurredAt, end: r.endedAt };
     if (
       ['daycare', 'kindergarten', 'play', 'tummy'].includes(r.kind) &&
       ((v.mode === 'record' &&
@@ -337,7 +346,8 @@ export async function saveQuickCare(
         status: 'saved',
         id: v.id,
         entry: quickTimeline([], [saved.data])[0],
+        affected,
       };
   }
-  return { status: 'saved', id: v.id };
+  return { status: 'saved', id: v.id, affected };
 }

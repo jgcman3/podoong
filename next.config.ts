@@ -24,6 +24,12 @@ const config: NextConfig = {
   async headers() {
     return [
       {
+        source: '/splash/v1/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
         source: '/:locale/admin/:path*',
         headers: [
           { key: 'Cache-Control', value: 'private, no-store' },

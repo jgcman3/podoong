@@ -1545,6 +1545,11 @@ isOneToOne: false
               "created_at": string,"deletion_requested": boolean,"display_name": string,"family_count": number,"id": string,"is_admin": boolean,"locale": string
             }[]
                            },
+"app_family_snapshot":
+{ Args: { "p_child"?: string }; Returns: {
+              "caregivers": Json,"child": Json,"children": Json,"family": Json,"members": Json,"owner": boolean,"privacy": Json,"profile": Json,"writable": boolean
+            }[]
+                           },
 "bind_declared_children":
 { Args: { "p_user": string }; Returns: undefined
                            },

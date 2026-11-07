@@ -12,6 +12,7 @@ import { createServerClient } from '@supabase/ssr';
 import { readFileSync, writeFileSync } from 'node:fs';
 import sharp from 'sharp';
 import { connect } from 'node:net';
+import { spawn } from 'node:child_process';
 import { hostname } from 'node:os';
 async function expectPhoneFunctionDock(page: Page, rail: Locator) {
   await expect(rail).toBeVisible();
@@ -5783,15 +5784,21 @@ test('personal child icon crops a photo, publishes install metadata and revokes 
 
 test('iPhone installation guidance opens before JavaScript initializes', async ({browser,context}) => {
   const {child} = await childCareFamily(context);
-  const phone = await browser.newContext({...devices['iPhone 13'],javaScriptEnabled:false});
+  for (const screen of [{width:390,height:844},{width:402,height:874}]) {
+  const phone = await browser.newContext({...devices['iPhone 13'],screen,viewport:screen,javaScriptEnabled:false});
   await phone.addCookies(await context.cookies());
   try {
     const page=await phone.newPage();
+    const startupPath = `/splash/v1/${screen.width}x${screen.height}@3-portrait.png`;
+    const startupResponse = page.waitForResponse(response => new URL(response.url()).pathname === startupPath);
     await page.goto(`/ko/install?child=${child}`);
+    await expect(page.locator(`link[rel="preload"][as="image"][href="${startupPath}"]`)).toHaveCount(1);
+    expect((await startupResponse).status()).toBe(200);
     await page.getByRole('button',{name:'홈 화면에 추가',exact:true}).click({timeout:10000});
     await expect(page.getByRole('region',{name:'설치 안내',exact:true})).toBeVisible();
     await expect(page.getByRole('region',{name:'설치 안내',exact:true})).toContainText('Safari');
   } finally {await phone.close();}
+  }
 });
 
 test('removed facility routes and navigation stay unavailable in every country', async ({
@@ -6046,6 +6053,90 @@ test('diary likes persist across lists and details and share visitors see counts
  }finally{await reader.close();await guest.close();}
 });
 
+test('startup renders before a delayed family query completes', async ({ page, context }) => {
+  const own = await childCareFamily(context);
+  await page.setViewportSize({ width: 402, height: 874 });
+  await page.goto(`/ko/today?child=${own.child}`);
+  await expect(page.locator('.quick-care')).toBeVisible();
+  await page.goto('/ko/login');
+  const lock = spawn('docker', ['exec', '-i', 'supabase_db_podung', 'psql', '-X', '-q', '-At', '-U', 'postgres', '-d', 'postgres'], { stdio: ['pipe', 'pipe', 'pipe'] });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Local query delay did not initialize')), 5000);
+      lock.once('error', () => { clearTimeout(timeout); reject(new Error('Local DB delay unavailable')); });
+      lock.stdout.on('data', data => {
+        if (String(data).includes('STARTUP_LOCK_READY')) { clearTimeout(timeout); resolve(); }
+      });
+      lock.stdin.write('begin;\nlock table public.profiles in access exclusive mode;\n\\echo STARTUP_LOCK_READY\n');
+    });
+    const started = Date.now();
+    await page.goto(`/ko/today?child=${own.child}`, {waitUntil:'commit',timeout:5000});
+    await expect(page.getByText('화면을 준비하고 있어요.', {exact:true})).toBeVisible();
+    console.info(JSON.stringify({startupVisibleWhileFamilyQueryBlocked:true,firstResponseMs:Date.now()-started}));
+  } finally {
+    lock.stdin.end('rollback;\n\\q\n');
+    await new Promise<void>(resolve => {
+      const timer = setTimeout(() => { lock.kill(); resolve(); }, 5000);
+      lock.once('close', () => { clearTimeout(timer); resolve(); });
+    });
+  }
+  await expect(page.locator('.quick-care')).toBeVisible();
+});
+
+test('care saves refresh only changed loaded history days', async ({ page, context }) => {
+  const own = await childCareFamily(context);
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+  const days = [1, 2, 3].map(offset => {
+    const date = new Date(`${today}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() - offset);
+    return date.toISOString().slice(0, 10);
+  });
+  expect((await admin.from('children').update({ birth_date: days[2] }).eq('id', own.child)).error).toBeNull();
+  expect((await admin.from('care_records').insert(days.flatMap(day => Array.from({length: 6}, (_, i) => ({
+    id: crypto.randomUUID(), child_id: own.child, kind: 'formula', amount_ml: 110 + i * 10,
+    started_at: `${day}T${String(i + 1).padStart(2, '0')}:00:00Z`,
+    ended_at: `${day}T${String(i + 1).padStart(2, '0')}:05:00Z`, record_timezone: 'Asia/Seoul',
+    created_by: own.owner, updated_by: own.owner,
+  }))))).error).toBeNull();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/ko/today?child=${own.child}`);
+  for (const day of days) {
+    await page.locator('.quick-history-loader').scrollIntoViewIfNeeded();
+    await expect(page.locator(`.quick-timeline-heading time[datetime="${day}"]`)).toBeVisible();
+  }
+  const requests: string[] = [];
+  page.on('request', request => {
+    const url = new URL(request.url());
+    if (url.pathname === '/api/care/history' && request.method() === 'GET') requests.push(url.searchParams.get('day')!);
+  });
+  const previous = page.locator('.quick-day-browser').filter({ has: page.locator(`time[datetime="${days[0]}"]`) });
+  await previous.locator('.quick-timeline-entry').filter({hasText:'110 ml'}).click();
+  const editor = page.locator('dialog.quick-composer');
+  await editor.getByRole('button', {name:'80 ml', exact:true}).click();
+  await editor.getByRole('button', {name:'저장하기', exact:true}).click();
+  await expect(editor).toBeHidden();
+  await expect(previous.locator('.quick-timeline-entry').filter({hasText:'80 ml'})).toBeVisible();
+  console.info(JSON.stringify({loadedPastDays:days.length, historyRequestsAfterPastEdit:requests.length}));
+  expect(requests).toEqual([days[0]]);
+
+  requests.length = 0;
+  let failOnce = true;
+  await page.route('**/api/care/history?*', async route => {
+    if (failOnce) {
+      failOnce = false;
+      await route.fulfill({ status: 503, body: 'Unavailable' });
+    } else await route.continue();
+  });
+  await previous.locator('.quick-timeline-entry').filter({hasText:'80 ml'}).click();
+  await editor.getByRole('button', {name:'60 ml', exact:true}).click();
+  await editor.getByRole('button', {name:'저장하기', exact:true}).click();
+  await expect(editor).toBeHidden();
+  await expect(page.locator('.quick-history-loader [role="alert"]')).toContainText('기록을 불러오지 못했어요.');
+  await page.getByRole('button', {name:'다시 시도', exact:true}).click();
+  await expect(previous.locator('.quick-timeline-entry').filter({hasText:'60 ml'})).toBeVisible();
+  expect(requests).toEqual([days[0], days[0]]);
+});
+
 test('mobile installed app shows a startup splash once and ordinary browsers stay unobstructed',async({browser})=>{
  const installed=await browser.newContext({...devices['iPhone 13'],baseURL:'http://127.0.0.1:3188'});
  let release!:()=>void;const imageGate=new Promise<void>(resolve=>{release=resolve;});
@@ -6058,7 +6149,7 @@ test('mobile installed app shows a startup splash once and ordinary browsers sta
   await expect(splash).toBeVisible();await expect(splash).toContainText('함께 돌보는, 포근한 둥지');
   await expect(page.locator('link[rel="apple-touch-startup-image"]')).toHaveCount(24);
   await page.screenshot({path:'test-results/mobile-app-splash.png'});
-  expect(await splash.evaluate(el=>el.getAnimations()[0].effect!.getComputedTiming().duration)).toBe(2000);
+  expect(await splash.evaluate(el=>el.getAnimations()[0].effect!.getComputedTiming().duration)).toBe(1000);
   await expect(splash).toBeHidden();
   expect(await page.evaluate(()=>document.readyState)).not.toBe('complete');
   release();await page.waitForLoadState('load');

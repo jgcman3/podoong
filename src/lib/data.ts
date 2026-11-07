@@ -1,4 +1,5 @@
 import { privacyStateSchema } from '@/features/privacy/model';
+import { z } from 'zod';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient, configured } from './supabase/server';
@@ -27,29 +28,24 @@ export const requireUser = cache(async (locale: Locale) => {
 
 export const loadFamily = cache(async (locale: Locale, childId?: string) => {
   const { db, user, recentlyAuthenticated } = await requireUser(locale);
-  const [
-    { data: profile, error: profileError },
-    { data: children, error: childrenError },
-  ] = await Promise.all([
-    db.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-    db.from('children').select('*').order('created_at'),
-  ]);
-  if (profileError || childrenError) throw new Error('Family data unavailable');
-  if (!profile?.consented_at || !children?.length)
+  const requestedChild = z.uuid().safeParse(childId);
+  const { data: snapshot, error } = await db
+    .rpc(
+      'app_family_snapshot',
+      requestedChild.success ? { p_child: requestedChild.data } : {},
+    )
+    .single();
+  if (error || !snapshot) throw new Error('Family data unavailable');
+  const profile = snapshot.profile as Row<'profiles'> | null;
+  const children = snapshot.children as Row<'children'>[];
+  if (!profile?.consented_at || !children?.length || !snapshot.child)
     redirect(`/${locale}/onboarding`);
-  const child = children.find((c) => c.id === childId) ?? children[0];
-  const [accessResult, privacyResult] = await Promise.all([
-    db.rpc('family_access_context', { p_child: child.id }).single(),
-    db.rpc('privacy_state', { p_child: child.id }),
-  ]);
-  const { data: access, error: accessError } = accessResult;
-  if (privacyResult.error) throw new Error('Privacy information unavailable');
-  const privacy = privacyStateSchema.parse(privacyResult.data);
+  const child = snapshot.child as Row<'children'>;
+  const privacy = privacyStateSchema.parse(snapshot.privacy);
   if (!privacy.authority) redirect(`/${locale}/onboarding`);
-  if (access?.owner && !privacy.childGranted)
+  if (snapshot.owner && !privacy.childGranted)
     redirect(`/${locale}/onboarding?mode=new`);
-  if (accessError || !access?.family)
-    throw new Error('Permissions unavailable');
+  if (!snapshot.family) throw new Error('Permissions unavailable');
   const timezone = profile.timezone;
   return {
     db,
@@ -58,15 +54,15 @@ export const loadFamily = cache(async (locale: Locale, childId?: string) => {
     profile,
     children,
     child,
-    family: access.family as Row<'families'>,
-    members: access.members as Row<'family_members'>[],
-    caregivers: access.caregivers as {
+    family: snapshot.family as Row<'families'>,
+    members: snapshot.members as Row<'family_members'>[],
+    caregivers: snapshot.caregivers as {
       user_id: string;
       display_name: string;
       role: string;
     }[],
-    owner: access.owner,
-    writable: access.writable && privacy.childGranted,
+    owner: snapshot.owner,
+    writable: snapshot.writable && privacy.childGranted,
     privacy,
     timezone,
     today: dateInTimeZone(new Date(), timezone),
