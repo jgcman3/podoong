@@ -2954,7 +2954,7 @@ test('growth community shares only opted-in diaries with audience-specific field
       `/ko/community/diaries?child=${reader.child}&scope=birth&age=297`,
     );
     await expect(
-      readerPage.getByText('공개된 성장일기가 없어요.'),
+      readerPage.locator('.diary-welcome'),
     ).toBeVisible();
     expect(
       (
@@ -2963,7 +2963,7 @@ test('growth community shares only opted-in diaries with audience-specific field
         )
       ).status(),
     ).toBe(404);
-    // Legacy cohort-only shares remain supported by the database.
+    // Same-age sharing limits access to the selected audience.
     expect(
       (
         await admin
