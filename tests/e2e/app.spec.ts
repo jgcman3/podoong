@@ -16,6 +16,9 @@ import { spawn } from 'node:child_process';
 import { hostname } from 'node:os';
 async function expectPhoneFunctionDock(page: Page, rail: Locator) {
   await expect(rail).toBeVisible();
+  await rail.evaluate(async element => {
+    await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => {})));
+  });
   await expect
     .poll(async () => {
       const bar = (await rail.boundingBox())!,
@@ -1154,7 +1157,7 @@ test('responsive dashboard and current navigation remain within the viewport', a
     });
   }
   await expect(page.locator('.mobile-nav a')).toHaveText([
-    '오늘', '인사이트', '성장 일기', '동네 소통', '도담이',
+    '오늘', '인사이트', '성장 일기', '동네 소통', '설정',
   ]);
   for (const section of ['today','insights','community/diaries','community','account']) {
     await page.goto(`/ko/${section}?child=${child.id}`);
@@ -2945,7 +2948,8 @@ test('growth community shares only opted-in diaries with audience-specific field
     await expect(page).toHaveURL(/community\/diaries/);
     const readerPage = await readerContext.newPage();
     await readerPage.goto(`/ko/community/diaries?child=${reader.child}`);
-    await expect(readerPage.getByText('아직 성장일기가 없어요.')).toBeVisible();
+    await expect(readerPage.locator('.diary-welcome')).toBeVisible();
+    await expect(readerPage.locator('.public-diary-card')).toHaveCount(0);
     await readerPage.goto(
       `/ko/community/diaries?child=${reader.child}&scope=birth&age=297`,
     );
@@ -4029,9 +4033,10 @@ test('home screen install exposes manifest, manual guidance and browser installa
     '1',
   );
   await expect(guide).toBeVisible();
-  await page.keyboard.press('Escape');
   await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')));
   await expect(install).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(new RegExp(`/ko/account\\?child=${child}$`));
 });
 
 test('iPhone home screen guidance works from account settings without a native install prompt', async ({
