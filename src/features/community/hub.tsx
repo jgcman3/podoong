@@ -4,8 +4,7 @@ import { NeighborhoodOpening } from './neighborhood-opening';
 import { cookies } from 'next/headers';
 import { feedPreference, feedPreferenceCookie } from './feed-preference';
 import { FeedCategoryNav } from './feed-category-nav';
-import Form from 'next/form';
-import { Search, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Flash } from '@/components/flash';
 import type { CareContext } from '@/lib/data';
 import type { Locale } from '@/lib/domain';
@@ -28,7 +27,6 @@ export type CommunityQuery = {
   beforeId?: string;
   sort?: string;
   beforeScore?: string;
-  q?: string;
 };
 export async function CommunityHub({
   context,
@@ -60,8 +58,7 @@ export async function CommunityHub({
     !!context.family.residence_country_code &&
     !!context.family.residence_city &&
     !!context.family.residence_locality;
-  const search = typeof query.q === 'string' ? query.q.trim().slice(0, 80) : '';
-  const showWelcome = posts && !search && !query.before;
+  const showWelcome = posts && !query.before;
   const sort =
     (query.sort ?? (query.category === undefined ? preference.sort : 'all')) ===
     'popular'
@@ -69,7 +66,7 @@ export async function CommunityHub({
       : 'all';
   const path = `/${locale}/community/neighborhood`;
   const href = (values: Record<string, string>) =>
-    `${path}?${new URLSearchParams({ child: context.child.id, category, sort, ...(search ? { q: search } : {}), ...values })}`;
+    `${path}?${new URLSearchParams({ child: context.child.id, category, sort, ...values })}`;
   const boardResult =
     posts && hasResidence
       ? await context.db.rpc('neighborhood_board_status', {
@@ -93,7 +90,6 @@ export async function CommunityHub({
           p_family: context.family.id,
           p_category: category,
           p_sort: sort,
-          p_query: search,
           ...(query.beforeScore && /^\d{1,15}$/.test(query.beforeScore)
             ? { p_before_score: Number(query.beforeScore) }
             : {}),
@@ -183,35 +179,6 @@ export async function CommunityHub({
               ))}
             </FeedCategoryNav>
           )}
-          <Form
-            action={path}
-            className="community-search"
-            role="search"
-            aria-label={ko ? '게시글 검색' : 'Search posts'}
-          >
-            <input type="hidden" name="child" value={context.child.id} />
-            <input type="hidden" name="category" value={category} />
-            <input type="hidden" name="sort" value={sort} />
-            <Search size={17} aria-hidden="true" />
-            <input
-              key={`${path}-${search}`}
-              type="search"
-              name="q"
-              maxLength={80}
-              defaultValue={search}
-              aria-label={ko ? '제목·본문 검색' : 'Search titles and posts'}
-              placeholder={ko ? '제목·본문 검색' : 'Search titles and posts'}
-            />
-            {search && (
-              <Link
-                href={href({ q: '' })}
-                aria-label={ko ? '검색 초기화' : 'Clear search'}
-              >
-                {ko ? '초기화' : 'Clear'}
-              </Link>
-            )}
-            <button type="submit">{ko ? '검색' : 'Search'}</button>
-          </Form>
           {sort === 'popular' && (
             <p className="community-popular-help">
               {ko
@@ -295,13 +262,7 @@ export async function CommunityHub({
             </div>
           ) : showWelcome ? null : (
             <p className="community-feed-empty">
-              {search
-                ? ko
-                  ? '검색 결과가 없어요. 다른 검색어로 찾아보세요.'
-                  : 'No matching posts. Try another search.'
-                : ko
-                  ? '아직 등록된 이야기가 없어요.'
-                  : 'No conversations yet.'}
+              {ko ? '아직 등록된 이야기가 없어요.' : 'No conversations yet.'}
             </p>
           )}
         </>

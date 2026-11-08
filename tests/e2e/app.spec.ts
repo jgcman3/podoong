@@ -6197,20 +6197,21 @@ test('service admin logout blocks the current admin page',async({page,context})=
  await page.goto('/ko/admin');await expect(page).toHaveURL(/\/ko\/login/);await expect(page.locator('.admin-main')).toHaveCount(0);
 });
 
-test('neighborhood search preserves category and popular filters', async ({page,context}) => {
+test('neighborhood lists use category and popular filters without search', async ({page,context}) => {
  const home=await childCareFamily(context);await setFamilyResidence(home.family,'1168010100');await openFixtureNeighborhood(home.family);
  const region=await admin.rpc('neighborhood_region',{p_family:home.family});expect(region.error).toBeNull();
  for(const post of [{title:'검색유모차 산책',body:'이웃 산책 이야기',category:'local-outings'},{title:'동네 물건',body:'검색유모차 정보',category:'local-info'}])
   expect((await admin.from('neighborhood_posts').insert({region:region.data!,feature:'boards',family_id:home.family,author_id:home.owner,audience:'neighborhood',...post})).error).toBeNull();
  await page.setViewportSize({width:390,height:844});await page.goto(`/ko/community/neighborhood?child=${home.child}`);
  await expect(page.locator('.parenting-tabs a')).toHaveText(['동네 놀이터','동네 이야기']);
- const search=page.getByRole('search',{name:'게시글 검색'});await search.getByRole('searchbox').fill('검색유모차');await search.getByRole('button',{name:'검색',exact:true}).click();
+ await expect(page.getByRole('search')).toHaveCount(0);
  await expect(page.locator('.community-post-open')).toHaveCount(2);
  await page.locator('.category-pills').getByRole('link',{name:'생활정보',exact:true}).click();await expect(page.locator('.community-post-open')).toHaveCount(1);
- await expect(search.getByRole('searchbox')).toHaveValue('검색유모차');await page.getByLabel('전체·인기',{exact:true}).selectOption({label:'인기'});
+ await page.getByLabel('전체·인기',{exact:true}).selectOption({label:'인기'});
  await expect(page).toHaveURL(/sort=popular/);await expect(page.locator('.community-post-open')).toHaveCount(2);
- await search.getByRole('searchbox').fill('일치하지않는문장');await search.getByRole('button',{name:'검색',exact:true}).click();await expect(page.getByText('검색 결과가 없어요. 다른 검색어로 찾아보세요.',{exact:true})).toBeVisible();
- await search.getByRole('link',{name:'검색 초기화'}).click();await expect(search.getByRole('searchbox')).toHaveValue('');
+ await page.goto(`/ko/community/neighborhood?child=${home.child}&category=all&sort=all&q=ignored`);
+ await expect(page.locator('.community-post-open')).toHaveCount(2);
+ await expect(page.getByRole('search')).toHaveCount(0);
 });
 
 test('community tab geometry stays identical when selecting the playground', async ({page,context}) => {
@@ -7049,7 +7050,7 @@ test('neighborhood stories open only after three distinct resident families join
   }
   await expect(page.getByRole('heading',{name:'동네 육아 친구를 모으고 있어요'})).toHaveCount(0);
   await expect(page.getByRole('button',{name:'글쓰기',exact:true})).toBeVisible();
-  await expect(page.getByRole('search')).toBeVisible();
+  await expect(page.getByRole('search')).toHaveCount(0);
   await page.screenshot({path:test.info().outputPath('neighborhood-open.png'),caret:'initial'});
   expect((await admin.from('families').update({residence_locality:'Another place'}).eq('id',peers[0].family)).error).toBeNull();
   await page.reload();

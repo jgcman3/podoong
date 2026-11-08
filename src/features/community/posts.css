@@ -1118,49 +1118,12 @@ body:has(.parenting-post-page) .app-footer {
   line-height: 1.6;
 }
 
-.community-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0 10px;
-  padding: 0 10px;
-  min-height: 40px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
-  color: var(--muted);
-}
-.community-search input[type='search'] {
-  flex: 1;
-  width: 0;
-  min-width: 0;
-  min-height: 38px;
-  padding: 8px 0;
-  margin: 0;
-  border: 0;
-  background: transparent;
-  font-size: 12px;
-}
-.community-search button,
-.community-search a {
-  flex-shrink: 0;
-  padding: 8px 2px;
-  color: var(--brown);
-  font: inherit;
-  font-size: 12px;
-  background: transparent;
-  border: 0;
-}
-
 @media (max-width: 700px) {
   .parenting-community {
     row-gap: 4px;
   }
   .parenting-community .category-pills {
     padding-block: 2px;
-  }
-  .parenting-community .community-search {
-    margin-block: 0;
   }
   .parenting-community .community-popular-help {
     margin-block: 2px;
