@@ -6412,6 +6412,8 @@ test('neighborhood entry collects residence and keeps local topics separate with
   await expect(welcome).toHaveAttribute('open','');
   await expect(welcome).toContainText('2026년생 딸을 키우며 포둥을 만드는 아빠 운영자입니다.');
   await expect(welcome).toContainText('“아이와 요즘 자주 가는 곳”');
+  await expect(welcome.locator('.community-welcome-body')).toContainText('함께해 주셔서 감사합니다');
+  await expect(page.locator('.neighborhood-opened-notice')).toHaveCount(0);
   const categories=page.getByRole('navigation',{name:'게시판 주제',exact:true});
   await expect(categories.getByRole('link',{name:'동네일상',exact:true})).toBeVisible();
   await expect(categories.getByRole('link',{name:'수유·분유',exact:true})).toHaveCount(0);
@@ -6432,6 +6434,10 @@ test('neighborhood entry collects residence and keeps local topics separate with
   await composer.getByRole('textbox',{name:'내용',exact:true}).fill('함께 산책할 곳을 찾고 있어요.');
   await composer.getByRole('button',{name:'완료',exact:true}).click();
   await expect(composer).toBeHidden();
+  await expect(welcome).not.toHaveAttribute('open', '');
+  await expect(welcome.locator('.community-welcome-body')).toBeHidden();
+  await welcome.locator('summary').click();
+  await expect(welcome.locator('.community-welcome-body')).toBeVisible();
   await expect(page.locator('.community-post-tag')).toContainText('질문·도움');
   const post=await admin.from('neighborhood_posts').select('category,audience').eq('family_id',own.family).eq('title','동네 질문 카테고리 확인').single();
   expect(post.data).toEqual({category:'local-help',audience:'neighborhood'});
@@ -7054,8 +7060,8 @@ test('neighborhood stories open only after three distinct resident families join
   expect((await admin.from('families').update({...residence,name:'새로 모인 가족'}).eq('id',peers[0].family)).error).toBeNull();
   await page.reload();
   await expect(page.getByRole('button',{name:'글쓰기',exact:true})).toBeVisible();
-  await expect(page.locator('.neighborhood-opened-notice')).toContainText('새로 모인 가족');
-  await expect(page.locator('.neighborhood-opened-notice')).toContainText('다시 열렸어요');
+  await expect(page.locator('.community-welcome-body')).toContainText('새로 모인 가족');
+  await expect(page.locator('.community-welcome-body')).toContainText('다시 열렸어요');
 });
 
 
@@ -7077,7 +7083,7 @@ test('admin neighborhood operations reflect closure and refreshed reopening anno
  await page.reload(); await expect(row).toContainText('닫힘 · 1가족 더 필요');
  expect((await admin.from('families').update({residence_locality:'Oak Grove',name:'새로운 이웃 가족'}).eq('id',peers.data![0].id)).error).toBeNull();
  await page.goto(`/ko/community/neighborhood?child=${own.child}`);
- await expect(page.locator('.neighborhood-opened-notice')).toContainText('다시 열렸어요');
+ await expect(page.locator('.community-welcome-body')).toContainText('다시 열렸어요');
  await page.goto('/ko/admin/neighborhoods');
  await expect(row).toContainText('새로운 이웃 가족');
  await expect(row.getByRole('cell').nth(4)).toHaveText('1');

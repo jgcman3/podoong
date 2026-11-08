@@ -226,26 +226,13 @@ export async function CommunityHub({
             tags={tags}
             initialTag={category}
           />
-          {board?.founders.length ? (
-            <aside className="neighborhood-opened-notice">
-              <span aria-hidden="true">🌱</span>
-              <p>
-                {ko
-                  ? `${board.founders.join(', ')} 가족과 함께 ${context.family.residence_locality} ${board.reopened ? '이야기가 다시 열렸어요.' : '이야기가 시작됐어요.'}`
-                  : `${board.founders.join(', ')} helped start our ${context.family.residence_locality} stories${board.reopened ? ' again' : ''}.`}
-                <small>
-                  {ko
-                    ? '가까이 사는 부모님들과 편하게 이야기 나눠보세요.'
-                    : 'Make yourself at home and say hello to nearby parents.'}
-                </small>
-              </p>
-            </aside>
-          ) : null}
           {showWelcome && (
             <CommunityWelcome
               neighborhood={context.family.residence_locality!}
               locale={locale}
               expanded={!feed?.data?.length}
+              founders={board?.founders ?? []}
+              reopened={board?.reopened ?? false}
             />
           )}
           {feed?.data?.length ? (

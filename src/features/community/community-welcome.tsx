@@ -6,10 +6,14 @@ export function CommunityWelcome({
   neighborhood,
   locale,
   expanded,
+  founders,
+  reopened,
 }: {
   neighborhood: string;
   locale: Locale;
   expanded: boolean;
+  founders: string[];
+  reopened: boolean;
 }) {
   const ko = locale === 'ko';
   return (
@@ -23,6 +27,13 @@ export function CommunityWelcome({
         <ChevronDown size={18} aria-hidden="true" />
       </summary>
       <div className="community-welcome-body">
+        {founders.length > 0 && (
+          <p>
+            {ko
+              ? `${founders.join(', ')} 가족 덕분에 ${neighborhood} 이야기가 ${reopened ? '다시 열렸어요' : '열렸어요'}. 함께해 주셔서 감사합니다 🌱`
+              : `Thanks to ${founders.join(', ')}, stories in ${neighborhood} ${reopened ? 'have reopened' : 'are now open'}. Thank you for joining us 🌱`}
+          </p>
+        )}
         <p>
           {ko
             ? '2026년생 딸을 키우며 포둥을 만드는 아빠 운영자입니다.'

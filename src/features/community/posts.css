@@ -1250,7 +1250,3 @@ body:has(.parenting-post-page) .app-footer {
 .neighborhood-opening-progress small { margin-left: 8px; color: var(--muted); }
 .neighborhood-opening > .button { display: inline-flex; gap: 8px; justify-content: center; max-width: 100%; font-size: 13px; }
 @media(max-width:600px) { .neighborhood-opening { margin: 18px auto; padding: 24px 12px; } .neighborhood-opening h2 {font-size: 19px;} }
-
-.neighborhood-opened-notice { display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; margin: 10px 0; border-radius: 14px; background: #eef3e9; color: #445e43; }
-.neighborhood-opened-notice p { margin: 0; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
-.neighborhood-opened-notice small { display: block; color: #6d7d69; font-size: 11px; margin-top: 4px; }
