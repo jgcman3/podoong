@@ -6108,13 +6108,13 @@ test('side-view playground places daily arrivals without moving existing childre
  const home=await childCareFamily(context);await setFamilyResidence(home.family,'1168010100');
  await admin.from('children').update({name:'지혜'}).eq('id',home.child);
  await admin.from('families').update({name:'포둥네'}).eq('id',home.family);
- expect((await admin.from('parenting_friend_profiles').insert({child_id:home.child,status:'동네 친구들 안녕!'})).error).toBeNull();
+ expect((await admin.from('parenting_friend_profiles').insert({child_id:home.child,status:'동네 친구들 안녕!',status_day:new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'})})).error).toBeNull();
  const ids:string[]=[];const ages=[50,180,300,600,1000,1600,2000,60,210,400,800,1200,3000];
  for(const [index,age] of ages.entries()) {
   const id=crypto.randomUUID();ids.push(id);
   expect((await admin.from('children').insert({id,family_id:home.family,name:age===3000?'School child':`아가${index+1}`,sex:index%2?'male':'female',birth_date:new Date(Date.now()-age*86400000).toISOString().slice(0,10)})).error).toBeNull();
   await grantFixtureChildren();
-  expect((await admin.from('parenting_friend_profiles').insert({child_id:id,status:`같이 놀자! ${index+1}`})).error).toBeNull();
+  expect((await admin.from('parenting_friend_profiles').insert({child_id:id,status:`같이 놀자! ${index+1}`,status_day:new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'})})).error).toBeNull();
  }
  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto(`/ko/community/playground?child=${home.child}`);
