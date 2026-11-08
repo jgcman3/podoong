@@ -6509,7 +6509,7 @@ test('installation is offered only on the first child account visit and always s
  await expect(page.getByRole('dialog')).not.toBeVisible();
  // Account prefetch must not consume the first-visit guide.
  await page.request.get(`/ko/account?child=${home.child}`);
- await page.locator('.mobile-nav').getByRole('link',{name:'돌봄 아이',exact:true}).click();
+ await page.locator('.mobile-nav').getByRole('link',{name:'설정',exact:true}).click();
  const guide=page.getByRole('dialog',{name:'홈 화면에 포둥 추가하기',exact:true});
  await expect(guide).toBeVisible();
  await expect.poll(async()=>(await admin.from('profiles').select('install_guide_seen_at').eq('id',home.owner).single()).data?.install_guide_seen_at).toBeTruthy();
@@ -6533,11 +6533,13 @@ test('installation is offered only on the first child account visit and always s
  await page.screenshot({path:test.info().outputPath('account-install-first-desktop.png')});
  await english.getByRole('link',{name:'Installation guide',exact:true}).click();
  await expect(page).toHaveURL(/\/en\/today\?child=[^&]+$/);
- await expect(page.getByRole('heading',{name:'Your little one, on your Home Screen',exact:true})).toBeVisible();
+ const installation=page.getByRole('dialog',{name:'Add to Home Screen',exact:true});
+ await expect(installation).toBeVisible();
  const manifest=await page.locator('link[rel="manifest"]').getAttribute('href');
  expect((await (await page.request.get(manifest!)).json()).start_url).toBe('/en/today');
- await page.getByRole('link',{name:'Start using podoong',exact:true}).click();
- await expect(page.locator('.quick-care')).toBeVisible();
+ await expect(page.getByRole('link',{name:'Start using podoong',exact:true})).toHaveCount(0);
+ await installation.getByRole('button',{name:'Close',exact:true}).click();
+ await expect(page).toHaveURL(new RegExp(`/en/account\\?child=${another.child}$`));
  await page.setViewportSize({width:1280,height:900});
  await page.goto(`/en/account?child=${another.child}`);
  await expect(english).not.toBeVisible();
