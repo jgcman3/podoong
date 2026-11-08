@@ -1,4 +1,5 @@
 'use client';
+import { trackServiceAction } from '@/features/admin/track-action';
 import { useEffect, useRef, useState } from 'react';
 import { Copy, Share2, X } from 'lucide-react';
 import { copyTextToClipboard } from '@/lib/clipboard';
@@ -10,6 +11,7 @@ export function PostShareSheet({
   close,
   heading,
   text,
+  usage,
 }: {
   url: string;
   title: string;
@@ -17,6 +19,7 @@ export function PostShareSheet({
   close: () => void;
   heading?: string;
   text?: string;
+  usage?: 'introduction';
 }) {
   const ko = locale === 'ko',
     dialog = useRef<HTMLDialogElement>(null),
@@ -45,6 +48,8 @@ export function PostShareSheet({
     setMessage('');
     try {
       const ok = await copyTextToClipboard(url);
+      if (ok && usage === 'introduction')
+        trackServiceAction('introduction_copy');
       setMessage(
         ok
           ? ko
@@ -66,6 +71,8 @@ export function PostShareSheet({
     setBusy(true);
     setMessage('');
     try {
+      if (usage === 'introduction')
+        trackServiceAction('introduction_share_attempt');
       await navigator.share({ url, title, ...(text ? { text } : {}) });
     } catch (error) {
       if (!(error instanceof DOMException && error.name === 'AbortError'))

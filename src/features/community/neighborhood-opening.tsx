@@ -53,6 +53,7 @@ export function NeighborhoodOpening({
       </button>
       {sharing && (
         <PostShareSheet
+          usage="introduction"
           locale={locale}
           heading={
             ko ? '동네 친구에게 포둥 소개하기' : 'Invite a neighborhood friend'

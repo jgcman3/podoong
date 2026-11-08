@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SharingAnalytics } from './sharing-analytics';
 import {
   ArrowUpRight,
   Users,
@@ -15,6 +16,8 @@ import {
   dashboardSchema,
   operationsSchema,
   usageSchema,
+  sharingUsageSchema,
+  neighborhoodBoardsSchema,
   pageViewsSchema,
   requestStatuses,
   type AdminSection,
@@ -53,10 +56,16 @@ function Metric({
     </div>
   );
 }
-function Table({ children }: { children: React.ReactNode }) {
+function Table({
+  children,
+  className = '',
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <div className="admin-table-scroll">
-      <table className="admin-table">{children}</table>
+      <table className={`admin-table ${className}`}>{children}</table>
     </div>
   );
 }
@@ -459,9 +468,10 @@ export async function AdminView({
             results = await Promise.all([
               db.rpc('admin_usage', { p_days: days }),
               db.rpc('admin_service_page_views', { p_days: days }),
+              db.rpc('admin_sharing_usage', { p_days: days }),
             ]),
-            [result, viewsResult] = results;
-          if (result.error || viewsResult.error)
+            [result, viewsResult, sharingResult] = results;
+          if (result.error || viewsResult.error || sharingResult.error)
             throw new Error('Admin analytics unavailable');
           const pageViews = pageViewsSchema.parse(viewsResult.data);
           const screenLabels = ko
@@ -469,8 +479,8 @@ export async function AdminView({
                 today: '오늘',
                 insights: '인사이트',
                 diary: '성장일기',
-                community: '육아 소통',
-                account: '아이·설정',
+                community: '동네 소통',
+                account: '설정',
               }
             : {
                 today: 'Today',
@@ -522,6 +532,10 @@ export async function AdminView({
                     : 'Only screen totals are stored, without visitor identifiers. Browser Do Not Track and this device’s opt-out are respected. The journey below is derived from retained service records.'}
                 </p>
               </section>
+              <SharingAnalytics
+                data={sharingUsageSchema.parse(sharingResult.data)}
+                locale={locale}
+              />
               <section className="admin-panel">
                 <h2>{ko ? '일별 기록 생성' : 'Records created per day'}</h2>
                 <div className="admin-chart-scroll">
@@ -678,22 +692,49 @@ export async function AdminView({
         if (section === 'neighborhoods') {
           const result = await db.rpc('admin_neighborhoods');
           if (result.error) throw new Error('Admin neighborhoods unavailable');
+          const neighborhoods = neighborhoodBoardsSchema.parse(result.data);
           return (
             <section className="admin-panel">
-              <h2>{ko ? '지역별 가족 현황' : 'Families by area'}</h2>
-              {result.data.length ? (
-                <Table>
+              <h2>
+                {ko
+                  ? '동 단위 게시판 운영 현황'
+                  : 'Neighborhood board operations'}
+              </h2>
+              {neighborhoods.length ? (
+                <Table className="admin-neighborhood-table">
                   <thead>
                     <tr>
-                      <th>{ko ? '지역 구분' : 'Region'}</th>
-                      <th>{ko ? '거주 가족' : 'Families'}</th>
+                      <th>{ko ? '동네' : 'Region'}</th>
+                      <th>{ko ? '개방 기준 가족' : 'Qualifying families'}</th>
+                      <th>{ko ? '게시판 상태' : 'Board status'}</th>
+                      <th>{ko ? '최근 개방 안내' : 'Latest opening notice'}</th>
+                      <th>{ko ? '재개방 횟수' : 'Reopenings'}</th>
+                      <th>{ko ? '안내 가족' : 'Announced families'}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {result.data.map((row) => (
+                    {neighborhoods.map((row) => (
                       <tr key={row.region}>
                         <td className="admin-wrap">{row.region}</td>
                         <td>{row.families}</td>
+                        <td>
+                          {row.opened
+                            ? ko
+                              ? '열림'
+                              : 'Open'
+                            : ko
+                              ? `닫힘 · ${row.missing}가족 더 필요`
+                              : `Closed · ${row.missing} more needed`}
+                        </td>
+                        <td>
+                          {row.opened_at
+                            ? adminDate(row.opened_at, locale)
+                            : '—'}
+                        </td>
+                        <td>{row.reopenings}</td>
+                        <td className="admin-wrap">
+                          {row.founders.join(', ') || '—'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -703,8 +744,8 @@ export async function AdminView({
               )}
               <p className="admin-caption">
                 {ko
-                  ? '한 가족은 지역별로 한 번 집계합니다. 최대 100개 지역을 표시합니다.'
-                  : 'Each family counts once per region. Up to 100 regions are shown.'}
+                  ? '표를 좌우로 밀어 전체 항목을 확인할 수 있습니다. 게시판과 동일하게 거주지·아이·참여자가 있는 가족을 중복 없이 집계합니다. 3가족 이상이면 열리며, 미만이면 닫힙니다. 개방 안내의 시각·가족은 게시판 진입 시 확정된 최근 기록입니다. 최대 100개 동네를 표시합니다.'
+                  : 'Scroll the table horizontally to see all columns. Uses the board’s qualifying-family rule: a residence, child and family member. Boards open at 3 families and close below 3. Notice dates and families reflect the latest opening recorded on a board visit. Up to 100 neighborhoods are shown.'}
               </p>
             </section>
           );

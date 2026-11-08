@@ -87,3 +87,64 @@ test('admin screen output accepts zero counts and rejects non-enum dimensions', 
     }).success,
   ).toBe(false);
 });
+
+test('action counters accept only fixed dimensions and keep optout behavior', async () => {
+  expect((await POST(request({ action: 'moment_share_attempt' }))).status).toBe(
+    204,
+  );
+  expect(rpc).toHaveBeenCalledWith('record_service_action', {
+    p_action: 'moment_share_attempt',
+  });
+  for (const body of [
+    { action: 'other' },
+    { action: 'moment_save_attempt', photo: 'private' },
+    { action: 'moment_save_attempt', screen: 'diary' },
+  ])
+    expect((await POST(request(body))).status).toBe(400);
+  rpc.mockClear();
+  expect(
+    (
+      await POST(
+        request(
+          { action: 'introduction_copy' },
+          { cookie: 'podoong-usage=off' },
+        ),
+      )
+    ).status,
+  ).toBe(204);
+  expect(
+    (
+      await POST(
+        request({ action: 'introduction_share_attempt' }, { dnt: '1' }),
+      )
+    ).status,
+  ).toBe(204);
+  expect(rpc).not.toHaveBeenCalled();
+});
+
+test('configured public origin works behind an internal Next URL without trusting foreign origins', async () => {
+  vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://podoong.com');
+  try {
+    const throughNext = new Request('http://localhost:3188/api/usage', {
+      method: 'POST',
+      headers: {
+        origin: 'https://podoong.com',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ action: 'moment_save_attempt' }),
+    });
+    expect((await POST(throughNext)).status).toBe(204);
+    expect(
+      (
+        await POST(
+          request(
+            { action: 'moment_save_attempt' },
+            { origin: 'https://evil.example' },
+          ),
+        )
+      ).status,
+    ).toBe(403);
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});

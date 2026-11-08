@@ -7,7 +7,17 @@ export const usageScreens = [
   'community',
   'account',
 ] as const;
-export const usageInput = z.object({ screen: z.enum(usageScreens) }).strict();
+export const usageActions = [
+  'introduction_copy',
+  'introduction_share_attempt',
+  'moment_save_attempt',
+  'moment_share_attempt',
+] as const;
+export type UsageAction = (typeof usageActions)[number];
+export const usageInput = z.union([
+  z.object({ screen: z.enum(usageScreens) }).strict(),
+  z.object({ action: z.enum(usageActions) }).strict(),
+]);
 export function usageScreen(path: string) {
   const parts = path.split(/[?#]/, 1)[0].split('/').filter(Boolean);
   if (!['ko', 'en'].includes(parts[0])) return null;

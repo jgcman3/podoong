@@ -458,6 +458,7 @@ export function FriendWorld({
       )}
       {inviteUrl && (
         <PostShareSheet
+          usage="introduction"
           locale={locale}
           url={inviteUrl}
           title={
@@ -479,18 +480,6 @@ export function FriendWorld({
       )}
       <div className="friend-world side-world">
         <MemoScenery />
-        <button
-          type="button"
-          className="world-return-own"
-          aria-label={ko ? '우리 아이로 돌아가기' : 'Return to my child'}
-          onClick={() => {
-            setSelected(world.own.id);
-            lastTap.current = null;
-            move(world.own.x);
-          }}
-        >
-          <LocateFixed size={18} />
-        </button>
         <div
           className="world-viewport"
           ref={viewport}
@@ -555,6 +544,18 @@ export function FriendWorld({
         </div>
         <div className="world-status-editor" ref={statusEditorRef}>
           {statusEditor}
+          <button
+            type="button"
+            className="world-return-own"
+            aria-label={ko ? '우리 아이로 돌아가기' : 'Return to my child'}
+            onClick={() => {
+              setSelected(world.own.id);
+              lastTap.current = null;
+              move(world.own.x);
+            }}
+          >
+            <LocateFixed size={18} />
+          </button>
           <FriendInbox
             key={`${childId}:${world.day}`}
             childId={childId}

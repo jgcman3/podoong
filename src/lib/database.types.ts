@@ -821,14 +821,14 @@ isOneToOne: true
                   ]
                 },"invitations": {
                   Row: {
-                    "accepted_at": string | null,"child_id": string,"created_by": string | null,"expires_at": string,"family_id": string,"id": string,"revoked_at": string | null,"role": string,"token_hash": string
+                    "created_at": string | null,"accepted_at": string | null,"child_id": string,"created_by": string | null,"expires_at": string,"family_id": string,"id": string,"revoked_at": string | null,"role": string,"token_hash": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "accepted_at"?: string | null,"child_id": string,"created_by"?: string | null,"expires_at"?: string,"family_id": string,"id"?: string,"revoked_at"?: string | null,"role": string,"token_hash": string
+                    "created_at"?: string | null,"accepted_at"?: string | null,"child_id": string,"created_by"?: string | null,"expires_at"?: string,"family_id": string,"id"?: string,"revoked_at"?: string | null,"role": string,"token_hash": string
                   }
                   Update: {
-                    "accepted_at"?: string | null,"child_id"?: string,"created_by"?: string | null,"expires_at"?: string,"family_id"?: string,"id"?: string,"revoked_at"?: string | null,"role"?: string,"token_hash"?: string
+                    "created_at"?: string | null,"accepted_at"?: string | null,"child_id"?: string,"created_by"?: string | null,"expires_at"?: string,"family_id"?: string,"id"?: string,"revoked_at"?: string | null,"role"?: string,"token_hash"?: string
                   }
                   Relationships: [
                     {
@@ -1351,7 +1351,11 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"service_usage_daily": {
+                },"service_action_daily": {
+ Row: { day: string; action: string; attempts: number }; ComputedFields: never;
+ Insert: { day: string; action: string; attempts?: number };
+ Update: { day?: string; action?: string; attempts?: number }; Relationships: []
+ },"service_usage_daily": {
                   Row: {
                     "day": string,"screen": string,"views": number
                   }
@@ -1507,11 +1511,7 @@ isOneToOne: false
               "caregivers": number,"children": number,"country": string,"created_at": string,"id": string,"name": string
             }[]
                            },
-"admin_neighborhoods":
-{ Args: Record<PropertyKey, never>; Returns: {
-              "families": number,"region": string
-            }[]
-                           },
+"admin_neighborhoods": { Args: Record<PropertyKey, never>; Returns: { families: number; region: string; opened: boolean; missing: number; opened_at: string | null; reopenings: number; founders: Json }[] },
 "admin_operations":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -1531,6 +1531,8 @@ isOneToOne: false
 "admin_review_report":
 { Args: { "p_action": string,"p_expected_hidden": boolean,"p_reason": string,"p_report": string,"p_version": number }; Returns: undefined
                            },
+"admin_sharing_usage": { Args: { p_days?: number }; Returns: Json },
+"record_service_action": { Args: { p_action: string }; Returns: undefined },
 "admin_service_page_views":
 { Args: { "p_days"?: number }; Returns: Json
                            },

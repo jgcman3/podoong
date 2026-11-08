@@ -176,3 +176,29 @@ export const pageViewsSchema = z.object({
     }),
   ),
 });
+
+export const sharingUsageSchema = z.object({
+  invitations: z.object({ created: count, accepted: count, pending: count }),
+  actions: z.array(
+    z.object({
+      action: z.enum([
+        'introduction_copy',
+        'introduction_share_attempt',
+        'moment_save_attempt',
+        'moment_share_attempt',
+      ]),
+      attempts: count,
+    }),
+  ),
+});
+export const neighborhoodBoardsSchema = z.array(
+  z.object({
+    region: z.string(),
+    families: count,
+    opened: z.boolean(),
+    missing: count,
+    opened_at: z.string().nullable(),
+    reopenings: count,
+    founders: z.array(z.string()).max(3),
+  }),
+);

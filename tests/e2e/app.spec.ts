@@ -7057,3 +7057,60 @@ test('neighborhood stories open only after three distinct resident families join
   await expect(page.locator('.neighborhood-opened-notice')).toContainText('새로 모인 가족');
   await expect(page.locator('.neighborhood-opened-notice')).toContainText('다시 열렸어요');
 });
+
+
+test('admin neighborhood operations reflect closure and refreshed reopening announcements', async ({page,context}) => {
+ const own=await childCareFamily(context);
+ const city=`Admin-${crypto.randomUUID()}`;
+ expect((await admin.from('families').update({residence_country_code:'US',residence_province:'California',residence_city:city,residence_locality:'Oak Grove'}).eq('id',own.family)).error).toBeNull();
+ await openFixtureNeighborhood(own.family);
+ const peers=await admin.from('families').select('id').eq('residence_city',city).neq('id',own.family);
+ expect(peers.data).toHaveLength(2);
+ await page.goto(`/ko/community/neighborhood?child=${own.child}`);
+ await expect(page.getByRole('button',{name:'글쓰기',exact:true})).toBeVisible();
+ await enterServiceAdmin(page,own.owner);
+ await page.goto('/ko/admin/neighborhoods');
+ const row=page.getByRole('row').filter({hasText:city}).filter({hasText:'Oak Grove'});
+ await expect(row).toContainText('열림');
+ await expect(row).toContainText('Care test family');
+ expect((await admin.from('families').update({residence_locality:'Elsewhere'}).eq('id',peers.data![0].id)).error).toBeNull();
+ await page.reload(); await expect(row).toContainText('닫힘 · 1가족 더 필요');
+ expect((await admin.from('families').update({residence_locality:'Oak Grove',name:'새로운 이웃 가족'}).eq('id',peers.data![0].id)).error).toBeNull();
+ await page.goto(`/ko/community/neighborhood?child=${own.child}`);
+ await expect(page.locator('.neighborhood-opened-notice')).toContainText('다시 열렸어요');
+ await page.goto('/ko/admin/neighborhoods');
+ await expect(row).toContainText('새로운 이웃 가족');
+ await expect(row.getByRole('cell').nth(4)).toHaveText('1');
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:test.info().outputPath('admin-neighborhood-operations.png'),caret:'initial',fullPage:true});
+});
+
+test('intro sharing counts fixed anonymous actions, respects optout and appears in admin analytics', async ({page,context}) => {
+ const own=await childCareFamily(context);
+ await page.addInitScript(() => Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{throw new DOMException('Cancelled','AbortError');}}));
+ const events: string[]=[];
+ page.on('request',request=>{if(new URL(request.url()).pathname==='/api/usage' && request.method()==='POST'){const body=request.postDataJSON();if(body.action)events.push(body.action);}});
+ await page.goto(`/ko/account?child=${own.child}`);
+ await page.getByRole('button',{name:'포둥 소개하기',exact:true}).click();
+ const sheet=page.getByRole('dialog',{name:'포둥 소개하기',exact:true});
+ const recorded=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/usage' && response.request().postDataJSON()?.action==='introduction_share_attempt');
+ await sheet.getByRole('button',{name:'다른 앱에 공유',exact:true}).click();
+ expect((await recorded).status()).toBe(204);
+ await expect.poll(()=>events).toEqual(['introduction_share_attempt']);
+ await sheet.getByRole('button',{name:'닫기',exact:true}).click();
+ await context.addCookies([{name:'podoong-usage',value:'off',url:'http://127.0.0.1:3188',sameSite:'Lax'}]);
+ await page.getByRole('button',{name:'포둥 소개하기',exact:true}).click();
+ await sheet.getByRole('button',{name:'다른 앱에 공유',exact:true}).click();
+ await sheet.getByRole('button',{name:'닫기',exact:true}).click();
+ expect(events).toEqual(['introduction_share_attempt']);
+ await enterServiceAdmin(page,own.owner);
+ await page.goto('/ko/admin/analytics?days=7');
+ await expect(page.getByRole('heading',{name:'가족 초대 생성·참여',exact:true})).toBeVisible();
+ const metrics=page.getByRole('region',{name:'소개·일기 카드 이용',exact:true});
+ await expect(metrics).toContainText('소개 링크 공유 시도');
+ await expect(metrics).toContainText('수신·저장 완료나 고유 사용자 수를 뜻하지 않습니다');
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:test.info().outputPath('admin-sharing-analytics.png'),caret:'initial',fullPage:true});
+});

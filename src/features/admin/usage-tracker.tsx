@@ -48,8 +48,8 @@ export function UsageStatisticsToggle({ locale }: { locale: Locale }) {
         }}
       />
       {locale === 'ko'
-        ? '익명 화면 이용 통계 허용'
-        : 'Allow anonymous screen usage statistics'}
+        ? '익명 이용 통계 허용'
+        : 'Allow anonymous usage statistics'}
     </label>
   );
 }

@@ -12,7 +12,15 @@ export async function POST(request: Request) {
       .some((part) => part.trim() === 'podoong-usage=off')
   )
     return done(204);
-  if (request.headers.get('origin') !== new URL(request.url).origin)
+  const allowedOrigins = new Set([new URL(request.url).origin]);
+  // Next may expose an internal localhost URL behind the configured public origin.
+  try {
+    if (process.env.NEXT_PUBLIC_SITE_URL)
+      allowedOrigins.add(new URL(process.env.NEXT_PUBLIC_SITE_URL).origin);
+  } catch {
+    /* Invalid configuration never adds an allowed origin. */
+  }
+  if (!allowedOrigins.has(request.headers.get('origin') ?? ''))
     return done(403);
   if (!request.headers.get('content-type')?.startsWith('application/json'))
     return done(415);
@@ -43,9 +51,14 @@ export async function POST(request: Request) {
     const parsed = usageInput.safeParse(JSON.parse(body));
     if (!parsed.success) return done(400);
     const db = await createClient();
-    const { error } = await db.rpc('record_service_page_view', {
-      p_screen: parsed.data.screen,
-    });
+    const { error } =
+      'screen' in parsed.data
+        ? await db.rpc('record_service_page_view', {
+            p_screen: parsed.data.screen,
+          })
+        : await db.rpc('record_service_action', {
+            p_action: parsed.data.action,
+          });
     return done(error ? 403 : 204);
   } catch {
     return done(400);

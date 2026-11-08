@@ -35,6 +35,7 @@ export function ServiceInvite({
       </button>
       {open && (
         <PostShareSheet
+          usage="introduction"
           locale={locale}
           url={url}
           title={

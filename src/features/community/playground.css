@@ -43,10 +43,6 @@
   border-radius: 0;
   box-shadow: none;
 }
-.parenting-playground .world-return-own {
-  top: 50px;
-  right: 14px;
-}
 body:has(.parenting-playground) .app-footer {
   display: none;
 }

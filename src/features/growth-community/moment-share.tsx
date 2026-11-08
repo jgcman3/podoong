@@ -1,5 +1,6 @@
 'use client';
 import Image from 'next/image';
+import { trackServiceAction } from '@/features/admin/track-action';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Download, Share2, X } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
@@ -223,6 +224,7 @@ function MomentEditor({
     setSharing(true);
     setMessage('');
     try {
+      trackServiceAction('moment_share_attempt');
       await navigator.share(payload);
     } catch (error) {
       if ((error as Error | null)?.name !== 'AbortError')
@@ -242,6 +244,7 @@ function MomentEditor({
     link.download = asset.file.name;
     document.body.append(link);
     link.click();
+    trackServiceAction('moment_save_attempt');
     link.remove();
     setMessage(
       ko
