@@ -6212,6 +6212,25 @@ test('neighborhood lists use category and popular filters without search', async
  await page.goto(`/ko/community/neighborhood?child=${home.child}&category=all&sort=all&q=ignored`);
  await expect(page.locator('.community-post-open')).toHaveCount(2);
  await expect(page.getByRole('search')).toHaveCount(0);
+ const welcome=page.locator('.community-welcome');
+ await expect(welcome).toBeVisible();
+ await expect(welcome).not.toHaveAttribute('open','');
+ const olderPost={region:region.data!,feature:'boards',family_id:home.family,author_id:home.owner,audience:'neighborhood',body:'우리 동네의 작은 일상',category:'local-info',created_at:new Date(Date.now()-8*86400000).toISOString()};
+ expect((await admin.from('neighborhood_posts').insert([{...olderPost,title:'세 번째 이야기'},{...olderPost,title:'네 번째 이야기'}])).error).toBeNull();
+ await page.reload();
+ await expect(page.locator('.community-post-open')).toHaveCount(4);
+ await expect(welcome).toBeVisible();
+ await expect(welcome).not.toHaveAttribute('open','');
+ expect((await admin.from('neighborhood_posts').insert({...olderPost,title:'다섯 번째 이야기'})).error).toBeNull();
+ await page.reload();
+ await expect(page.locator('.community-post-open')).toHaveCount(5);
+ await expect(welcome).toHaveCount(0);
+ await page.locator('.category-pills').getByRole('link',{name:'질문·도움',exact:true}).click();
+ await expect(page.locator('.community-post-open')).toHaveCount(0);
+ await expect(welcome).toHaveCount(0);
+ await page.getByLabel('전체·인기',{exact:true}).selectOption({label:'인기'});
+ await expect(page.locator('.community-post-open')).toHaveCount(2);
+ await expect(welcome).toHaveCount(0);
 });
 
 test('community tab geometry stays identical when selecting the playground', async ({page,context}) => {

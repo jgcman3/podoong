@@ -58,7 +58,6 @@ export async function CommunityHub({
     !!context.family.residence_country_code &&
     !!context.family.residence_city &&
     !!context.family.residence_locality;
-  const showWelcome = posts && !query.before;
   const sort =
     (query.sort ?? (query.category === undefined ? preference.sort : 'all')) ===
     'popular'
@@ -84,9 +83,10 @@ export async function CommunityHub({
         })
         .parse(boardResult.data)
     : null;
-  const feed =
-    posts && hasResidence && board?.open
-      ? await context.db.rpc('parenting_feed', {
+  const canReadFeed = posts && hasResidence && board?.open;
+  const [feed, welcomeFeed] = await Promise.all([
+    canReadFeed
+      ? context.db.rpc('parenting_feed', {
           p_family: context.family.id,
           p_category: category,
           p_sort: sort,
@@ -103,8 +103,19 @@ export async function CommunityHub({
             ? { p_before_id: query.beforeId }
             : {}),
         })
-      : null;
-  if (feed?.error) throw Error('Community feed unavailable');
+      : null,
+    canReadFeed && !query.before && (category !== 'all' || sort !== 'all')
+      ? context.db
+          .rpc('parenting_feed', { p_family: context.family.id })
+          .select('id')
+          .limit(5)
+      : null,
+  ]);
+  if (feed?.error || welcomeFeed?.error)
+    throw Error('Community feed unavailable');
+  // Filtered or popular lists must not bring back a mature neighborhood's welcome.
+  const welcomePostCount = (welcomeFeed ?? feed)?.data?.length ?? 0;
+  const showWelcome = posts && !query.before && welcomePostCount < 5;
   return (
     <section
       className={`community-hub parenting-community${!posts && hasResidence ? ' parenting-playground' : ''}`}
@@ -197,7 +208,7 @@ export async function CommunityHub({
             <CommunityWelcome
               neighborhood={context.family.residence_locality!}
               locale={locale}
-              expanded={!feed?.data?.length}
+              expanded={welcomePostCount === 0}
               founders={board?.founders ?? []}
               reopened={board?.reopened ?? false}
             />
