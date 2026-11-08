@@ -69,6 +69,7 @@ export function QuickCare({
   timezone,
   today,
   birthDate,
+  now,
   privacy,
 }: {
   locale: Locale;
@@ -79,6 +80,7 @@ export function QuickCare({
   timezone: string;
   today: string;
   birthDate: string;
+  now: string;
   privacy: { health: boolean; publicSharing: boolean };
 }) {
   const c = quickCopy(locale),
@@ -103,16 +105,26 @@ export function QuickCare({
   const visible = todayEntries(entries, today, timezone);
   const active = visible.filter((e) => e.running);
   useEffect(() => {
-    const checkDay = () => {
-      if (dateInTimeZone(new Date(), timezone) !== today) router.refresh();
+    let lastRefresh = Date.now();
+    const refreshSharedCare = () => {
+      if (
+        document.visibilityState !== 'visible' ||
+        document.querySelector('dialog[open]')
+      )
+        return;
+      if (Date.now() - lastRefresh < 10000) return;
+      lastRefresh = Date.now();
+      router.refresh();
     };
-    const timer = window.setInterval(checkDay, 60000);
-    window.addEventListener('focus', checkDay);
+    const timer = window.setInterval(refreshSharedCare, 60000);
+    window.addEventListener('focus', refreshSharedCare);
+    document.addEventListener('visibilitychange', refreshSharedCare);
     return () => {
       window.clearInterval(timer);
-      window.removeEventListener('focus', checkDay);
+      window.removeEventListener('focus', refreshSharedCare);
+      document.removeEventListener('visibilitychange', refreshSharedCare);
     };
-  }, [today, timezone, router]);
+  }, [today, router]);
   const close = () => {
     if (!busy) setSelection(null);
   };
@@ -279,6 +291,7 @@ export function QuickCare({
             today={today}
             timezone={timezone}
             entries={visible}
+            now={now}
             disabled={busy || selection !== null}
           >
             {(history, selectedDay) => (

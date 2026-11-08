@@ -1826,6 +1826,7 @@ isOneToOne: false
 "parenting_comment_replies":
 { Args: { "p_after"?: string,"p_after_id"?: string,"p_comment": string }; Returns: Json
                            },
+"neighborhood_board_status": { Args: { p_family: string }; Returns: Json },
 "parenting_feed":
 { Args: { "p_before"?: string,"p_before_id"?: string,"p_before_score"?: number,"p_category"?: string,"p_family": string,"p_query"?: string,"p_sort"?: string }; Returns: {
               "area_label": string,"author_identity": Json,"body": string,"category": string,"comments": number,"created_at": string,"id": string,"likes": number,"mine": boolean,"photo_ids": (string)[],"rank_score": number,"title": string,"views": number

@@ -1,4 +1,6 @@
-import { InviteShare } from '@/features/family/invite-share';
+import { InstallEntry } from '@/features/install/install-entry';
+import { InstallContent } from '@/features/install/install-content';
+import { DirectFamilyInvite } from '@/features/family/direct-invite';
 import { ServiceInvite } from '@/features/community/service-invite';
 import { serviceContacts } from '@/lib/contacts';
 import { DeveloperRequestForm } from '@/features/developer-requests/form';
@@ -14,12 +16,12 @@ import {
 import { AccountInstallGuide } from '@/features/install/account-guide';
 import { NotificationSettings } from '@/features/notifications/settings';
 import { ChildIcon } from '@/components/child-icon';
+import { TopbarChildPicker } from '@/components/topbar-child-picker';
 import { ChildSexField } from '@/features/family/sex-field';
 import residenceCountries from '@/features/family/countries.json';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import {
-  Check,
   Settings as SettingsIcon,
   MapPin,
   Languages,
@@ -41,7 +43,6 @@ import {
 import { ResidenceForm } from '@/features/family/residence-form';
 import { LastCare } from '@/features/care/last-care';
 import {
-  createInvite,
   revoke,
   saveBirthDate,
   saveChildDetails,
@@ -49,7 +50,6 @@ import {
 } from '@/features/family/actions';
 import { SocialButtons } from '@/components/social-buttons';
 import { logout, unlinkIdentity } from '@/features/auth/actions';
-import { cookies } from 'next/headers';
 function Hidden({ locale, childId }: { locale: Locale; childId: string }) {
   return (
     <>
@@ -95,7 +95,9 @@ export async function Today({ context, locale }: Props) {
   ] = await Promise.all([
     context.db
       .from('care_records')
-      .select('id,kind,started_at,ended_at,amount_ml,timer_started')
+      .select(
+        'id,kind,started_at,ended_at,amount_ml,timer_started,created_by,note',
+      )
       .eq('child_id', child.id)
       .in('kind', ['breast', 'formula', 'solids'])
       .lte('started_at', now)
@@ -105,7 +107,7 @@ export async function Today({ context, locale }: Props) {
       .maybeSingle(),
     context.db
       .from('child_records')
-      .select('id,kind,occurred_at,ended_at')
+      .select('id,kind,occurred_at,ended_at,created_by,note')
       .eq('child_id', child.id)
       .eq('service', 'diaper')
       .lte('occurred_at', now)
@@ -115,7 +117,7 @@ export async function Today({ context, locale }: Props) {
       .maybeSingle(),
     context.db
       .from('child_records')
-      .select('id,kind,occurred_at,ended_at')
+      .select('id,kind,occurred_at,ended_at,created_by,note')
       .eq('child_id', child.id)
       .eq('service', 'sleep')
       .lte('occurred_at', now)
@@ -128,28 +130,55 @@ export async function Today({ context, locale }: Props) {
   ]);
   if (feedingResult.error || diaperResult.error || sleepResult.error)
     throw new Error('Latest care unavailable');
+  const activeFeeding = quickEntries.find(
+    (entry) =>
+      entry.source === 'feeding' && entry.running && entry.startedAt <= now,
+  );
   const activeSleep = quickEntries.find(
     (entry) =>
       entry.service === 'sleep' && entry.running && entry.startedAt <= now,
   );
-  const latestSleep = activeSleep
-    ? {
-        id: activeSleep.id,
-        kind: activeSleep.kind,
-        occurred_at: activeSleep.startedAt,
-        ended_at: null,
-      }
-    : sleepResult.data;
+  const latestSleep = activeSleep?.childRecord ?? sleepResult.data;
+  const caregivers = context.caregivers.map((caregiver) => ({
+    id: caregiver.user_id,
+    relationship: context.members.find(
+      (member) => member.user_id === caregiver.user_id,
+    )?.relationship,
+  }));
+  const childOptions = context.children.map((item) => ({
+    id: item.id,
+    name: item.name,
+    sex: item.sex,
+    age: `D+${ageInDays(item.birth_date, today)}`,
+    href: `/${locale}/today?child=${item.id}`,
+  }));
   return (
     <>
       <h1 className="visually-hidden">{t('today')}</h1>
       <LastCare
         locale={locale}
-        timezone={timezone}
-        feeding={feedingResult.data}
+        feeding={activeFeeding?.feedingRecord ?? feedingResult.data}
         diaper={diaperResult.data}
         sleep={latestSleep}
         now={now}
+        caregivers={caregivers}
+        childPicker={
+          <TopbarChildPicker
+            key={child.id}
+            current={childOptions.find((item) => item.id === child.id)!}
+            options={childOptions}
+            label={t('childSelect')}
+          />
+        }
+        inviteAction={
+          context.owner ? (
+            <DirectFamilyInvite
+              key={child.id}
+              childId={child.id}
+              locale={locale}
+            />
+          ) : undefined
+        }
       />
       <QuickCare
         privacy={context.privacy}
@@ -159,6 +188,7 @@ export async function Today({ context, locale }: Props) {
         childId={child.id}
         entries={quickEntries}
         recentAmounts={recentAmounts}
+        now={now}
         writable={context.writable}
         timezone={timezone}
         today={today}
@@ -202,16 +232,6 @@ export async function Family({
       />
     </>
   );
-  const { data: invitations } =
-    owner && manage
-      ? await context.db
-          .from('invitations')
-          .select('id,role,expires_at,accepted_at,revoked_at')
-          .eq('family_id', child.family_id)
-          .order('expires_at', { ascending: false })
-      : { data: [] };
-  const token = (await cookies()).get('podung_invite')?.value;
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://127.0.0.1:3187';
   return (
     <>
       {!embedded && <PageHeading title={t('family')} subtitle={t('tagline')} />}
@@ -275,7 +295,12 @@ export async function Family({
                           ?.display_name ?? t('otherChildMember'))}
                   </strong>
                   <span>
-                    {relationshipLabel(m.relationship, locale)} · {t(m.role)}
+                    {relationshipLabel(m.relationship, locale)} ·{' '}
+                    {m.role === 'owner'
+                      ? t('owner')
+                      : locale === 'ko'
+                        ? '참여 가족'
+                        : 'Family member'}
                   </span>
                 </div>
                 {owner && m.role !== 'owner' && (
@@ -288,47 +313,20 @@ export async function Family({
                       type="hidden"
                       value={child.family_id}
                     />
-                    <ConfirmButton label={t('revoke')} message={t('revoke')} />
+                    <ConfirmButton
+                      label={
+                        locale === 'ko' ? '가족에서 제거' : 'Remove from family'
+                      }
+                      message={
+                        locale === 'ko'
+                          ? '이 가족에서 제거할까요? 기존 기록과 상대방 계정은 삭제되지 않으며, 이 가족의 기록에는 더 이상 접근할 수 없어요.'
+                          : 'Remove this member? Their account and existing records will remain, but access to this family’s records will end.'
+                      }
+                    />
                   </form>
                 )}
               </div>
             ))}
-          </section>
-        )}
-        {owner && manage && (
-          <section className="panel">
-            <h2>{t('invite')}</h2>
-            <p>{t('inviteSub')}</p>
-            <form action={createInvite} className="form-stack">
-              {formReturn}
-              <Hidden locale={locale} childId={child.id} />
-              <label>
-                {t('role')}
-                <select name="role">
-                  <option value="editor">{t('editor')}</option>
-                  <option value="viewer">{t('viewer')}</option>
-                </select>
-              </label>
-              <button className="button primary">{t('createInvite')}</button>
-            </form>
-            {token && (
-              <div className="invite-result">
-                <label>
-                  {t('inviteLink')}
-                  <input
-                    aria-label={t('inviteLink')}
-                    readOnly
-                    value={`${origin}/${locale}/invite/${token}`}
-                  />
-                </label>
-                <InviteShare
-                  key={token}
-                  locale={locale}
-                  url={`${origin}/${locale}/invite/${token}`}
-                />
-                <p>{t('inviteExpiry')}</p>
-              </div>
-            )}
           </section>
         )}
         {(context.writable || editableChildren?.length) &&
@@ -400,42 +398,6 @@ export async function Family({
           </section>
         )}
       </div>
-      {owner && manage && (
-        <section className="panel">
-          <h2>{t('invitations')}</h2>
-          {invitations?.map((i) => (
-            <div className="invitation-row" key={i.id}>
-              <span className="badge">
-                {t(
-                  i.revoked_at
-                    ? 'revoked'
-                    : i.accepted_at
-                      ? 'accepted'
-                      : 'pending',
-                )}
-              </span>
-              <span>
-                {t(i.role)} · {t('expires')}:{' '}
-                {formatTime(i.expires_at, locale, context.timezone)}
-              </span>
-              {!i.accepted_at && !i.revoked_at && (
-                <form action={revoke}>
-                  {formReturn}
-                  <Hidden locale={locale} childId={child.id} />
-                  <input type="hidden" name="id" value={i.id} />
-                  <input
-                    type="hidden"
-                    name="familyId"
-                    value={child.family_id}
-                  />
-                  <input type="hidden" name="kind" value="invite" />
-                  <ConfirmButton label={t('revoke')} message={t('revoke')} />
-                </form>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
     </>
   );
 }
@@ -443,26 +405,33 @@ export async function ChildAccount({
   context,
   locale,
   panel,
-}: Props & { panel?: string }) {
+  showInstallGuide = true,
+}: Props & { panel?: string; showInstallGuide?: boolean }) {
   const ko = locale === 'ko';
   const t = await getTranslations();
   const { child } = context;
-  const [owned, serviceAdmin] = await Promise.all([
+  const [owned, serviceAdmin, appIcon] = await Promise.all([
     context.db
       .from('family_members')
       .select('family_id')
       .eq('user_id', context.user.id)
       .eq('role', 'owner'),
     context.db.rpc('is_service_admin'),
+    context.db
+      .from('child_app_icons')
+      .select('token')
+      .eq('child_id', child.id)
+      .maybeSingle(),
   ]);
-  if (owned.error) throw new Error('Child settings unavailable');
+  if (owned.error || appIcon.error)
+    throw new Error('Child settings unavailable');
   const editableChildren = context.children.filter((item) =>
     owned.data.some((family) => family.family_id === item.family_id),
   );
 
   return (
     <div className="child-account-page">
-      {!context.profile.install_guide_seen_at && (
+      {showInstallGuide && !context.profile.install_guide_seen_at && (
         <AccountInstallGuide
           key={context.user.id}
           locale={locale}
@@ -474,50 +443,28 @@ export async function ChildAccount({
           locale={locale}
           url={`${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://podoong.com'}/${locale}/intro`}
         />
-        <section
-          className="panel account-children"
-          aria-label={t('childSelect')}
-        >
-          <h2>{t('childSelect')}</h2>
-          <div className="account-child-list">
-            {context.children.map((item) => (
-              <Link
-                key={item.id}
-                href={`/${locale}/account?child=${item.id}`}
-                replace
-                aria-current={item.id === child.id ? 'true' : undefined}
-              >
-                <span className="account-child-icon">
-                  <ChildIcon sex={item.sex} size={22} />
-                </span>
-                <span>
-                  <strong>{item.name}</strong>
-                  <small>
-                    {t('days', {
-                      days: ageInDays(item.birth_date, context.today),
-                    })}
-                  </small>
-                </span>
-                {item.id === child.id && <Check size={18} aria-hidden="true" />}
-              </Link>
-            ))}
-          </div>
-        </section>
+        <InstallEntry locale={locale} child={child.id}>
+          <InstallContent
+            locale={locale}
+            child={child.id}
+            token={appIcon.data?.token}
+            owner={context.owner}
+            inline
+          />
+        </InstallEntry>
+        {context.owner && (
+          <section className="panel account-primary-item settings-family-invite">
+            <DirectFamilyInvite
+              key={child.id}
+              childId={child.id}
+              locale={locale}
+              placement="settings"
+            />
+          </section>
+        )}
+
         <details
-          className="panel account-settings-section"
-          open={panel === 'join'}
-        >
-          <summary>
-            <Users size={18} />
-            <span>
-              {ko ? '기존 가족에 참여하기' : 'Join an existing family'}
-            </span>
-            <ChevronRight size={16} />
-          </summary>
-          <FamilyJoinEntry locale={locale} settings />
-        </details>
-        <details
-          className="panel account-settings-section"
+          className="panel account-settings-section account-primary-item"
           open={panel === 'language'}
         >
           <summary>
@@ -533,7 +480,7 @@ export async function ChildAccount({
           />
         </details>
         <details
-          className="panel account-settings-section"
+          className="panel account-settings-section account-primary-item"
           open={panel === 'appearance'}
         >
           <summary>
@@ -544,18 +491,7 @@ export async function ChildAccount({
           <AppearanceSettings locale={locale} />
         </details>
         <details
-          className="panel account-settings-section"
-          open={panel === 'account'}
-        >
-          <summary>
-            <SettingsIcon size={18} />
-            <span>{ko ? '계정 설정' : 'Account settings'}</span>
-            <ChevronRight size={16} />
-          </summary>
-          <Settings context={context} locale={locale} embedded mode="account" />
-        </details>
-        <details
-          className="panel account-settings-section"
+          className="panel account-settings-section account-primary-item"
           open={panel === 'notifications'}
         >
           <summary>
@@ -566,22 +502,134 @@ export async function ChildAccount({
           <NotificationSettings context={context} locale={locale} />
         </details>
         <details
-          className="panel account-settings-section"
-          open={panel === 'developer'}
+          className="panel account-settings-section account-primary-item account-primary-account"
+          open={['account', 'data'].includes(panel ?? '')}
         >
           <summary>
-            <MessageSquarePlus size={18} />
-            <span>{ko ? '개발자에게 요청하기' : 'Contact the developer'}</span>
+            <SettingsIcon size={18} />
+            <span>{ko ? '계정 설정' : 'Account settings'}</span>
             <ChevronRight size={16} />
           </summary>
-          <DeveloperRequestForm
-            locale={locale}
-            initialId={crypto.randomUUID()}
-          />
+          <Settings context={context} locale={locale} embedded mode="account" />
+          <DataSettings context={context} locale={locale} panel={panel} />
         </details>
+        {editableChildren.length > 0 && (
+          <section
+            className="account-management-settings"
+            aria-label={ko ? '가족 관리' : 'Family management'}
+          >
+            <h2 className="account-group-title">
+              {ko ? '가족 관리' : 'Family management'}
+              <small>{ko ? '가족관리자 전용' : 'Family admin only'}</small>
+            </h2>
+            {context.owner && (
+              <details
+                className="panel account-settings-section"
+                open={panel === 'join'}
+              >
+                <summary>
+                  <Users size={18} />
+                  <span>
+                    {ko ? '기존 가족에 참여하기' : 'Join an existing family'}
+                  </span>
+                  <ChevronRight size={16} />
+                </summary>
+                <FamilyJoinEntry locale={locale} settings />
+              </details>
+            )}
+            {editableChildren.length > 0 && (
+              <>
+                <details
+                  className="panel account-settings-section"
+                  open={panel === 'child' || panel === 'add'}
+                >
+                  <summary>
+                    <ChildIcon sex={child.sex} size={18} />
+                    <span>
+                      {ko ? '아이 설정' : 'Child settings'}
+                      <small className="account-admin-badge">
+                        {ko ? '가족관리자 전용' : 'Admin only'}
+                      </small>
+                    </span>
+                    <ChevronRight size={16} />
+                  </summary>
+
+                  {editableChildren.length > 0 && (
+                    <>
+                      <Family
+                        context={context}
+                        locale={locale}
+                        embedded
+                        mode="child"
+                        editableChildren={editableChildren}
+                      />
+                    </>
+                  )}
+                  {context.owner && (
+                    <>
+                      <h3>{t('newChild')}</h3>
+                      <Family
+                        context={context}
+                        locale={locale}
+                        embedded
+                        mode="add"
+                      />
+                    </>
+                  )}
+                </details>
+              </>
+            )}
+            {context.owner && (
+              <>
+                <details
+                  className="panel account-settings-section"
+                  open={panel === 'residence'}
+                >
+                  <summary>
+                    <MapPin size={18} />
+                    <span>
+                      {ko ? '주소 설정' : 'Address settings'}
+                      <small className="account-admin-badge">
+                        {ko ? '가족관리자 전용' : 'Admin only'}
+                      </small>
+                    </span>
+                    <ChevronRight size={16} />
+                  </summary>
+                  <Family
+                    context={context}
+                    locale={locale}
+                    embedded
+                    mode="residence"
+                  />
+                </details>
+                <details
+                  className="panel account-settings-section"
+                  open={panel === 'family'}
+                >
+                  <summary>
+                    <Users size={18} />
+                    <span>
+                      {ko ? '가족 설정' : 'Family settings'}
+                      <small className="account-admin-badge">
+                        {ko ? '가족관리자 전용' : 'Admin only'}
+                      </small>
+                    </span>
+                    <ChevronRight size={16} />
+                  </summary>
+                  <Family
+                    context={context}
+                    locale={locale}
+                    embedded
+                    mode="management"
+                  />
+                </details>
+              </>
+            )}
+          </section>
+        )}
         <details
-          className="panel account-settings-section"
-          open={panel === 'service'}
+          className="panel account-settings-section account-primary-item account-primary-service"
+          open={panel === 'service' || panel === 'developer'}
         >
           <summary>
             <FileText size={18} />
@@ -626,107 +674,24 @@ export async function ChildAccount({
               </a>
             </p>
           </div>
+          <details
+            className="panel account-settings-section"
+            open={panel === 'developer'}
+          >
+            <summary>
+              <MessageSquarePlus size={18} />
+              <span>
+                {ko ? '개발자에게 요청하기' : 'Contact the developer'}
+              </span>
+              <ChevronRight size={16} />
+            </summary>
+            <DeveloperRequestForm
+              locale={locale}
+              initialId={crypto.randomUUID()}
+            />
+          </details>
         </details>
-        {editableChildren.length > 0 && (
-          <>
-            <details
-              className="panel account-settings-section"
-              open={panel === 'child' || panel === 'add'}
-            >
-              <summary>
-                <ChildIcon sex={child.sex} size={18} />
-                <span>
-                  {ko ? '아이 설정' : 'Child settings'}
-                  <small className="account-admin-badge">
-                    {ko ? '가족관리자 전용' : 'Admin only'}
-                  </small>
-                </span>
-                <ChevronRight size={16} />
-              </summary>
-
-              {editableChildren.length > 0 && (
-                <>
-                  <Family
-                    context={context}
-                    locale={locale}
-                    embedded
-                    mode="child"
-                    editableChildren={editableChildren}
-                  />
-                </>
-              )}
-              {context.owner && (
-                <>
-                  <h3>{t('newChild')}</h3>
-                  <Family
-                    context={context}
-                    locale={locale}
-                    embedded
-                    mode="add"
-                  />
-                </>
-              )}
-            </details>
-          </>
-        )}
-        {context.owner && (
-          <>
-            <details
-              className="panel account-settings-section"
-              open={panel === 'residence'}
-            >
-              <summary>
-                <MapPin size={18} />
-                <span>
-                  {ko ? '주소 설정' : 'Address settings'}
-                  <small className="account-admin-badge">
-                    {ko ? '가족관리자 전용' : 'Admin only'}
-                  </small>
-                </span>
-                <ChevronRight size={16} />
-              </summary>
-              <Family
-                context={context}
-                locale={locale}
-                embedded
-                mode="residence"
-              />
-            </details>
-            <details
-              className="panel account-settings-section"
-              open={panel === 'family'}
-            >
-              <summary>
-                <Users size={18} />
-                <span>
-                  {ko ? '보호자 설정' : 'Caregiver settings'}
-                  <small className="account-admin-badge">
-                    {ko ? '가족관리자 전용' : 'Admin only'}
-                  </small>
-                </span>
-                <ChevronRight size={16} />
-              </summary>
-              <Family
-                context={context}
-                locale={locale}
-                embedded
-                mode="management"
-              />
-            </details>
-          </>
-        )}
-        <DataSettings context={context} locale={locale} panel={panel} />
       </div>
-      <section className="panel settings-install">
-        <Link
-          className="button secondary"
-          href={`/${locale}/install?child=${context.child.id}`}
-        >
-          {ko
-            ? '아이 사진으로 홈 화면에 추가'
-            : 'Install with your child’s photo'}
-        </Link>
-      </section>
     </div>
   );
 }
@@ -751,7 +716,7 @@ export async function Settings({
           >
             {locale === 'ko'
               ? '아이 사진으로 홈 화면에 추가'
-              : 'Install with your child’s photo'}
+              : 'Add to Home Screen'}
           </Link>
         </section>
       )}

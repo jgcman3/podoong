@@ -23,7 +23,7 @@ export async function loadQuickDay(input: {
   const entries = await loadQuickTimeline(context, day);
   return {
     ok: true as const,
-    entries: entries.filter((entry) => !entry.running),
+    entries: entries.filter((entry) => !entry.running || entry.service === 'sleep'),
     writable: context.writable,
   };
 }

@@ -1238,3 +1238,19 @@ body:has(.parenting-post-page) .app-footer {
   font-size: 14px;
   line-height: 1.6;
 }
+
+.neighborhood-opening { max-width: 470px; margin: 30px auto; padding: 28px 20px; text-align: center; }
+.neighborhood-opening-icon { display: inline-grid; place-items: center; width: 68px; height: 68px; border-radius: 24px; color: #708966; background: #eef3e9; }
+.neighborhood-opening-place { color: var(--muted); font-size: 12px; margin: 16px 0 8px; }
+.neighborhood-opening h2 { font-size: 20px; line-height: 1.5; margin: 0 0 12px; }
+.neighborhood-opening > p:not(.neighborhood-opening-place) { font-size: 14px; line-height: 1.8; color: var(--muted); }
+.neighborhood-opening-progress { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 22px 0; }
+.neighborhood-opening-progress span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--bg); filter: grayscale(1); opacity: .3; }
+.neighborhood-opening-progress span[data-joined='true'] { background: #eef3e9; filter: none; opacity: 1; }
+.neighborhood-opening-progress small { margin-left: 8px; color: var(--muted); }
+.neighborhood-opening > .button { display: inline-flex; gap: 8px; justify-content: center; max-width: 100%; font-size: 13px; }
+@media(max-width:600px) { .neighborhood-opening { margin: 18px auto; padding: 24px 12px; } .neighborhood-opening h2 {font-size: 19px;} }
+
+.neighborhood-opened-notice { display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; margin: 10px 0; border-radius: 14px; background: #eef3e9; color: #445e43; }
+.neighborhood-opened-notice p { margin: 0; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.neighborhood-opened-notice small { display: block; color: #6d7d69; font-size: 11px; margin-top: 4px; }

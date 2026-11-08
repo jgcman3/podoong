@@ -12,6 +12,7 @@ insert into families(id,name,residence_country_code,residence_province,residence
 ('b9670000-0000-4000-8000-000000000005','Fixture','KR',null,'서울특별시 강남구','논현동');
 insert into family_members(family_id,user_id,role,relationship) select ('b9670000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,('a9670000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,'owner','father' from generate_series(1,5)i;
 insert into children(id,family_id,name,birth_date,sex) select ('c9670000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,('b9670000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,'Fixture child',current_date,'female' from generate_series(1,5)i;
+\ir support/open-neighborhoods.inc
 select set_config('request.jwt.claims','{"sub":"a9670000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 set local role authenticated;
 select save_parenting_post('b9670000-0000-4000-8000-000000000001','play','산책 후기','유모차로 가기 좋아요',p_id=>'c9830000-0000-4000-8000-000000000001',p_child=>'c9670000-0000-4000-8000-000000000001');

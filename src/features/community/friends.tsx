@@ -34,15 +34,7 @@ export async function NeighborhoodFriends({
         </form>
       </section>
     );
-  const [world, profile] = await Promise.all([
-    loadPlayground(context),
-    context.db
-      .from('parenting_friend_profiles')
-      .select('status')
-      .eq('child_id', context.child.id)
-      .maybeSingle(),
-  ]);
-  if (profile.error) throw Error('Neighborhood profile unavailable');
+  const world = await loadPlayground(context);
   const displayName = publicChildName(context.family.name, context.child.name);
   return (
     <section
@@ -50,7 +42,7 @@ export async function NeighborhoodFriends({
       aria-label={ko ? '동네 친구들' : 'Neighborhood friends'}
     >
       <FriendWorld
-        key={`${context.child.id}:${world.day}:${displayName}:${profile.data?.status}`}
+        key={`${context.child.id}:${world.day}:${displayName}:${world.own.status}`}
         initial={world}
         childId={context.child.id}
         locale={locale}
@@ -65,7 +57,7 @@ export async function NeighborhoodFriends({
                   aria-label={ko ? '한 줄 상태' : 'Status'}
                   name="status"
                   maxLength={80}
-                  defaultValue={profile.data?.status ?? ''}
+                  defaultValue={world.own.status}
                   placeholder={
                     ko ? '오늘의 한 줄 상태' : 'A little update for today'
                   }

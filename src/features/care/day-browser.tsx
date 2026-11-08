@@ -6,7 +6,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, Moon, ChevronDown } from 'lucide-react';
+import { dailySleepTotals } from './daily-sleep';
+import { formatCareDuration } from '@/lib/duration';
 import { ageInDays, type Locale } from '@/lib/domain';
 import {
   dailyFeedingTotals,
@@ -41,6 +43,7 @@ export function DayBrowser({
   disabled,
   children,
   change,
+  now: initialNow,
 }: {
   locale: Locale;
   childId: string;
@@ -50,9 +53,22 @@ export function DayBrowser({
   entries: QuickEntry[];
   disabled: boolean;
   change: HistoryChange;
+  now: string;
   children: (entries: QuickEntry[], day: string) => ReactNode;
 }) {
   const [past, setPast] = useState<HistoryDay[]>([]);
+  const [clock, setClock] = useState(() => Date.parse(initialNow));
+  useEffect(() => {
+    const update = () => {
+      if (document.visibilityState === 'visible') setClock(Date.now());
+    };
+    const timer = window.setInterval(update, 30000);
+    window.addEventListener('focus', update);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', update);
+    };
+  }, []);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [refreshAttempt, setRefreshAttempt] = useState(0);
@@ -158,6 +174,12 @@ export function DayBrowser({
         const { day } = item;
         const history = item.entries.filter((entry) => !entry.running);
         const totals = dailyFeedingTotals(history, day, timezone);
+        const sleep = dailySleepTotals(
+          item.entries,
+          day,
+          timezone,
+          Math.max(clock, Date.parse(initialNow)),
+        );
         const number = new Intl.NumberFormat(locale, {
           maximumFractionDigits: 2,
         });
@@ -186,38 +208,87 @@ export function DayBrowser({
                   </span>
                 </h3>
               </div>
-              <div
-                className="quick-day-total"
-                aria-label={
-                  ko
-                    ? '기록된 분유와 이유식 섭취량'
-                    : 'Recorded formula and solids volume'
-                }
-              >
-                <strong>
-                  {ko ? '총 ' : 'Total '}
-                  {number.format(totals.total)} ml
-                </strong>
-                <span>
-                  (
+              <details className="quick-day-summary">
+                <summary
+                  className="quick-day-totals-trigger"
+                  aria-label={
+                    ko
+                      ? '식사량과 수면시간 상세 보기'
+                      : 'Feeding and sleep details'
+                  }
+                >
                   <span
-                    className="feeding-amount-formula"
-                    aria-label={`${ko ? '분유' : 'Formula'} ${number.format(totals.formula)} ml`}
-                    title={ko ? '분유' : 'Formula'}
+                    className="quick-day-total"
+                    aria-label={
+                      ko
+                        ? '기록된 분유와 이유식 섭취량'
+                        : 'Recorded formula and solids volume'
+                    }
                   >
-                    {number.format(totals.formula)}
-                  </span>{' '}
-                  +{' '}
-                  <span
-                    className="feeding-amount-solids"
-                    aria-label={`${ko ? '이유식' : 'Solids'} ${number.format(totals.solids)} ml`}
-                    title={ko ? '이유식' : 'Solids'}
-                  >
-                    {number.format(totals.solids)}
+                    <strong>
+                      <span className="quick-volume-prefix">
+                        {ko ? '총 ' : 'Total '}
+                      </span>
+                      {number.format(totals.total)} ml
+                    </strong>
+                    <span>
+                      (
+                      <span
+                        className="feeding-amount-formula"
+                        aria-label={`${ko ? '분유' : 'Formula'} ${number.format(totals.formula)} ml`}
+                        title={ko ? '분유' : 'Formula'}
+                      >
+                        {number.format(totals.formula)}
+                      </span>{' '}
+                      +{' '}
+                      <span
+                        className="feeding-amount-solids"
+                        aria-label={`${ko ? '이유식' : 'Solids'} ${number.format(totals.solids)} ml`}
+                        title={ko ? '이유식' : 'Solids'}
+                      >
+                        {number.format(totals.solids)}
+                      </span>
+                      )
+                    </span>
                   </span>
-                  )
-                </span>
-              </div>
+                  <span
+                    className="quick-day-sleep"
+                    aria-label={
+                      ko
+                        ? '00시 기준 기록된 수면 시간'
+                        : 'Recorded sleep since midnight'
+                    }
+                  >
+                    <Moon size={12} aria-hidden="true" />
+                    <span>{ko ? '수면' : 'Sleep'}</span>
+                    <strong>{formatCareDuration(sleep.total, locale)}</strong>
+                  </span>
+                  <ChevronDown size={11} className="quick-day-totals-chevron" aria-hidden="true" />
+                </summary>
+                <div className="quick-day-total-details">
+                  <strong>
+                    {ko
+                      ? '00시 기준 기록 합계'
+                      : 'Recorded totals since midnight'}
+                  </strong>
+                  <span>
+                    {ko ? '분유' : 'Formula'}{' '}
+                    <b>{number.format(totals.formula)} ml</b>
+                  </span>
+                  <span>
+                    {ko ? '이유식' : 'Solids'}{' '}
+                    <b>{number.format(totals.solids)} ml</b>
+                  </span>
+                  <span>
+                    {ko ? '낮잠' : 'Naps'}{' '}
+                    <b>{formatCareDuration(sleep.nap, locale)}</b>
+                  </span>
+                  <span>
+                    {ko ? '밤잠' : 'Night sleep'}{' '}
+                    <b>{formatCareDuration(sleep.night, locale)}</b>
+                  </span>
+                </div>
+              </details>
             </div>
             <div className="quick-day-content">{children(history, day)}</div>
           </section>

@@ -11,6 +11,7 @@ insert into families(id,name,residence_country_code,residence_province,residence
 ('b9670000-0000-4000-8000-000000000004','Fixture','US','California','San Francisco','Downtown'),
 ('b9670000-0000-4000-8000-000000000005','Fixture','KR',null,'서울특별시 강남구','논현동');
 insert into family_members(family_id,user_id,role,relationship) select ('b9670000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,('a9670000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,'owner','father' from generate_series(1,5)i;
+\ir support/open-neighborhoods.inc
 insert into neighborhood_posts(region,feature,family_id,author_id,title,body,category) select neighborhood_region(family_id),'boards',family_id,user_id,'Fixture '||right(family_id::text,1),'Fixture',case right(family_id::text,1) when '1' then 'play' when '2' then 'gear' when '3' then 'feeding' when '4' then 'travel' else 'discipline' end from family_members where family_id::text like 'b9670000-%';
 insert into children(id,family_id,name,birth_date,sex) values('c9670000-0000-4000-8000-000000000001','b9670000-0000-4000-8000-000000000001','Fixture child',current_date,'female');
 select set_config('request.jwt.claims','{"sub":"a9670000-0000-4000-8000-000000000001","role":"authenticated"}',true);
@@ -31,6 +32,7 @@ select lives_ok($$select save_parenting_post('b9670000-0000-4000-8000-0000000000
 select lives_ok($$select save_parenting_post('b9670000-0000-4000-8000-000000000001','local-market','Neighborhood sharing fixture','Fixture',p_child=>'c9670000-0000-4000-8000-000000000001')$$,'sharing and resale category can be saved');
 reset role;
 update families set residence_locality='새동네' where id='b9670000-0000-4000-8000-000000000001';
+\ir support/open-neighborhoods.inc
 insert into neighborhood_posts(region,feature,family_id,author_id,title,body,category) select neighborhood_region('b9670000-0000-4000-8000-000000000004'),'boards','b9670000-0000-4000-8000-000000000004','a9670000-0000-4000-8000-000000000004','US gear','Fixture','gear' from generate_series(1,50);
 set local role authenticated;
 select is((parenting_post_detail(:'saved')->>'area'),'서울특별시 강남구 역삼동','moving residence does not rewrite an existing post');

@@ -62,8 +62,8 @@ export function AccountInstallGuide({
         </p>
         <p>
           {ko
-            ? '설치 방법을 누르면 이 기기에 맞는 방법을 안내해 드려요. 나중에도 아이 메뉴에서 다시 볼 수 있어요.'
-            : 'Open the installation guide for steps that match this device. You can find it again in your child’s menu.'}
+            ? '설치 방법을 누르면 이 기기에 맞는 방법을 안내해 드려요. 나중에도 설정 메뉴에서 다시 볼 수 있어요.'
+            : 'Open the installation guide for steps that match this device. You can find it again in Settings.'}
         </p>
         <footer>
           <button type="button" className="button secondary" onClick={close}>

@@ -19,8 +19,10 @@ export function DiaryComposer({
   disabled,
   onSaved,
   privacy,
+  firstEntry = false,
 }: {
   privacy: { health: boolean; publicSharing: boolean };
+  firstEntry?: boolean;
   child: string;
   locale: 'ko' | 'en';
   trigger?: ReactNode;
@@ -298,6 +300,20 @@ export function DiaryComposer({
               }}
             >
               <fieldset disabled={pending || patternBusy}>
+                {!record && firstEntry && (
+                  <div className="diary-first-guide">
+                    <strong>
+                      {ko
+                        ? '사진 한 장, 한마디부터'
+                        : 'Start with a photo or a few words'}
+                    </strong>
+                    <p>
+                      {ko
+                        ? '오늘 기억하고 싶은 모습을 남겨보세요. 성장 수치는 비워도 괜찮아요.'
+                        : 'Keep one moment you want to remember today. Growth measurements are optional.'}
+                    </p>
+                  </div>
+                )}
                 <div className="diary-compose-basics">
                   <div className="diary-compose-measures">
                     {(

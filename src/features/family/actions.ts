@@ -184,32 +184,6 @@ export async function addChild(form: FormData) {
   );
 }
 
-export async function createInvite(form: FormData) {
-  const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
-  const { db } = await requireUser(locale);
-  const parsed = z
-    .object({ childId: uuid, role: z.enum(['editor', 'viewer']) })
-    .safeParse(Object.fromEntries(form));
-  if (!parsed.success) redirect(`${familyReturn(form, locale)}&error=invalid`);
-  const { data, error } = await db.rpc('create_invitation', {
-    p_child_id: parsed.data.childId,
-    p_role: parsed.data.role,
-  });
-  if (error || !data) redirect(`${familyReturn(form, locale)}&error=generic`);
-  // Carry the one-time link in a short-lived HttpOnly cookie, never persist its raw token in the DB or URL query.
-  const { cookies } = await import('next/headers');
-  (await cookies()).set('podung_invite', data, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 300,
-    path: `/${locale}/${form.get('returnPage') === 'account' ? 'account' : 'family'}`,
-  });
-  redirect(
-    `${familyReturn(form, locale)}&child=${parsed.data.childId}&notice=invite-created`,
-  );
-}
-
 export async function acceptInvite(form: FormData) {
   const locale: Locale = form.get('locale') === 'en' ? 'en' : 'ko';
   const { db } = await requireUser(locale);

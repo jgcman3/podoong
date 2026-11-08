@@ -1,7 +1,7 @@
 'use client';
 import './posts.css';
 import { useState } from 'react';
-import { Share2 } from 'lucide-react';
+import { Share2, ChevronRight } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import { PostShareSheet } from './post-share-sheet';
 
@@ -16,15 +16,22 @@ export function ServiceInvite({
   const ko = locale === 'ko';
   const heading = ko ? '포둥 소개하기' : 'Share podoong';
   return (
-    <aside className="panel service-invite">
-      <p>
-        {ko
-          ? '가까운 육아 친구와 함께해요'
-          : 'Parenting is better with friends nearby'}
-      </p>
-      <button className="button secondary" onClick={() => setOpen(true)}>
-        <Share2 size={17} aria-hidden="true" />
-        {heading}
+    <aside className="panel service-invite settings-action-card">
+      <button
+        className="settings-action-row"
+        aria-label={heading}
+        onClick={() => setOpen(true)}
+      >
+        <Share2 size={18} aria-hidden="true" />
+        <span className="settings-action-copy">
+          {heading}
+          <small className="settings-action-description">
+            {ko
+              ? '육아 친구에게 포둥을 알려주세요.'
+              : 'Introduce podoong to friends.'}
+          </small>
+        </span>
+        <ChevronRight size={16} aria-hidden="true" />
       </button>
       {open && (
         <PostShareSheet

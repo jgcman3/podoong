@@ -15,6 +15,7 @@ insert into storage.objects(bucket_id,name,metadata,created_at)
 select 'community-photos','a9670000-0000-4000-8000-000000000001/neighborhood/c9770000-0000-4000-8000-000000000001/d9770000-0000-4000-8000-000000000001'||suffix,
 '{"mimetype":"image/webp","size":100}'::jsonb,now()-interval '2 days' from unnest(array['.webp','-480.webp']) suffix;
 insert into children(id,family_id,name,birth_date,sex) values('c9670000-0000-4000-8000-000000000001','b9670000-0000-4000-8000-000000000001','Fixture child',current_date,'female');
+\ir support/open-neighborhoods.inc
 select set_config('request.jwt.claims','{"sub":"a9670000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 set local role authenticated;
 select is(save_parenting_post('b9670000-0000-4000-8000-000000000001','play','Photo post','Photo body','c9770000-0000-4000-8000-000000000001',array['d9770000-0000-4000-8000-000000000001']::uuid[],p_child=>'c9670000-0000-4000-8000-000000000001'),'c9770000-0000-4000-8000-000000000001'::uuid,'publish post with verified storage variants');

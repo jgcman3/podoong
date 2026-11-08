@@ -8,6 +8,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 export function DiaryDetail({
   note,
   reactions,
+  momentAction,
   author,
   date,
   photos,
@@ -17,6 +18,7 @@ export function DiaryDetail({
   onClose,
 }: {
   reactions?: ReactNode;
+  momentAction?: ReactNode;
   note: string;
   author?: string;
   date: string;
@@ -40,7 +42,9 @@ export function DiaryDetail({
         window.location.href,
       );
     }
-    const pop = () => closeRef.current();
+    const pop = () => {
+      if (window.history.state?.diaryDetail !== historyId) closeRef.current();
+    };
     window.addEventListener('popstate', pop);
     return () => window.removeEventListener('popstate', pop);
   }, [historyId]);
@@ -171,6 +175,7 @@ export function DiaryDetail({
         {note && <p>{note}</p>}
         {author && <p className="diary-detail-author">by {author}</p>}
         {reactions && <div className="diary-detail-reactions">{reactions}</div>}
+        {momentAction}
       </div>
     </dialog>
   );

@@ -9,7 +9,7 @@ insert into family_members(family_id,user_id,role,relationship) select ('b900000
 insert into children(id,family_id,name,birth_date,sex) select ('c9000000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,('b9000000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,'Fixture child',current_date,'female' from generate_series(1,11)i;
 select set_config('request.jwt.claims','{"sub":"a9000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 set local role authenticated;
-select lives_ok($$select parenting_feed('b9000000-0000-4000-8000-000000000001')$$,'board is immediately available without requests');
+select lives_ok($$select parenting_feed('b9000000-0000-4000-8000-000000000001')$$,'board with at least three families is available');
 select throws_ok($$select parenting_feed('b9000000-0000-4000-8000-000000000002')$$,'42501','forbidden','cannot read as another family');
 reset role;
 select set_config('request.jwt.claims','{"sub":"a9000000-0000-4000-8000-000000000010","role":"authenticated"}',true);
@@ -28,7 +28,10 @@ select set_config('request.jwt.claims','{"sub":"a9000000-0000-4000-8000-00000000
 select save_global_residence('b9000000-0000-4000-8000-000000000003','US','Massachusetts','Springfield','Downtown',0);
 select throws_ok($$select save_global_residence('b9000000-0000-4000-8000-000000000003','US','','City','Area',1)$$,'22023','region required','three overseas levels required');
 select set_config('request.jwt.claims','{"sub":"a9000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-select lives_ok($$select save_parenting_post('b9000000-0000-4000-8000-000000000001','health','State-specific post','Fixture',p_child=>'c9000000-0000-4000-8000-000000000001')$$,'foreign post needs no activation');
+reset role;
+\ir support/open-neighborhoods.inc
+set local role authenticated;
+select lives_ok($$select save_parenting_post('b9000000-0000-4000-8000-000000000001','health','State-specific post','Fixture',p_child=>'c9000000-0000-4000-8000-000000000001')$$,'foreign board with at least three families accepts posts');
 select set_config('request.jwt.claims','{"sub":"a9000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 select is((select count(*) from parenting_feed('b9000000-0000-4000-8000-000000000002')),1::bigint,'same canonical foreign place shares posts');
 select set_config('request.jwt.claims','{"sub":"a9000000-0000-4000-8000-000000000003","role":"authenticated"}',true);

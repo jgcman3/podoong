@@ -1,5 +1,6 @@
 'use client';
 import './playground.css';
+import dynamic from 'next/dynamic';
 import {
   memo,
   useEffect,
@@ -21,6 +22,11 @@ import {
   type Playground,
   type WorldMember,
 } from './friend-world-model';
+
+const PostShareSheet = dynamic(
+  () => import('./post-share-sheet').then((module) => module.PostShareSheet),
+  { ssr: false },
+);
 
 function SideScenery() {
   return (
@@ -83,11 +89,23 @@ export function FriendWorld({
   statusEditor?: ReactNode;
 }) {
   const ko = locale === 'ko';
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const inviteButton = useRef<HTMLButtonElement>(null);
+  const statusEditorRef = useRef<HTMLDivElement>(null);
+  const statusDay = useRef(initial.day);
   const [world, setWorld] = useState(initial),
     [members, setMembers] = useState(initial.members),
     [width, setWidth] = useState(360),
     [camera, setCamera] = useState(initial.own.x),
     [selected, setSelected] = useState(initial.own.id);
+  useEffect(() => {
+    if (statusDay.current === world.day) return;
+    statusDay.current = world.day;
+    const input = statusEditorRef.current?.querySelector<HTMLInputElement>(
+      'input[name="status"]',
+    );
+    if (input) input.value = world.own.status;
+  }, [world.day, world.own.status]);
   const viewport = useRef<HTMLDivElement>(null),
     worldRef = useRef(initial),
     loaded = useRef({ left: initial.left, right: initial.right }),
@@ -412,6 +430,53 @@ export function FriendWorld({
           {ko ? `출석 ${world.population}명` : `${world.population} here today`}
         </span>
       </header>
+      {world.first_family && (
+        <aside className="world-welcome">
+          <div>
+            <strong>
+              {ko ? '우리 동네 첫 가족이에요' : 'You’re the first family here'}
+            </strong>
+            <p>
+              {ko
+                ? '가까이 사는 육아 친구를 초대해 함께 만나요.'
+                : 'Invite a parenting friend nearby to join you.'}
+            </p>
+          </div>
+          <button
+            ref={inviteButton}
+            type="button"
+            className="button secondary"
+            onClick={() =>
+              setInviteUrl(
+                new URL(`/${locale}/intro`, window.location.origin).href,
+              )
+            }
+          >
+            {ko ? '친구 초대하기' : 'Invite a friend'}
+          </button>
+        </aside>
+      )}
+      {inviteUrl && (
+        <PostShareSheet
+          locale={locale}
+          url={inviteUrl}
+          title={
+            ko
+              ? '우리 동네 육아 친구로 만나요 · 포둥'
+              : 'Meet your parenting neighbors · podoong'
+          }
+          heading={ko ? '친구 초대하기' : 'Invite a friend'}
+          text={
+            ko
+              ? '포둥에서 육아 기록을 남기고 우리 동네 놀이터에서도 함께 만나요!'
+              : 'Keep care records on podoong and meet in our neighborhood playground!'
+          }
+          close={() => {
+            setInviteUrl(null);
+            inviteButton.current?.focus();
+          }}
+        />
+      )}
       <div className="friend-world side-world">
         <MemoScenery />
         <button
@@ -488,7 +553,7 @@ export function FriendWorld({
             {player(world.own, true)}
           </div>
         </div>
-        <div className="world-status-editor">
+        <div className="world-status-editor" ref={statusEditorRef}>
           {statusEditor}
           <FriendInbox
             key={`${childId}:${world.day}`}

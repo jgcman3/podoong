@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { z } from 'zod';
+import { NeighborhoodOpening } from './neighborhood-opening';
 import { cookies } from 'next/headers';
 import { feedPreference, feedPreferenceCookie } from './feed-preference';
 import { FeedCategoryNav } from './feed-category-nav';
@@ -68,8 +70,25 @@ export async function CommunityHub({
   const path = `/${locale}/community/neighborhood`;
   const href = (values: Record<string, string>) =>
     `${path}?${new URLSearchParams({ child: context.child.id, category, sort, ...(search ? { q: search } : {}), ...values })}`;
-  const feed =
+  const boardResult =
     posts && hasResidence
+      ? await context.db.rpc('neighborhood_board_status', {
+          p_family: context.family.id,
+        })
+      : null;
+  if (boardResult?.error) throw Error('Neighborhood status unavailable');
+  const board = boardResult
+    ? z
+        .object({
+          families: z.number().int().min(0).max(3),
+          open: z.boolean(),
+          founders: z.array(z.string()).max(3),
+          reopened: z.boolean(),
+        })
+        .parse(boardResult.data)
+    : null;
+  const feed =
+    posts && hasResidence && board?.open
       ? await context.db.rpc('parenting_feed', {
           p_family: context.family.id,
           p_category: category,
@@ -122,6 +141,12 @@ export async function CommunityHub({
         <CommunityResidence context={context} locale={locale} area={area} />
       ) : !posts ? (
         <NeighborhoodFriends context={context} locale={locale} />
+      ) : !board?.open ? (
+        <NeighborhoodOpening
+          locale={locale}
+          neighborhood={context.family.residence_locality!}
+          families={board?.families ?? 0}
+        />
       ) : (
         <>
           {posts && (
@@ -201,6 +226,21 @@ export async function CommunityHub({
             tags={tags}
             initialTag={category}
           />
+          {board?.founders.length ? (
+            <aside className="neighborhood-opened-notice">
+              <span aria-hidden="true">🌱</span>
+              <p>
+                {ko
+                  ? `${board.founders.join(', ')} 가족과 함께 ${context.family.residence_locality} ${board.reopened ? '이야기가 다시 열렸어요.' : '이야기가 시작됐어요.'}`
+                  : `${board.founders.join(', ')} helped start our ${context.family.residence_locality} stories${board.reopened ? ' again' : ''}.`}
+                <small>
+                  {ko
+                    ? '가까이 사는 부모님들과 편하게 이야기 나눠보세요.'
+                    : 'Make yourself at home and say hello to nearby parents.'}
+                </small>
+              </p>
+            </aside>
+          ) : null}
           {showWelcome && (
             <CommunityWelcome
               neighborhood={context.family.residence_locality!}

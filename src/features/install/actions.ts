@@ -30,7 +30,7 @@ export async function saveAppIcon(form: FormData) {
       .delete()
       .eq('child_id', child);
     if (removed.error) redirect(`${target}&error=photo`);
-    redirect(target);
+    return { ok: true as const, token: null };
   }
   const file = form.get('photo');
   if (!(file instanceof File) || file.size <= 0 || file.size > 5 * 1024 * 1024)
@@ -63,6 +63,5 @@ export async function saveAppIcon(form: FormData) {
   } catch {
     redirect(`${target}&error=photo`);
   }
-  // A full navigation loads the new Apple icon and manifest before installation.
-  redirect(target);
+  return { ok: true as const, token };
 }

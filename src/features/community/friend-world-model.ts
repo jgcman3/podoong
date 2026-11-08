@@ -57,6 +57,7 @@ export type Playground = {
   max_x: number;
   height: number;
   population: number;
+  first_family?: boolean;
   left: number;
   right: number;
   own: WorldMember;

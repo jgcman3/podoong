@@ -2,11 +2,11 @@ import '@/features/growth-community/diary-actions.css';
 import { relationshipLabel } from '@/features/family/relationship';
 import { DiaryShare } from '@/features/growth-community/diary-share';
 import { DiaryComposer } from '@/features/growth-community/composer';
+import { DiaryEmptyState } from '@/features/growth-community/empty-diary';
 import Link from 'next/link';
 import { DiaryBody } from '@/features/growth-community/diary-body';
 import { notFound } from 'next/navigation';
 import {
-  BookOpen,
   PenLine,
   Venus,
   Mars,
@@ -133,6 +133,7 @@ export default async function Diaries({
               key={context.child.id}
               child={context.child.id}
               locale={locale}
+              firstEntry={page === 0 && !data?.length}
               triggerClassName="diary-write-button"
               trigger={
                 <>
@@ -217,6 +218,11 @@ export default async function Diaries({
               </header>
               <DiaryBody
                 recordId={entry.id}
+                moment={
+                  scope === 'mine' && context.writable
+                    ? { name: entry.nickname, age: entry.age_days }
+                    : undefined
+                }
                 reaction={reactionById.get(entry.id)}
                 photoCacheScope={`${context.user.id}:${context.user.last_sign_in_at ?? ''}`}
                 author={relationshipLabel(entry.author_relationship, locale)}
@@ -264,28 +270,16 @@ export default async function Diaries({
           ))}
         </div>
         {!data?.length && (
-          <section className="panel diary-empty">
-            <BookOpen size={30} aria-hidden="true" />
-            <p>
-              {scope === 'birth' && !context.child.birth_date
-                ? ko
-                  ? '출생일을 등록하면 같은 날 태어난 아이들의 일기를 볼 수 있어요.'
-                  : 'Add a birth date to see same-birthday diaries.'
-                : scope === 'mine'
-                  ? ko
-                    ? '아직 성장일기가 없어요.'
-                    : 'No growth diary entries yet.'
-                  : ko
-                    ? '공개된 성장일기가 없어요.'
-                    : 'No shared growth diaries yet.'}
-            </p>
-            {scope === 'birth' && !context.child.birth_date && (
-              <Link href={`/${locale}/family?child=${context.child.id}`}>
-                {ko ? '출생일 등록' : 'Add birth date'}
-              </Link>
-            )}
-          </section>
+          <DiaryEmptyState
+            context={context}
+            locale={locale}
+            scope={scope}
+            age={age}
+            page={page}
+            href={href}
+          />
         )}
+
         <nav
           className="pagination"
           aria-label={ko ? '성장일기 페이지' : 'Diary pages'}

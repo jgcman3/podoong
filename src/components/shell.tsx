@@ -1,4 +1,3 @@
-import { ChildIcon } from './child-icon';
 import Link from 'next/link';
 import { NavigationStatus } from './navigation-status';
 import { getTranslations } from 'next-intl/server';
@@ -9,6 +8,7 @@ import {
   MessagesSquare,
   Heart,
   ArrowRight,
+  Settings,
 } from 'lucide-react';
 import { BrandImage } from './brand-image';
 import { TopbarChildPicker } from './topbar-child-picker';
@@ -44,9 +44,13 @@ export async function Shell({
   }).format(new Date(`${today}T12:00:00Z`));
   const ageFor = (c: typeof child) =>
     c.birth_date
-      ? t('days', { days: ageInDays(c.birth_date, today) })
+      ? section === 'today'
+        ? `D+${ageInDays(c.birth_date, today)}`
+        : t('days', { days: ageInDays(c.birth_date, today) })
       : t('birthDateMissing');
   const age = ageFor(child);
+  const settingsPage = section === 'account' || section === 'settings';
+  const settingsLabel = locale === 'ko' ? '설정' : 'Settings';
   const childInTopbar = [
     'today',
     'insights',
@@ -99,7 +103,7 @@ export async function Shell({
             </Link>
           ))}
           <Link
-            className={`nav-link desktop-child-link ${['account', 'family', 'settings'].includes(section) ? 'active' : ''}`}
+            className={`nav-link desktop-settings-link ${['account', 'family', 'settings'].includes(section) ? 'active' : ''}`}
             href={`/${locale}/account?child=${child.id}`}
             replace
             prefetch={true}
@@ -110,8 +114,8 @@ export async function Shell({
             }
           >
             <NavigationStatus locale={locale} />
-            <ChildIcon sex={child.sex} size={20} />
-            <span>{child.name}</span>
+            <Settings size={20} aria-hidden="true" />
+            <span>{settingsLabel}</span>
             {['account', 'family', 'settings'].includes(section) && (
               <span className="nav-dot" />
             )}
@@ -120,7 +124,9 @@ export async function Shell({
       </aside>
       <div className="app-content">
         <header className="topbar">
-          {childInTopbar ? (
+          {settingsPage ? (
+            <span className="topbar-page-title">{settingsLabel}</span>
+          ) : childInTopbar ? (
             <TopbarChildPicker
               key={child.id}
               current={childOptions.find((option) => option.id === child.id)!}
@@ -200,7 +206,7 @@ export async function Shell({
           </Link>
         ))}
         <Link
-          className={`mobile-child-link ${['account', 'family', 'settings'].includes(section) ? 'active' : ''}`}
+          className={`mobile-settings-link ${['account', 'family', 'settings'].includes(section) ? 'active' : ''}`}
           href={`/${locale}/account?child=${child.id}`}
           replace
           prefetch={true}
@@ -211,8 +217,8 @@ export async function Shell({
           }
         >
           <NavigationStatus locale={locale} />
-          <ChildIcon sex={child.sex} size={21} />
-          <span>{child.name}</span>
+          <Settings size={21} aria-hidden="true" />
+          <span>{settingsLabel}</span>
         </Link>
       </nav>
     </div>

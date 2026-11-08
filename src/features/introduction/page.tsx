@@ -39,13 +39,27 @@ const copy = {
     eyebrow: '아이의 하루를, 가족과 함께',
     title: (
       <>
-        함께 돌보는,
+        함께 돌보고,
         <br />
-        포근한 둥지
+        함께 기억해요.
       </>
     ),
     description:
-      '먹고, 자고, 자라는 순간을 간편하게 기록하고 가족과 함께 나눠요.',
+      '언제 먹었는지, 얼마나 잤는지. 같은 기록을 보고 함께 돌봐요. 함께 돌본 하루는 성장일기로 남아요.',
+    handoffLead: '한 번의 기록이, 가족의 하루를 이어줘요.',
+    handoffBody: '돌보는 사람이 바뀌어도 아이의 하루는 이어지니까요.',
+    handoffSteps: [
+      ['엄마가 기록해요', '분유 160 ml를 먹고 잠든 순간을 간편하게 남겨요.'],
+      [
+        '아빠가 확인해요',
+        '최근 식사·수면과 누가 남긴 기록인지 확인하고 이어서 돌봐요.',
+      ],
+      [
+        '우리 가족의 추억이 돼요',
+        '사진과 우리만의 이야기에 하루 패턴·기록을 함께 담아요.',
+      ],
+    ],
+    sharedPreview: '엄마가 남긴 기록을 아빠도 함께 봐요',
     explore: '어떤 서비스인가요?',
     sample: '예시 화면',
     child: '포둥이',
@@ -133,9 +147,9 @@ const copy = {
       '알림을 허용한 지원 기기에서 이용해요. 아이폰은 홈 화면에 추가한 뒤 알림을 켜주세요.',
     diaryNote: '처음으로 혼자 앉았어요.\n작은 순간인데, 오래 기억하고 싶어요.',
     diaryImage: '성장일기 예시 일러스트',
-    family: '엄마도 아빠도, 같은 기록을 봐요',
+    family: '다음 돌봄도, 같은 기록을 보면서',
     familyBody:
-      '보호자를 초대해 함께 기록하고, 마지막 식사와 수면을 확인해요. “언제 먹었지?”를 다시 묻지 않아도 되도록.',
+      '배우자와 조부모를 보호자로 초대해 보세요. 최근 식사·수면, 기록한 보호자와 남긴 메모를 함께 확인할 수 있어요.',
     closing: '오늘부터, 함께 돌봐요.',
     closingBody: '소셜 계정으로 시작하고 우리 아이의 첫 기록을 남겨보세요.',
     terms: '이용약관',
@@ -152,11 +166,26 @@ const copy = {
       <>
         Care together.
         <br />
-        Grow closer.
+        Remember together.
       </>
     ),
     description:
-      'Keep feeding, sleep and growing moments in one cozy place, together with your family.',
+      'When was the last feed? How long did they sleep? Share the same records, take turns caring, and keep those days in a diary.',
+    handoffLead: 'One record. Everyone on the same page.',
+    handoffBody:
+      'A different caregiver, with the same picture of your child’s day.',
+    handoffSteps: [
+      ['One parent records', 'Save a 160 ml bottle and a nap in a few taps.'],
+      [
+        'The next caregiver checks',
+        'See the latest feed, sleep and who recorded them before taking over.',
+      ],
+      [
+        'Your family remembers',
+        'Keep your photos and your own words alongside daily care patterns and records.',
+      ],
+    ],
+    sharedPreview: 'Recorded by one parent, seen by both',
     explore: 'Take a look inside',
     sample: 'Example screen',
     child: 'Little Podoong',
@@ -250,7 +279,7 @@ const copy = {
     diaryImage: 'Illustration for the example diary',
     family: 'Different caregivers. The same page.',
     familyBody:
-      'Invite caregivers to record together and see the latest feed or sleep. Less asking, “When was the last bottle?”',
+      'Invite your partner or grandparents to see the latest feeding and sleep records, who recorded them and their notes.',
     closing: 'A cozy start, together.',
     closingBody:
       'Sign in with a social account and save your child’s first moment.',
@@ -374,6 +403,10 @@ export function Introduction({
               </span>
               <span className={styles.sample}>{t.sample}</span>
             </div>
+            <div className={styles.sharedPreview}>
+              <Users size={14} aria-hidden="true" />
+              {t.sharedPreview}
+            </div>
             <div className={styles.previewDate}>
               <strong>{t.date}</strong>
               <span>{t.total}</span>
@@ -413,7 +446,27 @@ export function Introduction({
           </figure>
         </section>
 
-        <section id="features" className={styles.recordIntro}>
+        <section id="features" className={styles.handoff}>
+          <h2>{t.handoffLead}</h2>
+          <p>{t.handoffBody}</p>
+          <div className={styles.handoffSteps}>
+            {t.handoffSteps.map(([title, body], index) => {
+              const Icon = [Utensils, Users, BookOpen][index];
+              return (
+                <article key={title}>
+                  <span>
+                    <Icon size={21} aria-hidden="true" />
+                  </span>
+                  <small>0{index + 1}</small>
+                  <h3>{title}</h3>
+                  <p>{body}</p>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className={styles.recordIntro}>
           <div>
             <span className={styles.number}>01 / EVERYDAY CARE</span>
             <h2>{t.quick}</h2>

@@ -4,6 +4,10 @@ import { setDiaryLike } from './like-action';
 import { DiaryThumbnail } from './thumbnail';
 import { createPortal } from 'react-dom';
 import { DiaryDetail } from './diary-detail';
+import dynamic from 'next/dynamic';
+const MomentShare = dynamic(() =>
+  import('./moment-share').then((module) => module.MomentShare),
+);
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 function DiaryNote({
@@ -73,9 +77,11 @@ export function DiaryBody({
   photoCacheScope,
   recordId,
   reaction: initialReaction,
+  moment,
 }: {
   recordId?: string;
   reaction?: DiaryReaction;
+  moment?: { name: string; age: number | null };
   note: string;
   author?: string;
   date: string;
@@ -212,6 +218,18 @@ export function DiaryBody({
         createPortal(
           <DiaryDetail
             reactions={likeButton}
+            momentAction={
+              moment ? (
+                <MomentShare
+                  name={moment.name}
+                  age={moment.age}
+                  note={note}
+                  date={date}
+                  photos={photos}
+                  locale={locale}
+                />
+              ) : undefined
+            }
             author={author}
             date={date}
             note={note}

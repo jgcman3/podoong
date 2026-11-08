@@ -1,34 +1,46 @@
 'use client';
 import { DiaperIcon } from '@/components/diaper-icon';
 import { BreastIcon } from '@/components/breast-icon';
-import { useEffect, useState } from 'react';
-import { Milk, Utensils, Moon } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Milk, Utensils, Moon, MessageCircle } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import type { Row } from '@/lib/db';
 import { kindLabel } from '@/features/child-care/copy';
 import { careDuration, careElapsed } from './last-care-model';
+import { relationshipLabel } from '@/features/family/relationship';
 type Feed = Pick<
   Row<'care_records'>,
-  'id' | 'kind' | 'started_at' | 'ended_at' | 'amount_ml' | 'timer_started'
+  | 'id'
+  | 'kind'
+  | 'started_at'
+  | 'ended_at'
+  | 'amount_ml'
+  | 'timer_started'
+  | 'created_by'
+  | 'note'
 >;
 type Record = Pick<
   Row<'child_records'>,
-  'id' | 'kind' | 'occurred_at' | 'ended_at'
+  'id' | 'kind' | 'occurred_at' | 'ended_at' | 'created_by' | 'note'
 >;
 export function LastCare({
   locale,
-  timezone,
   feeding,
   diaper,
   sleep,
   now: initialNow,
+  caregivers,
+  inviteAction,
+  childPicker,
 }: {
   locale: Locale;
-  timezone: string;
   feeding: Feed | null;
   diaper: Record | null;
   sleep: Record | null;
   now: string;
+  caregivers: { id: string; relationship?: string | null }[];
+  inviteAction?: ReactNode;
+  childPicker?: ReactNode;
 }) {
   const [now, setNow] = useState(() => Date.parse(initialNow));
   useEffect(() => {
@@ -64,6 +76,17 @@ export function LastCare({
           ? '분유'
           : 'Formula';
   const amount = feeding?.amount_ml != null ? `${feeding.amount_ml} ml` : '';
+  const feedingRunning =
+    !!feeding &&
+    !feeding.ended_at &&
+    (feeding.kind === 'breast' || feeding.timer_started);
+  const sleepRunning = !!sleep && !sleep.ended_at;
+  const recorder = (id: string | null | undefined) => {
+    const caregiver = caregivers.find((person) => person.id === id);
+    return caregiver?.relationship
+      ? relationshipLabel(caregiver.relationship, locale)
+      : ko ? '가족' : 'Family';
+  };
   const cards = [
     {
       key: 'diaper',
@@ -73,6 +96,8 @@ export function LastCare({
       at: diaper?.occurred_at,
       value: diaper ? careElapsed(diaper.occurred_at, now, locale) : null,
       detail: diaper ? kindLabel(diaper.kind, locale) : '',
+      record: diaper,
+      ongoing: false,
     },
     {
       key: 'feeding',
@@ -86,26 +111,17 @@ export function LastCare({
             : Milk,
       at: feeding?.started_at,
       value: feeding
-        ? !(
-            !feeding.ended_at &&
-            (feeding.kind === 'breast' || feeding.timer_started)
-          )
+        ? !feedingRunning
           ? careElapsed(feeding.started_at, now, locale)
           : running(feeding.started_at)
         : null,
       detail: feeding
-        ? [
-            foodName,
-            !feeding.ended_at &&
-            (feeding.kind === 'breast' || feeding.timer_started)
-              ? ko
-                ? '수유 중'
-                : 'In progress'
-              : amount,
-          ]
+        ? [foodName, feedingRunning ? (ko ? '수유 중' : 'In progress') : amount]
             .filter(Boolean)
             .join(' · ')
         : '',
+      record: feeding,
+      ongoing: feedingRunning,
     },
     {
       key: 'sleep',
@@ -125,47 +141,83 @@ export function LastCare({
             ? '수면 중'
             : 'Sleeping'
         : '',
+      record: sleep,
+      ongoing: sleepRunning,
     },
   ];
   return (
     <section
-      className="last-care"
+      className="care-handoff"
       aria-label={ko ? '최근 돌봄 요약' : 'Latest care summary'}
     >
-      {cards.map((card) => {
-        const Icon = card.icon;
-        return (
-          <article
-            key={card.key}
-            className={`last-care-card quick-color-${card.color}`}
-            data-last-care={card.key}
-          >
-            <div className="last-care-heading">
-              <span className="last-care-icon">
-                <Icon size={18} />
-              </span>
-              <h2>{card.label}</h2>
-            </div>
-            {card.at ? (
-              <time
-                dateTime={new Date(card.at).toISOString()}
-                title={new Intl.DateTimeFormat(locale, {
-                  timeZone: timezone,
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                }).format(new Date(card.at))}
-              >
-                {card.value}
-              </time>
-            ) : (
-              <strong className="last-care-empty">
-                {ko ? '기록 없음' : 'No record'}
-              </strong>
-            )}
-            {card.detail && <p>{card.detail}</p>}
-          </article>
-        );
-      })}
+      <header className="care-handoff-heading">
+        {childPicker && (
+          <div className="care-handoff-child-picker">{childPicker}</div>
+        )}
+        {inviteAction ?? (
+          <span>{ko ? '함께 보는 돌봄 기록' : 'Shared with your family'}</span>
+        )}
+      </header>
+      <div className="last-care">
+        {cards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <article
+              key={card.key}
+              className={`last-care-card quick-color-${card.color}${card.ongoing ? ' is-ongoing' : ''}`}
+              data-last-care={card.key}
+            >
+              <div className="last-care-heading">
+                <span className="last-care-icon">
+                  <Icon size={18} />
+                </span>
+                <h3>{card.label}</h3>
+                {card.ongoing && (
+                  <span
+                    className="last-care-live"
+                    aria-label={ko ? '진행 중' : 'In progress'}
+                  />
+                )}
+              </div>
+              {card.at ? (
+                <time dateTime={new Date(card.at).toISOString()}>
+                  {card.value}
+                </time>
+              ) : (
+                <strong className="last-care-empty">
+                  {ko ? '기록 없음' : 'No record'}
+                </strong>
+              )}
+              {card.at && (
+                <div className="last-care-detail">
+                  <span>{card.detail}</span>
+                  <span className="last-care-recorder" title={recorder(card.record?.created_by)}>
+                    {recorder(card.record?.created_by)}
+                  </span>
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+      {cards.some((card) => card.record?.note.trim()) && (
+        <div className="care-handoff-notes">
+          <h3>
+            <MessageCircle size={14} aria-hidden="true" />
+            {ko ? '기록에 남긴 메모' : 'Notes from recent care'}
+          </h3>
+          {cards
+            .filter((card) => card.record?.note.trim())
+            .map((card) => (
+              <div key={card.key} className="care-handoff-note">
+                <span>
+                  {card.label} · {recorder(card.record?.created_by)}
+                </span>
+                <p>{card.record?.note}</p>
+              </div>
+            ))}
+        </div>
+      )}
     </section>
   );
 }

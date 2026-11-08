@@ -15,6 +15,7 @@ insert into children(id,family_id,name,sex,birth_date) values
 insert into public.signup_agreements(user_id,kind,version,interface_locale) select p.id,d.kind,d.version,'ko' from public.profiles p cross join public.signup_document_versions d where p.id::text like 'a9970000-%' and d.is_current on conflict do nothing;
 insert into public.signup_privacy_choices(user_id,version,locale,child_information,authority,health,public_sharing,neighborhood) select id,public.current_signup_privacy_version(),'ko',true,true,true,true,true from profiles where id::text like 'a9970000-%';
 insert into child_privacy_consents(child_id,accepted_by,version,child_information,authority,health,public_sharing,neighborhood) select k.id,m.user_id,public.current_signup_privacy_version(),true,true,true,true,true from children k join family_members m on m.family_id=k.family_id where k.id::text like 'c9970000-%';
+\ir support/open-neighborhoods.inc
 insert into neighborhood_posts(id,region,feature,family_id,author_id,title,body,category,audience) values
 ('d9970000-0000-4000-8000-000000000001','fixture','boards','b9970000-0000-4000-8000-000000000001','a9970000-0000-4000-8000-000000000001','Neighborhood fixture','Original public content','daily','neighborhood'),
 ('d9970000-0000-4000-8000-000000000002','fixture','boards','b9970000-0000-4000-8000-000000000001','a9970000-0000-4000-8000-000000000001','Local fixture','Local content','local-daily','neighborhood');

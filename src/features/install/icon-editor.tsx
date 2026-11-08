@@ -5,6 +5,7 @@ import { Camera, Check, RotateCcw } from 'lucide-react';
 import type { Locale } from '@/lib/domain';
 import { saveAppIcon } from './actions';
 import styles from './install.module.css';
+import { useRouter } from 'next/navigation';
 import { appName } from './manifest';
 
 export function IconEditor({
@@ -13,14 +14,18 @@ export function IconEditor({
   token,
   editable,
   prepared,
+  inline = false,
 }: {
   locale: Locale;
   child: string;
   token?: string;
   editable: boolean;
   prepared: boolean;
+  inline?: boolean;
 }) {
   const ko = locale === 'ko';
+  const router = useRouter();
+  const [currentToken, setCurrentToken] = useState(token);
   const canvas = useRef<HTMLCanvasElement>(null);
   const image = useRef<HTMLImageElement | null>(null);
   const [source, setSource] = useState<string | null>(null);
@@ -29,6 +34,7 @@ export function IconEditor({
   const [ready, setReady] = useState(false);
   const [busy, startTransition] = useTransition();
   useEffect(() => {
+    if (inline) return;
     // Installation must start on a fresh document: an earlier browser prompt
     // can otherwise retain the generic manifest from before the photo upload.
     const url = new URL(window.location.href);
@@ -48,7 +54,7 @@ export function IconEditor({
         url.pathname + url.search,
       );
     }
-  }, [token, locale, child, prepared]);
+  }, [token, locale, child, prepared, inline]);
   useEffect(() => {
     if (!source) return;
     const loaded = new Image();
@@ -85,6 +91,19 @@ export function IconEditor({
       512,
     );
   }, [crop, source, ready]);
+  async function save(form: FormData) {
+    const result = await saveAppIcon(form);
+    if (inline) {
+      setCurrentToken(result.token ?? undefined);
+      setSource(null);
+      setReady(false);
+      router.refresh();
+    } else {
+      window.location.replace(
+        `/api/prepare-install?locale=${locale}&child=${encodeURIComponent(child)}`,
+      );
+    }
+  }
   function apply() {
     canvas.current?.toBlob((blob) => {
       if (!blob) {
@@ -96,7 +115,7 @@ export function IconEditor({
       form.set('child', child);
       form.set('photo', blob, 'app-icon.png');
       startTransition(async () => {
-        await saveAppIcon(form);
+        await save(form);
       });
     }, 'image/png');
   }
@@ -114,8 +133,8 @@ export function IconEditor({
           /* eslint-disable-next-line @next/next/no-img-element -- Private capability URL or local brand asset. */
           <img
             src={
-              token
-                ? `/api/app-icon/${token}/192`
+              currentToken
+                ? `/api/app-icon/${currentToken}/192`
                 : '/icons/podung-192.png?v=full-20261029'
             }
             alt={ko ? '홈 화면 아이콘 미리보기' : 'Home Screen icon preview'}
@@ -189,8 +208,16 @@ export function IconEditor({
               </button>
             </div>
           )}
-          {token && !source && (
-            <form action={saveAppIcon}>
+          {currentToken && !source && (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                const form = new FormData(event.currentTarget);
+                startTransition(async () => {
+                  await save(form);
+                });
+              }}
+            >
               <input type="hidden" name="locale" value={locale} />
               <input type="hidden" name="child" value={child} />
               <input type="hidden" name="remove" value="yes" />

@@ -8,19 +8,16 @@ import { requireUser } from '@/lib/data';
 import { acceptInvite } from '@/features/family/actions';
 import { BrandImage } from '@/components/brand-image';
 import type { Locale } from '@/lib/domain';
+import { familyInviteCopy } from '@/features/family/invite-copy';
+import { InviteBenefits } from '@/features/family/invite-benefits';
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: Locale; token: string }>;
 }): Promise<Metadata> {
-  const ko = (await params).locale === 'ko';
-  const title = ko
-    ? '가족을 초대합니다 · 포둥'
-    : 'You’re invited to join your family · podoong';
-  const description = ko
-    ? '포둥에서 우리 아이의 하루를 함께 기록하고 돌봐요.'
-    : 'Record and care for your little one together on podoong.';
+  const { locale } = await params;
+  const { title, description } = familyInviteCopy(locale);
   return {
     metadataBase: new URL(
       process.env.NEXT_PUBLIC_SITE_URL ?? 'https://podoong.com',
@@ -70,9 +67,10 @@ export default async function Invitation({
           </h1>
           <p>
             {ko
-              ? '포둥에서 우리 아이의 하루를 함께 기록하고 돌봐요. 로그인 후 참여할 가족과 초대 내용을 확인할 수 있어요.'
-              : 'Record and care for your little one together on podoong. Sign in to review your family invitation.'}
+              ? '같은 기록을 보며 번갈아 돌봐요. 로그인 후 참여할 가족과 초대 내용을 확인할 수 있어요.'
+              : 'Take turns caring with the same records. Sign in to review your family invitation.'}
           </p>
+          <InviteBenefits locale={locale} />
           <Link
             className="button primary"
             href={`/${locale}/login?next=${encodeURIComponent(path)}`}
@@ -109,6 +107,7 @@ export default async function Invitation({
       <section className="onboard-card family-join-review">
         <BrandImage />
         <h1>{ko ? '가족에 참여하기' : 'Join your family'}</h1>
+        {preview && <InviteBenefits locale={locale} />}
         {!preview ? (
           <p role="alert">
             {ko
@@ -191,14 +190,14 @@ export default async function Invitation({
                       ? '아이를 함께 옮기려면 기록 가능한 보호자 초대가 필요합니다. 가족관리자에게 새 초대를 요청해 주세요.'
                       : 'An editor invitation is needed to bring children. Ask the administrator for a new invitation.'
                     : ko
-                      ? '기존 가족에 다른 보호자가 남아 있습니다. 함께 사용하는 아이를 옮기기 전에 보호자 설정에서 접근 권한을 정리해 주세요.'
-                      : 'Other caregivers remain in your existing family. Review their access in caregiver settings before moving shared children.'}
+                      ? '기존 가족에 다른 보호자가 남아 있습니다. 함께 사용하는 아이를 옮기기 전에 가족 설정에서 접근 권한을 정리해 주세요.'
+                      : 'Other caregivers remain in your existing family. Review their access in family settings before moving shared children.'}
                 </p>
                 <Link
                   href={`/${locale}/account?panel=family`}
                   className="button secondary"
                 >
-                  {ko ? '보호자 설정' : 'Caregiver settings'}
+                  {ko ? '가족 설정' : 'Family settings'}
                 </Link>
               </div>
             ) : (
