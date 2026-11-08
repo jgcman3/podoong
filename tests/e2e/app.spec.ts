@@ -3719,7 +3719,8 @@ test('compact mobile navigation switches children and opens language settings', 
     await expect(picker).toContainText('설정');
     for (const section of ['today', 'insights']) {
       await page.goto(`/ko/${section}?child=${child}`);
-      const rail = page.locator('.mobile-function-rail');
+      const rail = page.locator('.mobile-function-rail:visible');
+      await expect(rail).toHaveCount(1);
       await expect(rail).toBeVisible();
       const box = await rail.boundingBox();
       expect(box!.height).toBeLessThanOrEqual(68);
@@ -6532,9 +6533,11 @@ test('installation is offered only on the first child account visit and always s
  await expect(english).toBeVisible();
  await page.screenshot({path:test.info().outputPath('account-install-first-desktop.png')});
  await english.getByRole('link',{name:'Installation guide',exact:true}).click();
- await expect(page).toHaveURL(/\/en\/today\?child=[^&]+$/);
+ await page.waitForURL(url => url.pathname === '/en/today', {waitUntil:'load',timeout:30000});
  const installation=page.getByRole('dialog',{name:'Add to Home Screen',exact:true});
  await expect(installation).toBeVisible();
+ await expect.poll(() => installation.evaluate(dialog => dialog.matches(':modal')), {timeout:30000}).toBe(true);
+ await expect(page).toHaveURL(/\/en\/today\?child=[^&]+$/);
  const manifest=await page.locator('link[rel="manifest"]').getAttribute('href');
  expect((await (await page.request.get(manifest!)).json()).start_url).toBe('/en/today');
  await expect(page.getByRole('link',{name:'Start using podoong',exact:true})).toHaveCount(0);
@@ -6799,25 +6802,25 @@ test('home screen installation sheet opens and closes in settings without reload
   const home = await childCareFamily(context);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/ko/account?child=${home.child}`);
-  await page.evaluate(() => { document.documentElement.dataset.installDocument = 'unchanged'; });
+  await page.evaluate(() => { (window as Window & { installDocument?: string }).installDocument = 'unchanged'; });
   const trigger = page.locator('.settings-install > a');
   await trigger.click();
   const sheet = page.getByRole('dialog', { name: '홈 화면에 추가', exact: true });
   await expect(sheet).toBeVisible();
   await expect.poll(() => sheet.evaluate(dialog => dialog.matches(':modal'))).toBe(true);
   await expect(page).toHaveURL(new RegExp(`/ko/account\\?child=${home.child}$`));
-  await expect(page.locator('html')).toHaveAttribute('data-install-document', 'unchanged');
+  expect(await page.evaluate(() => (window as Window & { installDocument?: string }).installDocument)).toBe('unchanged');
   await sheet.getByRole('button', { name: '닫기', exact: true }).click();
   await expect(sheet).toHaveCount(0);
   await expect(trigger).toBeFocused();
-  await expect(page.locator('html')).toHaveAttribute('data-install-document', 'unchanged');
+  expect(await page.evaluate(() => (window as Window & { installDocument?: string }).installDocument)).toBe('unchanged');
   await trigger.click();
   await expect(sheet).toBeVisible();
   await expect.poll(() => sheet.evaluate(dialog => dialog.matches(':modal'))).toBe(true);
   await page.keyboard.press('Escape');
   await expect(sheet).toHaveCount(0);
   await expect(trigger).toBeFocused();
-  await expect(page.locator('html')).toHaveAttribute('data-install-document', 'unchanged');
+  expect(await page.evaluate(() => (window as Window & { installDocument?: string }).installDocument)).toBe('unchanged');
 });
 
 
