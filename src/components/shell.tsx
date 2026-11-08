@@ -96,7 +96,7 @@ export async function Shell({
               <Icon size={20} />
               {key === 'neighborhood'
                 ? locale === 'ko'
-                  ? '동네 소통'
+                  ? '동네 육아'
                   : 'Neighborhood community'
                 : t(key === 'community' ? 'growthDiary' : key)}
               {section === key && <span className="nav-dot" />}
@@ -197,7 +197,7 @@ export async function Shell({
             <span>
               {key === 'neighborhood'
                 ? locale === 'ko'
-                  ? '동네 소통'
+                  ? '동네 육아'
                   : 'Talk'
                 : key === 'community' && locale === 'en'
                   ? 'Diary'

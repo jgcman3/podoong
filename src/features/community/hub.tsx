@@ -122,11 +122,11 @@ export async function CommunityHub({
     >
       <Flash error={error} />
       <h1 className="visually-hidden">
-        {ko ? '동네 소통' : 'Neighborhood community'}
+        {ko ? '동네 육아' : 'Neighborhood community'}
       </h1>
       <nav
         className="diary-tabs parenting-tabs"
-        aria-label={ko ? '동네 소통 메뉴' : 'Community sections'}
+        aria-label={ko ? '동네 육아 메뉴' : 'Community sections'}
       >
         {(
           [

@@ -10,7 +10,7 @@
 | [개인정보 처리방침](privacy-policy.ko.md)                       | 처리 목적·항목·업체·국외 처리·보유기간·권리 |
 | [가입 수집·이용 안내](signup-privacy.ko.md)                     | 가입 화면 필수·선택 구분과 요약 표          |
 | [동의 안내](consent-notices.ko.md)                              | 한 화면에서 받는 체크 항목·변경·철회        |
-| [육아 소통 운영정책](community-policy.ko.md)                    | 동네 놀이터·게시글·댓글·운영 조치           |
+| [동네 육아 운영정책](community-policy.ko.md)                    | 동네 놀이터·게시글·댓글·운영 조치           |
 | [개인정보·동의 구현 명세](../implementation/privacy-consent.md) | 개발·운영 확인과 남은 외부 설정             |
 
 ## 연락처·메일 운영

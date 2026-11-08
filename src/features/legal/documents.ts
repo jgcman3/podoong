@@ -15,7 +15,7 @@ export const legalDocuments = {
     file: 'privacy-policy.ko.md',
   },
   community: {
-    ko: '육아 소통 운영정책',
+    ko: '동네 육아 운영정책',
     en: 'Community Policy',
     file: 'community-policy.ko.md',
   },

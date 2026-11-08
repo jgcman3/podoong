@@ -479,7 +479,7 @@ export async function AdminView({
                 today: '오늘',
                 insights: '인사이트',
                 diary: '성장일기',
-                community: '동네 소통',
+                community: '동네 육아',
                 account: '설정',
               }
             : {

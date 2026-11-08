@@ -1,6 +1,6 @@
 import type { Locale } from '@/lib/domain';
 const ko = {
-  title: '동네 소통',
+  title: '동네 육아',
   titleLabel: '제목',
   report: '신고',
   reason: '사유',

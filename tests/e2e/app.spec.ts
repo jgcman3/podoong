@@ -1157,7 +1157,7 @@ test('responsive dashboard and current navigation remain within the viewport', a
     });
   }
   await expect(page.locator('.mobile-nav a')).toHaveText([
-    '오늘', '인사이트', '성장 일기', '동네 소통', '설정',
+    '오늘', '인사이트', '성장 일기', '동네 육아', '설정',
   ]);
   for (const section of ['today','insights','community/diaries','community','account']) {
     await page.goto(`/ko/${section}?child=${child.id}`);
@@ -5939,7 +5939,7 @@ test('diary composer attaches daily records alongside a pattern with the child a
  expect(combined.some(draw=>/^D\+\d+$/.test(draw.text)&&draw.x===900)).toBe(true);
  await sheet.getByRole('button',{name:'2번 사진 앞으로',exact:true}).click();await sheet.getByRole('button',{name:'저장',exact:true}).click();await expect(sheet).toBeHidden({timeout:15000});
  const photos=await admin.from('child_record_photos').select('id,sort_order').eq('child_id',child).order('sort_order');expect(photos.error).toBeNull();expect(photos.data?.map(photo=>photo.sort_order)).toEqual([0,1]);
- await page.goto(`/ko/community?child=${child}`);await expect(page.getByRole('heading',{name:'동네 소통',exact:true})).toBeVisible();await expect(page.getByText('육아맘 커뮤니티',{exact:true})).toHaveCount(0);
+ await page.goto(`/ko/community?child=${child}`);await expect(page.getByRole('heading',{name:'동네 육아',exact:true})).toBeVisible();await expect(page.getByText('육아맘 커뮤니티',{exact:true})).toHaveCount(0);
 });
 
 
